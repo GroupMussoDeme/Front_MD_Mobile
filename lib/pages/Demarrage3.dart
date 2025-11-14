@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 class Demarrage3 extends StatefulWidget {
+  const Demarrage3({super.key});
+
   @override
   _Demarrage3State createState() => _Demarrage3State();
 }
