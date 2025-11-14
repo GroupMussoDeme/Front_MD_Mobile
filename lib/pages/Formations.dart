@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'HomeScreen.dart';
+import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 
 class FormationVideosPage extends StatefulWidget {
   const FormationVideosPage({super.key});
@@ -92,29 +93,15 @@ class _FormationVideosPageState extends State<FormationVideosPage> {
               ),
             ),
           ),
-
-          // Footer navigation
-          Container(
-            height: 80,
-            decoration: BoxDecoration(
-              color: primaryPurple,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _buildNavItem(Icons.home, "Accueil", 0),
-                  _buildNavItem(Icons.school, "Formation", 1, active: true),
-                  _buildNavItem(Icons.person, "Profil", 2),
-                ],
-              ),
-            ),
-          ),
         ],
+      ),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
       ),
     );
   }

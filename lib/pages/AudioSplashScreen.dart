@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 
 // --- Définition des couleurs de la Charte Graphique ---
 const Color primaryViolet = Color(0xFF491B6D);
@@ -103,10 +104,17 @@ class WomenRightsScreen extends StatefulWidget {
 }
 
 class _WomenRightsScreenState extends State<WomenRightsScreen> {
+  int _selectedIndex = 0;
   // Simuler le statut de lecture global
   bool _isGlobalAudioPlaying = true; 
   // Simuler le chapitre en cours de lecture
   int _currentPlayingIndex = 2; // Index 2 correspond à "Protection contre la violence"
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   // Liste des chapitres
   final List<Map<String, dynamic>> _chapters = [
@@ -121,66 +129,97 @@ class _WomenRightsScreenState extends State<WomenRightsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: lightGrey,
+      appBar: null,
       
-      // 1. AppBar personnalisée
-      appBar: AppBar(
-        backgroundColor: primaryViolet,
-        elevation: 0,
-        toolbarHeight: 60,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: neutralWhite),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          "Droits des femmes",
-          style: TextStyle(color: neutralWhite, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: neutralWhite),
-            onPressed: () { /* Action notification */ },
-          ),
-        ],
-      ),
-
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // 2. Panneau d'Introduction Audio
-                  _buildIntroPanel(),
-                  
-                  const SizedBox(height: 15),
-
-                  // 3. Liste des chapitres audio
-                  ..._chapters.asMap().entries.map((entry) {
-                    final index = entry.key;
-                    final item = entry.value;
-                    return AudioChapterItem(
-                      icon: item['icon'] as IconData,
-                      title: item['title'] as String,
-                      duration: item['duration'] as String,
-                      isPlaying: _currentPlayingIndex == index, // Met en pause celui qui correspond
-                      onActionPressed: () {
-                        setState(() {
-                          // Logique simple de bascule Play/Pause
-                          _currentPlayingIndex = _currentPlayingIndex == index ? -1 : index; 
-                        });
-                      },
-                    );
-                  }),
-                ],
+          // Header violet arrondi
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 100,
+              decoration: const BoxDecoration(
+                color: primaryViolet,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(25),
+                  bottomRight: Radius.circular(25),
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: neutralWhite),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          "Droits des femmes",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: neutralWhite,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none, color: neutralWhite),
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
+          // Contenu scrollable
+          Positioned.fill(
+            top: 100,
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 2. Panneau d'Introduction Audio
+                        _buildIntroPanel(),
+                        
+                        const SizedBox(height: 15),
 
-          // 4. Barre de contrôle audio inférieure
-          _buildAudioControls(),
+                        // 3. Liste des chapitres audio
+                        ..._chapters.asMap().entries.map((entry) {
+                          final index = entry.key;
+                          final item = entry.value;
+                          return AudioChapterItem(
+                            icon: item['icon'] as IconData,
+                            title: item['title'] as String,
+                            duration: item['duration'] as String,
+                            isPlaying: _currentPlayingIndex == index, // Met en pause celui qui correspond
+                            onActionPressed: () {
+                              setState(() {
+                                // Logique simple de bascule Play/Pause
+                                _currentPlayingIndex = _currentPlayingIndex == index ? -1 : index; 
+                              });
+                            },
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 4. Barre de contrôle audio inférieure
+                _buildAudioControls(),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -25,10 +25,16 @@ class _InscriptionScreenState extends State<Confirmationscreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Widget logoImage = const Icon(
-      Icons.person,
-      color: primaryViolet,
-      size: 45,
+    final Widget logoImage = Image.asset(
+      'assets/images/logo.png',
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) {
+        return const Icon(
+          Icons.person,
+          color: primaryViolet,
+          size: 45,
+        );
+      },
     );
 
     return Scaffold(
@@ -38,7 +44,7 @@ class _InscriptionScreenState extends State<Confirmationscreen> {
         child: Column(
           children: <Widget>[
             // 1. Zone Supérieure (Tête de page et Logo)
-            PrimaryHeader(logoChild: logoImage),
+            PrimaryHeader(logoChild: logoImage, showNotification: false),
             
             const SizedBox(height: 50),
             

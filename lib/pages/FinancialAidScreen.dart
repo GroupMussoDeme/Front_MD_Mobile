@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 // NOTE: Assurez-vous d'avoir cet import, l'écran d'appel doit être défini ici.
-import 'appel_screen.dart'; 
+import 'appel_screen.dart';
+import 'DetailsSurMicroCredit.dart';
+import 'package:musso_deme_app/wingets/BottomNavBar.dart'; 
 
 // --- Définition des couleurs de la Charte Graphique ---
 const Color primaryViolet = Color(0xFF491B6D);
@@ -167,7 +169,14 @@ class FinancialInstitutionCard extends StatelessWidget {
               _buildActionButton(
                 icon: null, // Pas d'icône pour "Voir plus" dans le design
                 label: 'Voir plus',
-                onTap: () { /* Action Voir plus */ },
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const MicrocreditDetailsScreen(),
+                    ),
+                  );
+                },
                 isPrimary: true,
               ),
 
@@ -208,6 +217,14 @@ class FinancialAidScreen extends StatefulWidget {
 }
 
 class _FinancialAidScreenState extends State<FinancialAidScreen> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   // Données simulées des institutions
   final List<Map<String, String>> _institutions = [
     {
@@ -244,85 +261,79 @@ class _FinancialAidScreenState extends State<FinancialAidScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: lightGrey,
+      appBar: null,
       
-      // 1. AppBar Personnalisée
-      appBar: AppBar(
-        backgroundColor: primaryViolet,
-        elevation: 0,
-        toolbarHeight: 60,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: neutralWhite),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          "Aides aux financements",
-          style: TextStyle(color: neutralWhite, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: neutralWhite),
-            onPressed: () { /* Action notification */ },
+      body: Stack(
+        children: [
+          // Header violet arrondi
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 100,
+              decoration: const BoxDecoration(
+                color: primaryViolet,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(25),
+                  bottomRight: Radius.circular(25),
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: neutralWhite),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          "Aides aux financements",
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: neutralWhite,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none, color: neutralWhite),
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Contenu scrollable
+          Positioned.fill(
+            top: 100,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 15.0),
+              child: Column(
+                children: _institutions.map((inst) {
+                  return FinancialInstitutionCard(
+                    logoUrl: inst['logo']!,
+                    name: inst['name']!,
+                    amountRange: inst['amount']!,
+                    details: inst['details']!,
+                    rate: inst['rate']!,
+                  );
+                }).toList(),
+              ),
+            ),
           ),
         ],
       ),
 
-      // 2. Corps de la page
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 15.0),
-        child: Column(
-          children: _institutions.map((inst) {
-            return FinancialInstitutionCard(
-              logoUrl: inst['logo']!,
-              name: inst['name']!,
-              amountRange: inst['amount']!,
-              details: inst['details']!,
-              rate: inst['rate']!,
-            );
-          }).toList(),
-        ),
-      ),
-
-      // 3. Barre de Navigation Inférieure (Comme sur le Home Screen)
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: primaryViolet,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Accueil',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.storage), // Icône Base de Données/Formation
-              label: 'Formation',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Profil',
-            ),
-          ],
-          currentIndex: 0, // Mettre l'index actif correct si l'on est dans la structure principale
-          selectedItemColor: neutralWhite,
-          unselectedItemColor: neutralWhite.withOpacity(0.6),
-          backgroundColor: Colors.transparent, // Important pour voir le Container violet
-          elevation: 0,
-          type: BottomNavigationBarType.fixed, // Maintient les couleurs sans animation
-          onTap: (index) { /* Gérer la navigation Bottom Bar */ },
-        ),
+      // Barre de navigation avec BottomNavBar widget
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
       ),
     );
   }

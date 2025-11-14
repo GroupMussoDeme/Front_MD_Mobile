@@ -1,4 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/pages/product_publish_screen.dart';
+import 'package:musso_deme_app/pages/MesProduits.dart';
+import 'package:musso_deme_app/pages/MesCommandes.dart';
+import 'package:musso_deme_app/pages/MesVentes.dart';
+import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 
 // Définissez vos couleurs principales pour la réutilisation
 const Color primaryPurple = Color(0xFF5A1489); // Couleur violette dominante (conserve les couleurs existantes)
@@ -11,101 +16,112 @@ const Color neutralWhite = Colors.white;
 const Color lightGrey = Color(0xFFF0F0F0);
 const Color darkGrey = Color(0xFF707070);
 
-class RuralMarketScreen extends StatelessWidget {
+class RuralMarketScreen extends StatefulWidget {
   const RuralMarketScreen({super.key});
+
+  @override
+  State<RuralMarketScreen> createState() => _RuralMarketScreenState();
+}
+
+class _RuralMarketScreenState extends State<RuralMarketScreen> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    // TODO: Ajouter la navigation vers les pages correspondantes
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: primaryViolet,
-        elevation: 0,
-        toolbarHeight: 60,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: neutralWhite),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          'Marchés',
-          style: TextStyle(color: neutralWhite, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: neutralWhite),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            // Espace pour la photo du marché
-            _buildMarketHeader(),
-            const SizedBox(height: 20),
-            // Les boutons d'action
-            _buildActionButtons(),
-            const SizedBox(height: 30),
-            // Titre "Produits disponibles"
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15.0),
-              child: Text(
-                'Produits disponibles',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: primaryPurple,
+      appBar: null,
+      body: Stack(
+        children: [
+          // Conteneur violet arrondi en haut
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 100,
+              decoration: const BoxDecoration(
+                color: primaryViolet,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(25),
+                  bottomRight: Radius.circular(25),
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: neutralWhite),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'Marchés',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: neutralWhite,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none, color: neutralWhite),
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 15),
-            // Liste des produits (utilisez un GridView.builder ou un Row/Wrap)
-            _buildProductGrid(context),
-            const SizedBox(height: 30),
-          ],
-        ),
-      ),
-      // La barre de navigation inférieure (style FinancialAidScreen)
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: primaryViolet,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(20),
-            topRight: Radius.circular(20),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              spreadRadius: 2,
-              blurRadius: 10,
-              offset: const Offset(0, -2),
+          // Contenu scrollable
+          Positioned.fill(
+            top: 100,
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  // Espace pour la photo du marché
+                  _buildMarketHeader(),
+                  const SizedBox(height: 20),
+                  // Les boutons d'action
+                  _buildActionButtons(context),
+                  const SizedBox(height: 30),
+                  // Titre "Produits disponibles"
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                    child: Text(
+                      'Produits disponibles',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: primaryPurple,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  // Liste des produits (utilisez un GridView.builder ou un Row/Wrap)
+                  _buildProductGrid(context),
+                  const SizedBox(height: 30),
+                ],
+              ),
             ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: 'Accueil',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.storage), // Icône Base de Données/Formation
-              label: 'Formation',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: 'Profil',
-            ),
-          ],
-          currentIndex: 0,
-          selectedItemColor: neutralWhite,
-          unselectedItemColor: neutralWhite.withOpacity(0.6),
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          type: BottomNavigationBarType.fixed,
-          onTap: (index) {},
-        ),
+          ),
+        ],
+      ),
+      // Utilisation du widget BottomNavBar
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
       ),
     );
   }
@@ -146,17 +162,53 @@ Widget _buildMarketHeader() {
   );
 }
 
-Widget _buildActionButtons() {
+Widget _buildActionButtons(BuildContext context) {
   // Crée la ligne de quatre boutons sous l'image
   return Padding(
     padding: const EdgeInsets.symmetric(horizontal: 10.0),
     child: Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: <Widget>[
-        _ActionButton(icon: Icons.shopping_bag_outlined, label: 'Produits'),
-        _ActionButton(icon: Icons.mic_none, label: 'Publier'),
-        _ActionButton(icon: Icons.shopping_cart_outlined, label: 'Mes commandes'),
-        _ActionButton(icon: Icons.shopping_bag_outlined, label: 'Mes ventes'),
+        _ActionButton(
+          icon: Icons.shopping_bag_outlined,
+          label: 'Produits',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProductsScreen()),
+            );
+          },
+        ),
+        _ActionButton(
+          icon: Icons.mic_none,
+          label: 'Publier',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ProductPublishScreen()),
+            );
+          },
+        ),
+        _ActionButton(
+          icon: Icons.shopping_cart_outlined,
+          label: 'Mes commandes',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MesCommandesScreen()),
+            );
+          },
+        ),
+        _ActionButton(
+          icon: Icons.shopping_bag_outlined,
+          label: 'Mes ventes',
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const MySalesScreen()),
+            );
+          },
+        ),
       ],
     ),
   );
@@ -165,35 +217,39 @@ Widget _buildActionButtons() {
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final VoidCallback? onTap;
 
-  const _ActionButton({required this.icon, required this.label});
+  const _ActionButton({required this.icon, required this.label, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: 80, // Largeur fixe pour les boutons
-          height: 50, // Hauteur fixe pour les boutons
-          decoration: BoxDecoration(
-            color: Colors.grey.shade200, // Couleur de fond légèrement grise
-            borderRadius: BorderRadius.circular(10.0),
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 80, // Largeur fixe pour les boutons
+            height: 50, // Hauteur fixe pour les boutons
+            decoration: BoxDecoration(
+              color: Colors.grey.shade200, // Couleur de fond légèrement grise
+              borderRadius: BorderRadius.circular(10.0),
+            ),
+            child: Icon(
+              icon,
+              color: primaryPurple,
+              size: 30,
+            ),
           ),
-          child: Icon(
-            icon,
-            color: primaryPurple,
-            size: 30,
+          const SizedBox(height: 5),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: textColor,
+            ),
           ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            color: textColor,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

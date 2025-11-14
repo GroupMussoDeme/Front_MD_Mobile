@@ -117,6 +117,7 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
             // 1. Zone Supérieure (Tête de page et Logo)
             PrimaryHeader(
               logoChild: logoImage,
+              showNotification: false,
             ),
 
             // 2. Le Corps du Formulaire

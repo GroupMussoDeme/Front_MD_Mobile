@@ -26,7 +26,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final Widget logoImage = Image.asset(
-      ASSET_IMAGE_PATH,
+      'assets/images/logo.png',
       fit: BoxFit.cover,
       errorBuilder: (context, error, stackTrace) {
         return const Icon(
@@ -44,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Column(
           children: <Widget>[
             // 1. Zone Supérieure (Tête de page et Logo)
-            PrimaryHeader(logoChild: logoImage),
+            PrimaryHeader(logoChild: logoImage, showNotification: false),
             
             const SizedBox(height: 50),
             

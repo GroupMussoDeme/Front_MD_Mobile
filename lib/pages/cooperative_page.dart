@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 
 // NOTE: J'ai retiré l'import de 'HomeScreen.dart' et 'video_player' 
 // car ils ne sont pas nécessaires pour la CooperativePage elle-même.
@@ -159,25 +160,13 @@ class _CooperativePageState extends State<CooperativePage> {
       ),
 
       // 3. FOOTER NAVIGATION (Remplacement de BottomNavigationBar)
-      bottomNavigationBar: Container(
-        height: 80,
-        decoration: const BoxDecoration(
-          color: primaryPurple,
-          borderRadius: BorderRadius.vertical(
-            top: Radius.circular(20),
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 6),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, "Accueil", 0),
-              _buildNavItem(Icons.storage, "Formation", 1), // Utilisation de Icons.storage comme dans les autres designs
-              _buildNavItem(Icons.person, "Profil", 2),
-            ],
-          ),
-        ),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: (index) {
+          setState(() {
+            _selectedIndex = index;
+          });
+        },
       ),
     );
   }

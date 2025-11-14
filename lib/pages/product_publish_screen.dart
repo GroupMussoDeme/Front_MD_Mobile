@@ -50,90 +50,119 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
   @override
   Widget build(BuildContext context) {
     // La couleur primaire violette des designs
-    final Color primaryColor = Color(0xFF6A1B9A); 
+    final Color primaryColor = Color(0xFF491B6D);
+    const Color neutralWhite = Colors.white;
 
     return Scaffold(
-      // Barre d'application personnalisée avec le bouton de retour et de notification
-      appBar: AppBar(
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.notifications_none),
-            onPressed: () {},
-          ),
-        ],
-        backgroundColor: Colors.white, // Fond de l'appBar
-        foregroundColor: Colors.black, // Couleur des icônes
-        elevation: 0, // Pas d'ombre
-      ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: <Widget>[
-                Text(
-                  'Publier produits', // Titre principal
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+      backgroundColor: Colors.white,
+      appBar: null,
+      body: Stack(
+        children: [
+          // Header violet arrondi
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 100,
+              decoration: const BoxDecoration(
+                color: Color(0xFF491B6D),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(25),
+                  bottomRight: Radius.circular(25),
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: neutralWhite),
+                        onPressed: () => Navigator.of(context).pop(),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'Publier produit',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: neutralWhite,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none, color: neutralWhite),
+                        onPressed: () {},
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 20),
-
-                // --- Section d'ajout de photo de produit ---
-                _buildImageSection(primaryColor),
-                const SizedBox(height: 30),
-
-                // --- Champ Nom du produit ---
-                _buildInputField(
-                  context,
-                  controller: _productNameController,
-                  labelText: 'Nom du produit',
-                  icon: Icons.volume_up, // Icône de son pour l'accessibilité
-                  validator: (value) => value!.isEmpty ? 'Veuillez entrer le nom du produit' : null,
-                ),
-                const SizedBox(height: 20),
-
-                // --- Champ Description ---
-                _buildInputField(
-                  context,
-                  controller: _descriptionController,
-                  labelText: 'Description',
-                  maxLines: 3,
-                  icon: Icons.volume_up,
-                  validator: (value) => value!.isEmpty ? 'Veuillez entrer une description' : null,
-                ),
-                const SizedBox(height: 20),
-
-                // --- Champ Prix ---
-                _buildInputField(
-                  context,
-                  controller: _priceController,
-                  labelText: 'Prix',
-                  keyboardType: TextInputType.number, // Clavier numérique
-                  icon: Icons.volume_up,
-                  validator: (value) => value!.isEmpty ? 'Veuillez entrer le prix' : null,
-                ),
-                const SizedBox(height: 40),
-
-                // --- Section du bouton de validation ou d'enregistrement vocal ---
-                Center(
-                  child: _hasProductImage
-                      ? _buildPublishButton(primaryColor) // 2ème design (rempli)
-                      : _buildVoiceRecordButton(primaryColor), // 1er design (vide)
-                ),
-                const SizedBox(height: 20),
-              ],
+              ),
             ),
           ),
-        ),
+          // Contenu scrollable
+          Positioned.fill(
+            top: 100,
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: <Widget>[
+                      // --- Section d'ajout de photo de produit ---
+                      _buildImageSection(primaryColor),
+                      const SizedBox(height: 30),
+
+                      // --- Champ Nom du produit ---
+                      _buildInputField(
+                        context,
+                        controller: _productNameController,
+                        labelText: 'Nom du produit',
+                        icon: Icons.volume_up, // Icône de son pour l'accessibilité
+                        validator: (value) => value!.isEmpty ? 'Veuillez entrer le nom du produit' : null,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // --- Champ Description ---
+                      _buildInputField(
+                        context,
+                        controller: _descriptionController,
+                        labelText: 'Description',
+                        maxLines: 3,
+                        icon: Icons.volume_up,
+                        validator: (value) => value!.isEmpty ? 'Veuillez entrer une description' : null,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // --- Champ Prix ---
+                      _buildInputField(
+                        context,
+                        controller: _priceController,
+                        labelText: 'Prix',
+                        keyboardType: TextInputType.number, // Clavier numérique
+                        icon: Icons.volume_up,
+                        validator: (value) => value!.isEmpty ? 'Veuillez entrer le prix' : null,
+                      ),
+                      const SizedBox(height: 40),
+
+                      // --- Section du bouton de validation ou d'enregistrement vocal ---
+                      Center(
+                        child: _hasProductImage
+                            ? _buildPublishButton(primaryColor) // 2ème design (rempli)
+                            : _buildVoiceRecordButton(primaryColor), // 1er design (vide)
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

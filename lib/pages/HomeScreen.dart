@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/ConseilNouvelleMaman.dart';
+import 'package:musso_deme_app/pages/AudioContentScreen.dart';
+import 'package:musso_deme_app/pages/DroitsDesEnfants.dart';
+import 'package:musso_deme_app/pages/DroitsDesFemmes.dart';
 import 'package:musso_deme_app/pages/NutritionScreen.dart';
-import 'package:musso_deme_app/pages/ChildrenRightsScreen.dart';
-import 'package:musso_deme_app/pages/NewMomsAdviceScreen.dart';
 import 'package:musso_deme_app/pages/FinancialAidScreen.dart';
 import 'package:musso_deme_app/pages/RuralMarketScreen.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
@@ -154,10 +156,13 @@ class _HomeScreenState extends State<HomeScreen> {
                             Navigator.push(context, MaterialPageRoute(builder: (_) => const NutritionScreen()));
                             break;
                           case 'Droits des enfants':
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const ChildrenRightsScreen()));
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => AudioContentScreen(screenTitle: 'Droits des enfants', introMessage: 'Bienvenue dans l\'espace droit des', tracks: childRightsTracks,)));
+                            break;
+                          case 'Droits des femmes':
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => AudioContentScreen(screenTitle: 'Droits des femmes', introMessage: 'Bienvenue dans l\'espace droit des femmes.\nÉcouter vos droits expliques en Bambara.', tracks: womenRightsTracks,)));
                             break;
                           case 'Conseils aux mamans':
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const NewMomsAdviceScreen()));
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => AudioContentScreen(screenTitle: 'Conseils aux mamans', introMessage: 'Bienvenue dans l\'espace santé de la femmes.\nÉcouter des conseils sur la santé en Bambara.', tracks: newMomsAdviceTracks,)));
                             break;
                           case 'Marchés':
                             Navigator.push(context, MaterialPageRoute(builder: (_) => RuralMarketScreen()));

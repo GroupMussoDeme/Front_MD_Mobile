@@ -61,124 +61,146 @@ class AppelScreen extends StatelessWidget {
     
     return Scaffold(
       backgroundColor: neutralWhite,
+      appBar: null,
       
-      // Barre d'application
-      appBar: AppBar(
-        backgroundColor: neutralWhite, // Fond blanc/clair pour cette barre
-        elevation: 0, // Pas d'ombre
-        centerTitle: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: primaryViolet),
-          onPressed: () {
-            // Action de retour (ou de minimisation de l'appel)
-            Navigator.of(context).pop();
-          },
-        ),
-        title: Text(
-          'Appel en cours... "$contactName"',
-          style: const TextStyle(
-            color: primaryViolet,
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: primaryViolet),
-            onPressed: () {},
-          ),
-        ],
-      ),
-      
-      body: Column(
+      body: Stack(
         children: [
-          // Espace principal du contenu de l'appel
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Nom du contact et icône de profil
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40.0),
+          // Header violet arrondi
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 100,
+              decoration: const BoxDecoration(
+                color: primaryViolet,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(25),
+                  bottomRight: Radius.circular(25),
+                ),
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            contactName,
-                            style: const TextStyle(
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const Text(
-                            "Appel",
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: darkGrey,
-                            ),
-                          ),
-                        ],
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: neutralWhite),
+                        onPressed: () => Navigator.of(context).pop(),
                       ),
-                      // Icône de profil du contact
-                      const CircleAvatar(
-                        radius: 25,
-                        backgroundColor: primaryViolet,
-                        child: Icon(Icons.person_outline, color: neutralWhite, size: 30),
+                      Expanded(
+                        child: Text(
+                          'Appel en cours... "$contactName"',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: neutralWhite,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.notifications_none, color: neutralWhite),
+                        onPressed: () {},
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+          // Contenu principal
+          Positioned.fill(
+            top: 100,
+            child: Column(
+              children: [
+                // Espace principal du contenu de l'appel
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Nom du contact et icône de profil
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 40.0),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  contactName,
+                                  style: const TextStyle(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                const Text(
+                                  "Appel",
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    color: darkGrey,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            // Icône de profil du contact
+                            const CircleAvatar(
+                              radius: 25,
+                              backgroundColor: primaryViolet,
+                              child: Icon(Icons.person_outline, color: neutralWhite, size: 30),
+                            ),
+                          ],
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 80),
+
+                      // Grand cercle central avec l'icône/logo du contact
+                      Container(
+                        width: 180,
+                        height: 180,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: primaryViolet.withOpacity(0.5), width: 2),
+                          color: Colors.white,
+                        ),
+                        child: Center(
+                          // Placeholder pour l'icône de la maison/logo "Kafo Jiginew"
+                          child: Container(
+                            width: 100,
+                            height: 100,
+                            // L'image du logo est simulée par un fond vert et une bordure
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.green.shade800, width: 1.5),
+                              color: Colors.green.shade50,
+                            ),
+                            child: Center(
+                              child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                      // Icône de maison simulée
+                                      Icon(Icons.house_outlined, color: Colors.green.shade800, size: 40),
+                                      const Text("Kafo Jiginew", style: TextStyle(color: Colors.black, fontSize: 10)),
+                                  ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      // On peut ajouter ici un Timer d'appel
+                      const SizedBox(height: 50),
+                      const Text(
+                          "00:45",
+                          style: TextStyle(fontSize: 20, color: darkGrey),
                       ),
                     ],
                   ),
                 ),
                 
-                const SizedBox(height: 80),
-
-                // Grand cercle central avec l'icône/logo du contact
-                Container(
-                  width: 180,
-                  height: 180,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: primaryViolet.withOpacity(0.5), width: 2),
-                    color: Colors.white,
-                  ),
-                  child: Center(
-                    // Placeholder pour l'icône de la maison/logo "Kafo Jiginew"
-                    child: Container(
-                      width: 100,
-                      height: 100,
-                      // L'image du logo est simulée par un fond vert et une bordure
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.green.shade800, width: 1.5),
-                        color: Colors.green.shade50,
-                      ),
-                      child: Center(
-                        child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                                // Icône de maison simulée
-                                Icon(Icons.house_outlined, color: Colors.green.shade800, size: 40),
-                                const Text("Kafo Jiginew", style: TextStyle(color: Colors.black, fontSize: 10)),
-                            ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                
-                // On peut ajouter ici un Timer d'appel
-                const SizedBox(height: 50),
-                const Text(
-                    "00:45",
-                    style: TextStyle(fontSize: 20, color: darkGrey),
-                ),
-              ],
-            ),
-          ),
-          
-          // Barre d'actions d'appel en bas
+                // Barre d'actions d'appel en bas
           Container(
             padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
             decoration: const BoxDecoration(
@@ -219,6 +241,9 @@ class AppelScreen extends StatelessWidget {
                     // Action pour terminer l'appel
                   },
                   size: 65,
+                ),
+              ],
+            ),
                 ),
               ],
             ),
