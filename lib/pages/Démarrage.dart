@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/Demarrage2.dart';
-import 'package:musso_deme_app/pages/Démarrage.dart';
 
 class Demarrage extends StatefulWidget {
   const Demarrage({super.key});

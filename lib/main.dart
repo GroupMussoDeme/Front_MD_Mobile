@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/pages/Bienvenue.dart';
-import 'package:musso_deme_app/pages/Demarrage.dart';
+import 'package:musso_deme_app/pages/AudioSplashScreen.dart';
+import 'package:musso_deme_app/pages/ConfirmationScreen.dart';
+import 'package:musso_deme_app/pages/HomeScreen.dart';
+import 'package:musso_deme_app/pages/InscriptionScreen.dart';
+import 'package:musso_deme_app/pages/LoginScreen.dart';
+import 'package:musso_deme_app/pages/ChildrenRightsScreen.dart';
+import 'package:musso_deme_app/pages/NewMomsAdviceScreen.dart';
 
 void main() {
   runApp(MyApp());
@@ -17,11 +22,15 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       debugShowCheckedModeBanner: false, 
-      initialRoute: '/Demarrage',
+      initialRoute: '/Connexion',
       routes: {
-        '/Demarrage': (context) => Demarrage(),
-        '/Bienvenue': (context) => BienvenuePage(),
-        '/welcome': (context) => BienvenuePage(),
+        '/Connexion': (context) => LoginScreen(),
+        '/InscriptionScreen': (context) => InscriptionScreen(),
+        '/ConfirmationScreen': (context) => Confirmationscreen(),
+        '/HomeScreen': (context) => HomeScreen(),
+        '/AudioSplashScreen': (context) => WomenRightsScreen(),
+        '/ChildrenRightsScreen': (context) => ChildrenRightsScreen(),
+        '/NewMomsAdviceScreen': (context) => NewMomsAdviceScreen(),
       },
     );
   }
