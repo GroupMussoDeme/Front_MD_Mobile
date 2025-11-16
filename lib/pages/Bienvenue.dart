@@ -25,7 +25,7 @@ class BienvenuePage extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'BIENVENU SUR MUSSO DEME',
+                      'BIENVENUE SUR MUSSO DEME', // Correction de la faute de frappe
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Colors.white,
@@ -50,7 +50,7 @@ class BienvenuePage extends StatelessWidget {
               left: 20,
               right: 20,
               child: Text(
-                'Bienvenue dans l\'application Musso Demo!',
+                'Bienvenue dans l\'application Musso Deme !', // Correction ici aussi
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,
