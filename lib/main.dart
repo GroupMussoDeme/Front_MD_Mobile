@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/pages/Bienvenue.dart';
-import 'package:musso_deme_app/pages/Demarrage.dart';
+import 'package:musso_deme_app/pages/ConfirmationScreen.dart';
+import 'package:musso_deme_app/pages/HomeScreen.dart';
+import 'package:musso_deme_app/pages/InscriptionScreen.dart';
+import 'package:musso_deme_app/pages/LoginScreen.dart';
 
 void main() {
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -15,11 +19,12 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       debugShowCheckedModeBanner: false, 
-      initialRoute: '/Demarrage',
+      initialRoute: '/HomeScreen',
       routes: {
-        '/Demarrage': (context) => Demarrage(),
-        '/Bienvenue': (context) => BienvenuePage(),
-        '/welcome': (context) => BienvenuePage(),
+        '/Connexion': (context) => LoginScreen(),
+        '/InscriptionScreen': (context) => InscriptionScreen(),
+        '/ConfirmationScreen': (context) => Confirmationscreen(),
+        '/HomeScreen': (context) => HomeScreen(),
       },
     );
   }

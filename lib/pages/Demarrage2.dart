@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/Demarrage3.dart';
 
 class Demarrage2 extends StatefulWidget {
+  const Demarrage2({super.key});
+
   @override
   _Demarrage2State createState() => _Demarrage2State();
 }
