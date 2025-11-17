@@ -4,6 +4,7 @@ import 'package:musso_deme_app/pages/MesProduits.dart';
 import 'package:musso_deme_app/pages/MesCommandes.dart';
 import 'package:musso_deme_app/pages/MesVentes.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/pages/ProductDetailsScreen.dart';
 
 // Définissez vos couleurs principales pour la réutilisation
 const Color primaryPurple = Color(0xFF5A1489); // Couleur violette dominante (conserve les couleurs existantes)
@@ -298,84 +299,92 @@ class ProductCard extends StatelessWidget {
     // La taille du widget est approximée pour afficher deux cartes par ligne.
     final double cardWidth = (MediaQuery.of(context).size.width - 45) / 2;
 
-    return Container(
-      width: cardWidth,
-      decoration: BoxDecoration(
-        color: cardBackground,
-        borderRadius: BorderRadius.circular(10),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.2),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: <Widget>[
-          // Image du produit
-          ClipRRect(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-            child: Image.asset(
-              imagePath,
-              height: 120,
-              width: cardWidth,
-              fit: BoxFit.cover,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProductDetailsScreen()),
+        );
+      },
+      child: Container(
+        width: cardWidth,
+        decoration: BoxDecoration(
+          color: cardBackground,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.2),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
             ),
-          ),
-          // Bouton "Acheter"
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8.0),
-            decoration: const BoxDecoration(
-              color: primaryPurple,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
-            ),
-            alignment: Alignment.center,
-            child: const Text(
-              'Acheter',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            // Image du produit
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
+              child: Image.asset(
+                imagePath,
+                height: 120,
+                width: cardWidth,
+                fit: BoxFit.cover,
               ),
             ),
-          ),
-          // Nom et prix du produit
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  name,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
+            // Bouton "Acheter"
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              decoration: const BoxDecoration(
+                color: primaryPurple,
+                borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
+              ),
+              alignment: Alignment.center,
+              child: const Text(
+                'Acheter',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
                 ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Prix : $price',
-                      style: const TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const Icon(
-                      Icons.volume_up_outlined,
-                      color: primaryPurple,
-                      size: 18,
-                    ),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
-        ],
+            // Nom et prix du produit
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Prix : $price',
+                        style: const TextStyle(
+                          color: Colors.grey,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const Icon(
+                        Icons.volume_up_outlined,
+                        color: primaryPurple,
+                        size: 18,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
