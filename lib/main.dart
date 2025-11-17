@@ -19,7 +19,7 @@ class MyApp extends StatelessWidget {
         primarySwatch: Colors.blue,
       ),
       debugShowCheckedModeBanner: false, 
-      initialRoute: '/HomeScreen',
+      initialRoute: '/Demarrage',
       routes: {
         '/Connexion': (context) => LoginScreen(),
         '/InscriptionScreen': (context) => InscriptionScreen(),
