@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/wingets/primary_header.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-
+import 'package:musso_deme_app/pages/ValiderInscription.dart'; // Import de la nouvelle page
 
 // --- Définition des couleurs de la Charte Graphique ---
 
@@ -32,7 +32,6 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
   final TextEditingController _nomController = TextEditingController();
   final TextEditingController _prenomController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _roleController = TextEditingController();
   final TextEditingController _localiteController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
@@ -41,7 +40,6 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
     _nomController.dispose();
     _prenomController.dispose();
     _phoneController.dispose();
-    _roleController.dispose();
     _localiteController.dispose();
     _passwordController.dispose();
     super.dispose();
@@ -54,7 +52,6 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
     _nomController.addListener(_validateForm);
     _prenomController.addListener(_validateForm);
     _phoneController.addListener(_validateForm);
-    _roleController.addListener(_validateForm);
     _localiteController.addListener(_validateForm);
     _passwordController.addListener(_validateForm);
     _validateForm();
@@ -64,11 +61,10 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
     final nomOk = _nomController.text.trim().isNotEmpty;
     final prenomOk = _prenomController.text.trim().isNotEmpty;
       final phoneOk = RegExp(r'^\+?[0-9]{7,15}$').hasMatch(_phoneController.text.trim());
-    final roleOk = _roleController.text.trim().isNotEmpty;
     final localiteOk = _localiteController.text.trim().isNotEmpty;
     final passwordOk = _passwordController.text.trim().length >= 6;
 
-    final valid = nomOk && prenomOk && phoneOk && roleOk && localiteOk && passwordOk;
+    final valid = nomOk && prenomOk && phoneOk && localiteOk && passwordOk;
     if (valid != _isFormValid) {
       setState(() {
         _isFormValid = valid;
@@ -120,9 +116,9 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
               showNotification: false,
             ),
 
-            // 2. Le Corps du Formulaire
+            // 2. Le Corps du Formulaire - descendu avec plus de marge
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0), // Augmentation de la marge verticale
               child: Form(
                 key: _formKey,
                 child: Column(
@@ -151,10 +147,6 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
                     ),
                     const SizedBox(height: 20),
 
-                    // Rôle
-                    _buildTextField(label: "Rôle", icon: Icons.person_outline, controller: _roleController),
-                    const SizedBox(height: 20),
-
                     // Localité
                     _buildTextField(label: "Localité", icon: Icons.location_on_outlined, controller: _localiteController),
                     const SizedBox(height: 20),
@@ -164,13 +156,21 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
 
                     const SizedBox(height: 50),
 
-                    // 5. Icône Audio (Oreille)
-                    const Center(
-                      child: Icon(
-                        // Utilisation d'une icône Font Awesome ou une icône générique
-                        FontAwesomeIcons.earListen, // Nécessite l'installation de font_awesome_flutter
-                        color: primaryViolet,
-                        size: 60,
+                    // 5. Icône Audio (Oreille) - changée - avec navigation vers ValiderInscription
+                    Center(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ValiderInscription()),
+                          );
+                        },
+                        child: const Icon(
+                          // Changement de l'icône
+                          Icons.hearing, // Utilisation d'une icône Material par défaut
+                          color: primaryViolet,
+                          size: 80, // Icône plus grande
+                        ),
                       ),
                     ),
                   ],
@@ -344,16 +344,14 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
         ),
         TextFormField(
           controller: _passwordController,
-          // Masquer le texte du mot de passe
           obscureText: !_isPasswordVisible,
           validator: (value) {
-            if (value == null || value.trim().isEmpty) return 'Champ requis';
+            if (value == null || value.isEmpty) return 'Mot de passe requis';
+            if (value.length < 6) return 'Le mot de passe doit contenir au moins 6 caractères';
             return null;
           },
           decoration: InputDecoration(
-            // Icône de verrouillage
             prefixIcon: const Icon(Icons.lock_outline, color: primaryViolet),
-            // Bouton de visibilité (œil)
             suffixIcon: IconButton(
               icon: Icon(
                 _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
@@ -381,6 +379,21 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // Construction de l'image d'arrière-plan (Placeholder)
+  Widget _buildImagePlaceholder() {
+    return Container(
+      height: 200, // Augmenté de 180 à 200
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        image: const DecorationImage(
+          image: AssetImage(InscriptionScreen.LOGO_ASSET_PATH),
+          fit: BoxFit.cover,
+        ),
+      ),
     );
   }
 }

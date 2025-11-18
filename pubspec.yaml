@@ -38,6 +38,8 @@ dependencies:
   just_audio: ^0.9.42
   provider: ^6.0.5
   font_awesome_flutter: ^10.12.0
+  http: ^1.2.0
+  flutter_tts: ^4.0.2 # Ajout du package pour la synthèse vocale
 
 dev_dependencies:
   flutter_test:
