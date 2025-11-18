@@ -1,192 +1,283 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
+import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/pages/Notifications.dart';
 
-// Constantes de couleur
-const Color _kPrimaryPurple = Color(0xFF5E2B97);
-const Color _kBackgroundColor = Colors.white;
+// You would typically define colors and styles in a separate file.
+const Color primaryColor = Color(0xFF6A1B9A); // A deep purple similar to the image
+const Color lightPurple = Color(0xFFE1BEE7); // For the card backgrounds or light elements
 
-// --- WIDGET PRINCIPAL : INFORMATIONS DU GROUPE ---
-class GroupInfoScreen extends StatefulWidget {
+class GroupInfoScreen extends StatelessWidget {
   const GroupInfoScreen({super.key});
-
-  @override
-  State<GroupInfoScreen> createState() => _GroupInfoScreenState();
-}
-
-class _GroupInfoScreenState extends State<GroupInfoScreen> {
-  int _selectedIndex = 0; // Index par défaut (Accueil)
-  
-  void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
-  }
-
-  // Liste des membres (simulée)
-  final List<String> _members = ['Adama Sy', 'Fatou Cissé', 'Koumba Diarra', 'Oumou Traoré'];
-  
-  // Widget pour un bouton d'action rapide
-  Widget _buildActionButton(IconData icon, String label, VoidCallback onTap) {
-    return Column(
-      children: [
-        Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            color: _kPrimaryPurple.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: IconButton(
-            icon: Icon(icon, color: _kPrimaryPurple, size: 30),
-            onPressed: onTap,
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(label, style: const TextStyle(fontSize: 12)),
-      ],
-    );
-  }
-
-  // Widget pour un élément de membre
-  Widget _buildMemberTile(String name, String avatarUrl, {bool isSelected = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 20,
-            backgroundImage: NetworkImage(avatarUrl),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Text(
-              name,
-              style: const TextStyle(fontWeight: FontWeight.w500, fontSize: 16),
-            ),
-          ),
-          // Bouton radio ou icône de statut (simulé)
-          Container(
-            width: 25,
-            height: 25,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: _kPrimaryPurple, width: 2),
-            ),
-            child: isSelected ? const Center(child: Icon(Icons.circle, color: _kPrimaryPurple, size: 12)) : null,
-          ),
-        ],
-      ),
-    );
-  }
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _kBackgroundColor,
+      // Remplacement de l'AppBar par RoundedPurpleContainer avec flèche et titre
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(100.0),
+        child: Container(
+          height: 100,
+          decoration: const BoxDecoration(
+            color: primaryColor,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(25.0),
+              bottomRight: Radius.circular(25.0),
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15.0),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Spacer(),
+                  const Text(
+                    'Informations du groupe',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none, color: Colors.white),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NotificationsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.open_in_full, color: Colors.white),
+                    onPressed: () {},
+                  ),
 
-      // En-tête (AppBar)
-      appBar: AppBar(
-        backgroundColor: _kPrimaryPurple,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+                ],
+              ),
+            ),
+          ),
         ),
-        title: const Text('MUSSO DEME', style: TextStyle(color: Colors.white)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.white),
-            onPressed: () {},
+      ),
+      // --- Use a Stack to position the content above the BottomNavigationBar ---
+      body: Stack(
+        children: [
+          // 1. Scrollable Content Area
+          SingleChildScrollView(
+            child: Column(
+              children: [
+                // Padding for the main content
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      // --- Group Info Card (Top Card) ---
+                      _buildGroupInfoCard(),
+                      const SizedBox(height: 20),
+                      // --- Members Card (Bottom Card) ---
+                      _buildMembersCard(),
+                    ],
+                  ),
+                ),
+                // Spacer to ensure content doesn't get covered by the nav bar
+                const SizedBox(height: 80), 
+              ],
+            ),
+          ),
+          // 2. Bottom Navigation Bar (positioned at the bottom)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: _buildBottomNavigationBar(),
           ),
         ],
       ),
+    );
+  }
 
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
+  // --- Widget for the Group Info Card ---
+  Widget _buildGroupInfoCard() {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 10.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Carte d'information du groupe ---
-            Center(
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    // Avatar et nom du groupe
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: _kPrimaryPurple.withOpacity(0.1),
-                      child: const Icon(Icons.people_alt, color: _kPrimaryPurple, size: 70),
-                    ),
-                    const SizedBox(height: 10),
-                    const Text('MUSSO DEME', style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-                    const Text('Cooperative', style: TextStyle(fontSize: 16, color: Colors.grey)),
-                    const SizedBox(height: 15),
-
-                    // Description
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.black12),
-                      ),
-                      child: const Text(
-                        'Cooperative pour les formations, se renseigner et vendre ses produits',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14),
-                      ),
-                    ),
-                    const SizedBox(height: 25),
-
-                    // Boutons d'action rapide (Ajouter, Membres, Recherche)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceAround,
-                      children: [
-                        _buildActionButton(Icons.person_add, 'Ajouter', () => print('Ajouter membre')),
-                        _buildActionButton(Icons.group, 'Membres', () => print('Voir tous les membres')),
-                        _buildActionButton(Icons.search, 'Recherche', () => print('Rechercher')),
-                      ],
-                    ),
-                  ],
-                ),
+            // Group Icon with Background
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: const BoxDecoration(
+                color: lightPurple,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.people, // Representative icon for a group
+                size: 60,
+                color: primaryColor,
               ),
             ),
-            const SizedBox(height: 30),
-
-            // --- Section Membres ---
+            const SizedBox(height: 10),
+            // Group Name and Type
+            const Text(
+              'MUSSO DEME',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const Text(
+              'Cooperative',
+              style: TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+            const SizedBox(height: 15),
+            // Description Bubble
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: const Text(
+                'Cooperative pour les formations, se renseigner et vendre ses produits',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 20),
+            // Action Buttons Row
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                const Text('Membres', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                const SizedBox(width: 8),
-                const Icon(Icons.volume_up, color: _kPrimaryPurple, size: 24),
+                _buildActionButton(Icons.person_add, 'Add'),
+                _buildActionButton(Icons.group, 'Group'),
+                _buildActionButton(Icons.search, 'Search'),
               ],
             ),
-            const SizedBox(height: 10),
-
-            // Liste des membres (seulement le premier est affiché dans le design)
-            _buildMemberTile(_members[0], 'https://via.placeholder.com/150/800080/FFFFFF?text=A', isSelected: true),
-            
-            // Simuler l'affichage de plus de membres
-            ..._members.skip(1).map((name) => _buildMemberTile(name, 'https://via.placeholder.com/150/800080/FFFFFF?text=${name.substring(0, 1)}')),
-
-            const SizedBox(height: 50),
           ],
         ),
       ),
-      
-      // Barre de navigation (Widget Réutilisable)
-      bottomNavigationBar: const Placeholder(fallbackHeight: 80, color: _kPrimaryPurple), // Remplacer par BottomNavBar
+    );
+  }
+
+  // --- Helper Widget for Action Buttons ---
+  Widget _buildActionButton(IconData icon, String label) {
+    return Container(
+      width: 70, // Fixed width for a square/circular look
+      height: 70,
+      decoration: BoxDecoration(
+        color: lightPurple,
+        borderRadius: BorderRadius.circular(15), // Slightly rounded square
+        // shape: BoxShape.circle, // Use BoxShape.circle for a fully circular look
+      ),
+      child: Icon(icon, size: 30, color: primaryColor),
+    );
+  }
+
+  // --- Widget for the Members Card ---
+  Widget _buildMembersCard() {
+    return Card(
+      elevation: 5,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      child: Padding(
+        padding: const EdgeInsets.all(15.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Membres',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const Text(
+              'Contacts sur MussoDèmè',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+            const Divider(),
+            // Single Member Item (repeated for a full list)
+            _buildMemberListItem('Adama Sy'),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Helper Widget for Member List Item ---
+  Widget _buildMemberListItem(String name) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        children: [
+          // Profile Picture Placeholder
+          const CircleAvatar(
+            radius: 20,
+            backgroundColor: primaryColor,
+            // Replace with Image.asset or NetworkImage for a real image
+            child: Icon(Icons.person, color: Colors.white, size: 20),
+          ),
+          const SizedBox(width: 10),
+          // Member Name
+          Expanded(
+            child: Text(
+              name,
+              style: const TextStyle(fontSize: 16),
+            ),
+          ),
+          // Radio Button or Checkbox (empty circle in the image)
+          Container(
+            width: 20,
+            height: 20,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              border: Border.all(color: primaryColor, width: 2),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // --- Widget for the Bottom Navigation Bar (remplacé par BottomNavBar) ---
+  Widget _buildBottomNavigationBar() {
+    return BottomNavBar(
+      selectedIndex: 0, // Vous pouvez ajuster l'index sélectionné selon vos besoins
+      onItemTapped: (index) {
+        // Vous pouvez ajouter la logique de navigation ici
+        print('Item tapé: $index');
+      },
+    );
+  }
+
+  // --- Helper Widget for Navigation Bar Items ---
+  Widget _buildNavItem(IconData icon, String label, bool isActive) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, color: Colors.white, size: 28),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ],
     );
   }
 }
+
+// To run this code, you would use:
+// void main() {
+//   runApp(MaterialApp(home: GroupInfoScreen()));
+// }

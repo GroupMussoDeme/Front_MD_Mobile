@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
 
 // Constantes de couleur (assumant que vous avez défini ces couleurs dans un fichier séparé)
 const Color _kPrimaryPurple = Color(0xFF5E2B97);

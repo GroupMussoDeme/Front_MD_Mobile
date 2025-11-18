@@ -9,12 +9,98 @@ import 'package:musso_deme_app/pages/RuralMarketScreen.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
 import 'package:musso_deme_app/pages/cooperative_page.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'dart:math' as math;
 
 // --- Définition des couleurs principales ---
 const Color primaryViolet = Color(0xFF491B6D);
 const Color lightViolet = Color(0xFFEAE1F4);
 const Color neutralWhite = Colors.white;
 const Color darkGrey = Color(0xFF707070);
+const Color labelViolet = Color(0xFF5A2A82); // Couleur du texte courbé
+
+// --- Widget personnalisé pour le texte courbé professionnel ---
+class CurvedText extends StatelessWidget {
+  final String text;
+  final double radius;
+  final TextStyle style;
+
+  const CurvedText({
+    super.key,
+    required this.text,
+    this.radius = 50,
+    TextStyle? style,
+  }) : style = style ?? const TextStyle();
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      painter: CurvedTextPainter(
+        text: text,
+        radius: radius,
+        style: style,
+      ),
+      size: Size(radius * 2, radius * 2),
+    );
+  }
+}
+
+class CurvedTextPainter extends CustomPainter {
+  final String text;
+  final double radius;
+  final TextStyle style;
+
+  CurvedTextPainter({
+    required this.text,
+    required this.radius,
+    required this.style,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    // Créer un arc de 120 degrés centré en haut
+    final arcAngle = 120.0 * math.pi / 180.0; // 120 degrés en radians
+    final startAngle = -math.pi / 2 - arcAngle / 2; // Commencer en haut centré
+    
+    // Calculer l'angle entre chaque lettre
+    final anglePerLetter = arcAngle / (text.length + 1);
+    
+    for (int i = 0; i < text.length; i++) {
+      final letter = text[i];
+      final letterSpan = TextSpan(text: letter, style: style);
+      final letterPainter = TextPainter(
+        text: letterSpan,
+        textDirection: TextDirection.ltr,
+      );
+      
+      letterPainter.layout();
+      
+      // Positionner chaque lettre le long de l'arc
+      final letterAngle = startAngle + anglePerLetter * (i + 1);
+      final letterX = center.dx + radius * math.cos(letterAngle);
+      final letterY = center.dy + radius * math.sin(letterAngle);
+      
+      // Calculer la rotation pour que chaque lettre suive la courbure
+      final rotation = letterAngle + math.pi / 2;
+      
+      // Créer une matrice de transformation pour positionner et orienter la lettre
+      final transform = Matrix4.identity()
+        ..translate(letterX, letterY)
+        ..rotateZ(rotation);
+      
+      canvas.save();
+      canvas.transform(transform.storage);
+      
+      // Dessiner la lettre centrée sur l'origine
+      letterPainter.paint(canvas, Offset(-letterPainter.width / 2, -letterPainter.height / 2));
+      
+      canvas.restore();
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -187,6 +273,21 @@ class _HomeScreenState extends State<HomeScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
+                          SizedBox(
+                            width: 80,
+                            height: 35,
+                            child: CurvedText(
+                              text: item['title'],
+                              radius: 32,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w500,
+                                color: labelViolet,
+                                fontFamily: 'Poppins',
+                                letterSpacing: 3.0,
+                              ),
+                            ),
+                          ),
                           Container(
                             width: 80,
                             height: 80,
@@ -198,16 +299,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               item['icon'],
                               color: primaryViolet,
                               size: 35,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            item['title'],
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: primaryViolet,
                             ),
                           ),
                         ],

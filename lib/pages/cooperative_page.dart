@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/GroupChatScreen.dart';
+import 'package:musso_deme_app/pages/NewCooperativeScreen.dart';
+import 'package:musso_deme_app/pages/Notifications.dart';
 
 // NOTE: J'ai retiré l'import de 'HomeScreen.dart' et 'video_player' 
 // car ils ne sont pas nécessaires pour la CooperativePage elle-même.
@@ -120,7 +122,14 @@ class _CooperativePageState extends State<CooperativePage> {
                           icon: const Icon(Icons.add, color: neutralWhite, size: 26),
                           onPressed: () {
                             // Action pour ajouter une coopérative
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => NewCooperativeScreenRevised(),
+                              ),
+                            );
                           },
+
                         ),
                       ),
                     ],

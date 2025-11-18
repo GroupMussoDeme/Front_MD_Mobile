@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/GroupCallScreen.dart';
 import 'package:musso_deme_app/pages/GroupInfoScreen.dart';
+import 'package:musso_deme_app/pages/Notifications.dart';
 
 // Définition des couleurs de la charte graphique
 const Color _kPrimaryPurple = Color(0xFF4A0072); // Couleur violette principale
@@ -54,6 +55,18 @@ class GroupChatScreen extends StatelessWidget {
                     ),
                   ),
                   const Spacer(),
+                  // Icône Notification
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none, color: Colors.white, size: 28),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NotificationsScreen(),
+                        ),
+                      );
+                    },
+                  ),
                   // Icône Vidéo
                   IconButton(
                     icon: const Icon(Icons.videocam, color: Colors.white, size: 28),
@@ -85,7 +98,7 @@ class GroupChatScreen extends StatelessWidget {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const GroupInfoScreen(),
+                          builder: (context) => GroupInfoScreen(),
                         ),
                       );
                     },
@@ -417,6 +430,7 @@ class ChatInputBar extends StatelessWidget {
               size: 24,
             ),
           ),
+
         ],
       ),
     );

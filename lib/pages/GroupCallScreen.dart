@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/pages/Notifications.dart';
 
 // Constantes de couleur
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
@@ -85,7 +86,14 @@ class GroupCallScreen extends StatelessWidget {
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.notifications_none, color: Colors.white),
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NotificationsScreen(),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

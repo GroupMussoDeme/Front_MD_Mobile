@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/wingets/primary_header.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:musso_deme_app/pages/ValiderInscription.dart'; // Import de la nouvelle page
 
 // --- Définition des couleurs de la Charte Graphique ---

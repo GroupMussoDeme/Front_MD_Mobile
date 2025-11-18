@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:musso_deme_app/pages/Notifications.dart';
 
 const Color primaryViolet = Color(0xFF491B6D);
 const Color lightViolet = Color(0xFFEAE1F4);
@@ -241,9 +242,17 @@ class _NutritionScreenState extends State<NutritionScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: () {},
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => NotificationsScreen(),
+                              ),
+                            );
+                          },
                           icon: const Icon(Icons.notifications_none, color: neutralWhite),
                         ),
+
                       ],
                     ),
                   ),
