@@ -127,11 +127,11 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                         // Placeholder pour le logo "Kafo Jiginew"
                         child: Container(
                           padding: const EdgeInsets.all(16.0),
-                          child: Image.asset('assets/images/logo.png'),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.green, width: 1.5),
                             borderRadius: BorderRadius.circular(5.0),
                           ),
+                          child: Image.asset('assets/images/logo.png'),
                         ),
                       ),
                     ),
@@ -177,7 +177,7 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                     child: Column(
                       children: [
                         // Liste des détails (Montant, Secteur, Taux)
-                        ..._details.map((detail) => _buildDetailRow(detail)).toList(),
+                        ..._details.map((detail) => _buildDetailRow(detail)),
                         
                         const Divider(height: 30.0, thickness: 1.0, color: Colors.black12),
                         

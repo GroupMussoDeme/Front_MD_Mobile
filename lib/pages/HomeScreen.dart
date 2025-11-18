@@ -8,6 +8,7 @@ import 'package:musso_deme_app/pages/FinancialAidScreen.dart';
 import 'package:musso_deme_app/pages/RuralMarketScreen.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
 import 'package:musso_deme_app/pages/cooperative_page.dart';
+import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 
 // --- Définition des couleurs principales ---
 const Color primaryViolet = Color(0xFF491B6D);
@@ -222,37 +223,11 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
 
       // Barre de navigation inférieure
-      bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          color: primaryViolet,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(30),
-            topRight: Radius.circular(30),
-          ),
-        ),
-        child: BottomNavigationBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
-          selectedItemColor: neutralWhite,
-          unselectedItemColor: Colors.white70,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home),
-              label: "Accueil",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.menu_book),
-              label: "Formation",
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person),
-              label: "Profil",
-            ),
-          ],
-        ),
+      bottomNavigationBar: BottomNavBar(
+        selectedIndex: _selectedIndex,
+        onItemTapped: _onItemTapped,
       ),
+
     );
   }
 }

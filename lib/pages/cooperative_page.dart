@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/pages/GroupChatScreen.dart';
 
 // NOTE: J'ai retiré l'import de 'HomeScreen.dart' et 'video_player' 
 // car ils ne sont pas nécessaires pour la CooperativePage elle-même.
@@ -7,7 +8,7 @@ import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 const Color primaryPurple = Color(0xFF4A0072);
 const Color neutralWhite = Colors.white;
 
-// --- Widget de chaque ligne de discussion (inchangé) ----
+// --- Widget de chaque ligne de discussion (modifié pour la redirection) ----
 class CooperativeTile extends StatelessWidget {
   final String imagePath;
   final String title;
@@ -40,7 +41,13 @@ class CooperativeTile extends StatelessWidget {
         style: const TextStyle(color: Colors.black54, fontSize: 13),
       ),
       onTap: () {
-        // Logique pour ouvrir le chat de la coopérative
+        // Redirection vers GroupChatScreen lors du clic sur une coopérative
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const GroupChatScreen(),
+          ),
+        );
       },
     );
   }
