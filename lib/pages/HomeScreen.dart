@@ -116,9 +116,9 @@ class _HomeScreenState extends State<HomeScreen> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: Image.asset(
-                  'assets/images/background2.png', // Remplace par ton image
+                  'assets/images/background.png', // Remplace par ton image
                   width: MediaQuery.of(context).size.width * 0.9,
-                  height: 150,
+                  height: 200,
                   fit: BoxFit.cover,
                 ),
               ),

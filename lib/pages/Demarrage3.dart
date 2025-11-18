@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/Bienvenue.dart';
+import 'package:musso_deme_app/wingets/CustomNextButton.dart'; // Import du bouton personnalisé
 
 class Demarrage3 extends StatefulWidget {
   const Demarrage3({super.key});
@@ -16,7 +17,23 @@ class _Demarrage3State extends State<Demarrage3> {
     // Navigation automatique toutes les 5 secondes
     Future.delayed(Duration(seconds: 5), () {
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => BienvenuePage()));
+        // Animation de droite à gauche
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => BienvenuePage(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              const begin = Offset(1.0, 0.0);
+              const end = Offset.zero;
+              const curve = Curves.ease;
+              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+              return SlideTransition(
+                position: animation.drive(tween),
+                child: child,
+              );
+            },
+          ),
+        );
       }
     });
   }
@@ -25,64 +42,14 @@ class _Demarrage3State extends State<Demarrage3> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/background3.png'), 
+            fit: BoxFit.cover,
+          ),
+        ),
         child: Stack(
           children: [
-            // Image de fond 
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: MediaQuery.of(context).size.height / 2,
-              child: Image.asset(
-                'assets/images/background3.jpg',
-                fit: BoxFit.cover,
-              ),
-            ),
-            
-            // En-tête 
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: MediaQuery.of(context).size.height / 2,
-              child: Container(
-                color: Color(0xFF491B6D),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'BIENVENUE SUR MUSSO DEME',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Icon(
-                      Icons.mic,
-                      color: Colors.white,
-                      size: 50,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            
-            // Logo 
-            Positioned(
-              top: 100,
-              left: 0,
-              right: 0,
-              child: Image.asset(
-                'assets/images/logo.png',
-                width: 300,
-                height: 300,
-                fit: BoxFit.contain,
-              ),
-            ),
-            
             // Points 
             Positioned(
               bottom: 60,
@@ -132,15 +99,30 @@ class _Demarrage3State extends State<Demarrage3> {
               ),
             ),
             
-            // Bouton Next en bas à droite qui mène à la page de bienvenue
+            // Bouton Next personnalisé en bas à droite qui mène à la page de bienvenue
             Positioned(
               bottom: 60,
               right: 20,
-              child: FloatingActionButton(
+              child: CustomNextButton(
                 onPressed: () {
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => BienvenuePage()));
+                  // Animation de droite à gauche
+                  Navigator.pushReplacement(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => BienvenuePage(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.ease;
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
                 },
-                child: Icon(Icons.arrow_forward),
               ),
             ),
           ],

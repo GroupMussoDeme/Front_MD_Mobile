@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/Demarrage3.dart';
+import 'package:musso_deme_app/wingets/CustomNextButton.dart'; // Import du bouton personnalisé
 
 class Demarrage2 extends StatefulWidget {
   const Demarrage2({super.key});
@@ -13,10 +14,26 @@ class _Demarrage2State extends State<Demarrage2> {
   void initState() {
     super.initState();
     
-    // Navigation automatique toutes les 5 secondes
-    Future.delayed(Duration(seconds: 5), () {
+    // Navigation automatique toutes les 3 secondes
+    Future.delayed(Duration(seconds: 3), () {
       if (mounted) {
-        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Demarrage3()));
+        // Animation de droite à gauche
+        Navigator.pushReplacement(
+          context,
+          PageRouteBuilder(
+            pageBuilder: (context, animation, secondaryAnimation) => Demarrage3(),
+            transitionsBuilder: (context, animation, secondaryAnimation, child) {
+              const begin = Offset(1.0, 0.0);
+              const end = Offset.zero;
+              const curve = Curves.ease;
+              var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+              return SlideTransition(
+                position: animation.drive(tween),
+                child: child,
+              );
+            },
+          ),
+        );
       }
     });
   }
@@ -33,19 +50,6 @@ class _Demarrage2State extends State<Demarrage2> {
         ),
         child: Stack(
           children: [
-            // Logo 
-            Positioned(
-              top: 100,
-              left: 0,
-              right: 0,
-              child: Image.asset(
-                'assets/images/logo.png',
-                width: 300,
-                height: 300,
-                fit: BoxFit.contain,
-              ),
-            ),
-            
             // Points 
             Positioned(
               bottom: 60,
@@ -95,15 +99,30 @@ class _Demarrage2State extends State<Demarrage2> {
               ),
             ),
             
-            // Bouton Next en bas à droite
+            // Bouton Next personnalisé en bas à droite
             Positioned(
               bottom: 60,
               right: 20,
-              child: FloatingActionButton(
+              child: CustomNextButton(
                 onPressed: () {
-                  Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => Demarrage3()));
+                  // Animation de droite à gauche
+                  Navigator.pushReplacement(
+                    context,
+                    PageRouteBuilder(
+                      pageBuilder: (context, animation, secondaryAnimation) => Demarrage3(),
+                      transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                        const begin = Offset(1.0, 0.0);
+                        const end = Offset.zero;
+                        const curve = Curves.ease;
+                        var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                        return SlideTransition(
+                          position: animation.drive(tween),
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
                 },
-                child: Icon(Icons.arrow_forward),
               ),
             ),
           ],
