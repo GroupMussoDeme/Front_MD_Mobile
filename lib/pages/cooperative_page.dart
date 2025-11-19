@@ -3,6 +3,8 @@ import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/GroupChatScreen.dart';
 import 'package:musso_deme_app/pages/NewCooperativeScreen.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
+import 'package:musso_deme_app/utils/navigation_utils.dart';
+import 'package:musso_deme_app/pages/Formations.dart';
 
 // NOTE: J'ai retiré l'import de 'HomeScreen.dart' et 'video_player' 
 // car ils ne sont pas nécessaires pour la CooperativePage elle-même.
@@ -181,6 +183,20 @@ class _CooperativePageState extends State<CooperativePage> {
         onItemTapped: (index) {
           setState(() {
             _selectedIndex = index;
+            
+            // Gestion de la navigation selon l'index
+            if (index == 0) {
+              // Navigation vers la page d'accueil
+              navigateToHome(context);
+            } else if (index == 1) {
+              // Navigation vers la page Formations
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+              );
+            }
+            // Pour l'index 2 (icône de profil), on reste sur la même page
+            // car cette page est déjà une page de coopérative
           });
         },
       ),

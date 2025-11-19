@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/pages/Formations.dart';
 // import 'package:votre_app/widgets/rounded_purple_container.dart';
 // import 'package:votre_app/widgets/bottom_nav_bar.dart'; 
 
@@ -34,7 +35,18 @@ class _OrderHistoryScreenState extends State<OrderHistoryScreen> {
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
+    setState(() {
+      _selectedIndex = index;
+      
+      // Si l'utilisateur clique sur l'icône centrale (index 1) - Formations
+      if (index == 1) {
+        // Naviguer vers la page Formations
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+        );
+      }
+    });
   }
 
   final List<OrderItem> _orders = [

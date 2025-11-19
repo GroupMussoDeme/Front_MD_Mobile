@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 // NOTE: Assurez-vous d'avoir cet import, l'écran d'appel doit être défini ici.
 import 'appel_screen.dart';
 import 'DetailsSurMicroCredit.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart'; 
+import 'package:musso_deme_app/utils/navigation_utils.dart';
+import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:musso_deme_app/pages/ProfileScreen.dart'; 
 
 // --- Définition des couleurs de la Charte Graphique ---
 const Color primaryViolet = Color(0xFF491B6D);
@@ -222,6 +225,28 @@ class _FinancialAidScreenState extends State<FinancialAidScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      
+      // Si l'utilisateur clique sur l'icône Home (index 0)
+      if (index == 0) {
+        // Retourner à la page d'accueil
+        navigateToHome(context);
+      }
+      // Si l'utilisateur clique sur l'icône centrale (index 1) - Formations
+      else if (index == 1) {
+        // Naviguer vers la page Formations
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+        );
+      }
+      // Si l'utilisateur clique sur l'icône de profil (index 2)
+      else if (index == 2) {
+        // Naviguer vers l'écran de profil
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
+      }
     });
   }
 

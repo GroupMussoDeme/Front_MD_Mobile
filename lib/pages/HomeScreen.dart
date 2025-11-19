@@ -8,6 +8,7 @@ import 'package:musso_deme_app/pages/FinancialAidScreen.dart';
 import 'package:musso_deme_app/pages/RuralMarketScreen.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
 import 'package:musso_deme_app/pages/cooperative_page.dart';
+import 'package:musso_deme_app/pages/ProfileScreen.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 import 'dart:math' as math;
 
@@ -29,16 +30,14 @@ class CurvedText extends StatelessWidget {
     required this.text,
     this.radius = 50,
     TextStyle? style,
+    required int startAngle,
+    required int endAngle,
   }) : style = style ?? const TextStyle();
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: CurvedTextPainter(
-        text: text,
-        radius: radius,
-        style: style,
-      ),
+      painter: CurvedTextPainter(text: text, radius: radius, style: style),
       size: Size(radius * 2, radius * 2),
     );
   }
@@ -61,10 +60,10 @@ class CurvedTextPainter extends CustomPainter {
     // Créer un arc de 120 degrés centré en haut
     final arcAngle = 120.0 * math.pi / 180.0; // 120 degrés en radians
     final startAngle = -math.pi / 2 - arcAngle / 2; // Commencer en haut centré
-    
+
     // Calculer l'angle entre chaque lettre
     final anglePerLetter = arcAngle / (text.length + 1);
-    
+
     for (int i = 0; i < text.length; i++) {
       final letter = text[i];
       final letterSpan = TextSpan(text: letter, style: style);
@@ -72,28 +71,31 @@ class CurvedTextPainter extends CustomPainter {
         text: letterSpan,
         textDirection: TextDirection.ltr,
       );
-      
+
       letterPainter.layout();
-      
+
       // Positionner chaque lettre le long de l'arc
       final letterAngle = startAngle + anglePerLetter * (i + 1);
       final letterX = center.dx + radius * math.cos(letterAngle);
       final letterY = center.dy + radius * math.sin(letterAngle);
-      
+
       // Calculer la rotation pour que chaque lettre suive la courbure
       final rotation = letterAngle + math.pi / 2;
-      
+
       // Créer une matrice de transformation pour positionner et orienter la lettre
       final transform = Matrix4.identity()
         ..translate(letterX, letterY)
         ..rotateZ(rotation);
-      
+
       canvas.save();
       canvas.transform(transform.storage);
-      
+
       // Dessiner la lettre centrée sur l'origine
-      letterPainter.paint(canvas, Offset(-letterPainter.width / 2, -letterPainter.height / 2));
-      
+      letterPainter.paint(
+        canvas,
+        Offset(-letterPainter.width / 2, -letterPainter.height / 2),
+      );
+
       canvas.restore();
     }
   }
@@ -125,9 +127,34 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    // Si l'utilisateur clique sur l'icône de profil (index 2)
+    if (index == 2) {
+      // Naviguer vers l'écran de profil
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      );
+    } 
+    // Si l'utilisateur clique sur l'icône Home (index 0) alors qu'il est déjà sur HomeScreen
+    else if (index == 0) {
+      // Ne rien faire car on est déjà sur la page d'accueil
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
+    // Si l'utilisateur clique sur l'icône centrale (index 1) - Formations
+    else if (index == 1) {
+      // Naviguer vers la page Formations
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+      );
+    } else {
+      // Pour les autres icônes, mettre à jour l'index sélectionné
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
   @override
@@ -158,8 +185,11 @@ class _HomeScreenState extends State<HomeScreen> {
                     right: 15,
                     top: 10,
                     child: IconButton(
-                      icon: const Icon(Icons.notifications_none,
-                          color: neutralWhite, size: 28),
+                      icon: const Icon(
+                        Icons.notifications_none,
+                        color: neutralWhite,
+                        size: 28,
+                      ),
                       onPressed: () {},
                     ),
                   ),
@@ -198,12 +228,11 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
 
               const SizedBox(height: 60), // espace ajusté après le logo
-
               // Image principale
               ClipRRect(
                 borderRadius: BorderRadius.circular(10),
                 child: Image.asset(
-                  'assets/images/background.png', // Remplace par ton image
+                  'assets/images/image1.png', // Remplace par ton image
                   width: MediaQuery.of(context).size.width * 0.9,
                   height: 200,
                   fit: BoxFit.cover,
@@ -240,65 +269,141 @@ class _HomeScreenState extends State<HomeScreen> {
                         final title = item['title'];
                         switch (title) {
                           case 'Nutrition':
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const NutritionScreen()));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const NutritionScreen(),
+                              ),
+                            );
                             break;
                           case 'Droits des enfants':
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => AudioContentScreen(screenTitle: 'Droits des enfants', introMessage: 'Bienvenue dans l\'espace droit des', tracks: childRightsTracks,)));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AudioContentScreen(
+                                  screenTitle: 'Droits des enfants',
+                                  introMessage:
+                                      'Bienvenue dans l\'espace droit des',
+                                  tracks: childRightsTracks,
+                                ),
+                              ),
+                            );
                             break;
                           case 'Droits des femmes':
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => AudioContentScreen(screenTitle: 'Droits des femmes', introMessage: 'Bienvenue dans l\'espace droit des femmes.\nÉcouter vos droits expliques en Bambara.', tracks: womenRightsTracks,)));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AudioContentScreen(
+                                  screenTitle: 'Droits des femmes',
+                                  introMessage:
+                                      'Bienvenue dans l\'espace droit des femmes.\nÉcouter vos droits expliques en Bambara.',
+                                  tracks: womenRightsTracks,
+                                ),
+                              ),
+                            );
                             break;
                           case 'Conseils aux mamans':
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => AudioContentScreen(screenTitle: 'Conseils aux mamans', introMessage: 'Bienvenue dans l\'espace santé de la femmes.\nÉcouter des conseils sur la santé en Bambara.', tracks: newMomsAdviceTracks,)));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AudioContentScreen(
+                                  screenTitle: 'Conseils aux mamans',
+                                  introMessage:
+                                      'Bienvenue dans l\'espace santé de la femmes.\nÉcouter des conseils sur la santé en Bambara.',
+                                  tracks: newMomsAdviceTracks,
+                                ),
+                              ),
+                            );
+                            break;
+                          case 'Protection contre la violence':
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => AudioContentScreen(
+                                  screenTitle: 'Protection contre la violance',
+                                  introMessage:
+                                      'Bienvenue dans l\'espace santé de la femmes.\nÉcouter des conseils sur la santé en Bambara.',
+                                  tracks: newMomsAdviceTracks,
+                                ),
+                              ),
+                            );
                             break;
                           case 'Marchés':
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => RuralMarketScreen()));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => RuralMarketScreen(),
+                              ),
+                            );
                             break;
                           case 'Aides aux financements':
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const FinancialAidScreen()));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const FinancialAidScreen(),
+                              ),
+                            );
                             break;
                           case 'Formations':
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const FormationVideosPage()));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const FormationVideosPage(),
+                              ),
+                            );
                             break;
                           case 'Coopératives':
-                            Navigator.push(context, MaterialPageRoute(builder: (_) => const CooperativePage()));
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const CooperativePage(),
+                              ),
+                            );
                             break;
                           default:
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (_) => TopicPage(title: title)),
+                              MaterialPageRoute(
+                                builder: (_) => TopicPage(title: title),
+                              ),
                             );
                         }
                       },
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SizedBox(
-                            width: 80,
-                            height: 35,
-                            child: CurvedText(
-                              text: item['title'],
-                              radius: 32,
-                              style: const TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: labelViolet,
-                                fontFamily: 'Poppins',
-                                letterSpacing: 3.0,
-                              ),
-                            ),
-                          ),
+                          // Cercle icône
                           Container(
-                            width: 80,
-                            height: 80,
+                            width: 85,
+                            height: 85,
                             decoration: const BoxDecoration(
                               shape: BoxShape.circle,
                               color: lightViolet,
                             ),
-                            child: Icon(
-                              item['icon'],
-                              color: primaryViolet,
-                              size: 35,
+                            child: Center(
+                              child: Icon(
+                                item['icon'],
+                                color: primaryViolet,
+                                size: 35,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(
+                            height: 6,
+                          ), // petit espace entre icône et texte
+                          // Texte sous l’icône
+                          SizedBox(
+                            width: 90,
+                            child: Text(
+                              item['title'],
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: labelViolet,
+                                fontFamily: 'Poppins',
+                              ),
                             ),
                           ),
                         ],
@@ -318,7 +423,6 @@ class _HomeScreenState extends State<HomeScreen> {
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
       ),
-
     );
   }
 }
@@ -331,10 +435,7 @@ class TopicPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: primaryViolet,
-        title: Text(title),
-      ),
+      appBar: AppBar(backgroundColor: primaryViolet, title: Text(title)),
       body: Center(
         child: Text(
           "Page : $title",

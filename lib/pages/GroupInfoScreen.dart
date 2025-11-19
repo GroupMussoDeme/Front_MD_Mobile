@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
@@ -94,7 +95,7 @@ class GroupInfoScreen extends StatelessWidget {
           // 2. Bottom Navigation Bar (positioned at the bottom)
           Align(
             alignment: Alignment.bottomCenter,
-            child: _buildBottomNavigationBar(),
+            child: _buildBottomNavigationBar(context),
           ),
         ],
       ),
@@ -248,10 +249,15 @@ class GroupInfoScreen extends StatelessWidget {
   }
 
   // --- Widget for the Bottom Navigation Bar (remplacé par BottomNavBar) ---
-  Widget _buildBottomNavigationBar() {
+  Widget _buildBottomNavigationBar(BuildContext context) {
     return BottomNavBar(
       selectedIndex: 0, // Vous pouvez ajuster l'index sélectionné selon vos besoins
       onItemTapped: (index) {
+        // Si l'utilisateur clique sur l'icône Home (index 0)
+        if (index == 0) {
+          // Retourner à la page d'accueil
+          navigateToHome(context);
+        }
         // Vous pouvez ajouter la logique de navigation ici
         print('Item tapé: $index');
       },

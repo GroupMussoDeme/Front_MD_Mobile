@@ -5,6 +5,8 @@ import 'package:musso_deme_app/pages/MesCommandes.dart';
 import 'package:musso_deme_app/pages/MesVentes.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/ProductDetailsScreen.dart';
+import 'package:musso_deme_app/utils/navigation_utils.dart';
+import 'package:musso_deme_app/pages/Formations.dart';
 
 // Définissez vos couleurs principales pour la réutilisation
 const Color primaryPurple = Color(0xFF5A1489); // Couleur violette dominante (conserve les couleurs existantes)
@@ -30,8 +32,21 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      
+      // Gestion de la navigation selon l'index
+      if (index == 0) {
+        // Navigation vers la page d'accueil
+        navigateToHome(context);
+      } else if (index == 1) {
+        // Navigation vers la page Formations
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+        );
+      }
+      // Pour l'index 2 (icône de profil), on reste sur la même page
+      // car cette page est déjà une page de marché
     });
-    // TODO: Ajouter la navigation vers les pages correspondantes
   }
 
   @override

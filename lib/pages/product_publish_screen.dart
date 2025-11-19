@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io' show File;
+import 'package:image_picker/image_picker.dart';
 
 class ProductPublishScreen extends StatefulWidget {
   const ProductPublishScreen({super.key});
@@ -11,7 +13,9 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
   // Clé pour gérer l'état du formulaire et la validation
   final _formKey = GlobalKey<FormState>(); 
   // État pour simuler la présence ou l'absence d'une image
-  bool _hasProductImage = false; 
+  bool _hasProductImage = false;
+  // Variable pour stocker le fichier image sélectionné
+  File? _imageFile; 
 
   // Contrôleurs de texte
   final _productNameController = TextEditingController();
@@ -35,6 +39,19 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
     _descriptionController.dispose();
     _priceController.dispose();
     super.dispose();
+  }
+
+  // Fonction pour sélectionner une image
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    final XFile? pickedImage = await picker.pickImage(source: ImageSource.gallery);
+    
+    if (pickedImage != null) {
+      setState(() {
+        _imageFile = File(pickedImage.path);
+        _hasProductImage = true;
+      });
+    }
   }
 
   // Fonction de soumission (à implémenter)
@@ -181,29 +198,37 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
         ),
         const SizedBox(height: 8),
         // Conteneur pour l'image (simulé)
-        Container(
-          height: 180,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: _hasProductImage ? null : primaryColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(8),
-            border: _hasProductImage ? null : Border.all(color: primaryColor, width: 1.5),
-          ),
-          child: _hasProductImage
-              ? ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.asset(
-                    'assets/karite_butter.jpg', // Remplacer par votre asset réel
-                    fit: BoxFit.cover,
-                  ),
-                )
-              : Center(
-                  child: Icon(
-                    Icons.image_outlined,
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            height: 180,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: primaryColor.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: primaryColor, width: 1.5),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.cloud_upload_outlined,
                     size: 80,
                     color: primaryColor,
                   ),
-                ),
+                  const SizedBox(height: 10),
+                  const Text(
+                    'Cliquez pour uploader une image',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
       ],
     );
