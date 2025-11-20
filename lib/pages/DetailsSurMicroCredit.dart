@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart'; 
+import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/pages/Formations.dart'; 
 
 // --- COULEURS ET CONSTANTES ---
 const Color primaryPurple = Color(0xFF491B6D);
@@ -31,6 +32,15 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      
+      // Si l'utilisateur clique sur l'icône centrale (index 1) - Formations
+      if (index == 1) {
+        // Naviguer vers la page Formations
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+        );
+      }
     });
     print('Navigation vers l\'index: $index');
   }
@@ -127,11 +137,11 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                         // Placeholder pour le logo "Kafo Jiginew"
                         child: Container(
                           padding: const EdgeInsets.all(16.0),
-                          child: Image.asset('assets/images/logo.png'),
                           decoration: BoxDecoration(
                             border: Border.all(color: Colors.green, width: 1.5),
                             borderRadius: BorderRadius.circular(5.0),
                           ),
+                          child: Image.asset('assets/images/logo.png'),
                         ),
                       ),
                     ),
@@ -177,7 +187,7 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                     child: Column(
                       children: [
                         // Liste des détails (Montant, Secteur, Taux)
-                        ..._details.map((detail) => _buildDetailRow(detail)).toList(),
+                        ..._details.map((detail) => _buildDetailRow(detail)),
                         
                         const Divider(height: 30.0, thickness: 1.0, color: Colors.black12),
                         

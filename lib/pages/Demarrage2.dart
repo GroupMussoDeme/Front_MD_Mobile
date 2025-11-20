@@ -44,7 +44,7 @@ class _Demarrage2State extends State<Demarrage2> {
       body: Container(
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/images/background2.jpg'), 
+            image: AssetImage('assets/images/background2.png'), 
             fit: BoxFit.cover,
           ),
         ),

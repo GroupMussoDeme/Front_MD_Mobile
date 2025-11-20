@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import 'HomeScreen.dart';
+import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 
 class FormationVideosPage extends StatefulWidget {
@@ -21,6 +22,23 @@ class _FormationVideosPageState extends State<FormationVideosPage> {
     'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
     'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
   ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+      
+      // Si l'utilisateur clique sur l'icône Home (index 0)
+      if (index == 0) {
+        // Retourner à la page d'accueil
+        navigateToHome(context);
+      }
+      // Si l'utilisateur clique sur l'icône centrale (index 1) - Formations
+      else if (index == 1) {
+        // Nous sommes déjà sur la page Formations, donc on ne fait rien
+        // Cette condition est ajoutée pour éviter d'autres actions
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -97,11 +115,7 @@ class _FormationVideosPageState extends State<FormationVideosPage> {
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
-        onItemTapped: (index) {
-          setState(() {
-            _selectedIndex = index;
-          });
-        },
+        onItemTapped: _onItemTapped,
       ),
     );
   }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
-import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
 import 'package:musso_deme_app/pages/PaymentMethodScreen.dart';
+import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:musso_deme_app/pages/ProfileScreen.dart';
 // import 'package:votre_app/widgets/rounded_purple_container.dart';
 // import 'package:votre_app/widgets/bottom_nav_bar.dart'; 
 
@@ -22,7 +24,31 @@ class _OrderScreenState extends State<OrderScreen> {
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
-    setState(() => _selectedIndex = index);
+    setState(() {
+      _selectedIndex = index;
+      
+      // Si l'utilisateur clique sur l'icône Home (index 0)
+      if (index == 0) {
+        // Retourner à la page d'accueil
+        navigateToHome(context);
+      }
+      // Si l'utilisateur clique sur l'icône centrale (index 1) - Formations
+      else if (index == 1) {
+        // Naviguer vers la page Formations
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+        );
+      }
+      // Si l'utilisateur clique sur l'icône de profil (index 2)
+      else if (index == 2) {
+        // Naviguer vers l'écran de profil
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
+      }
+    });
   }
 
   void _updateQuantity(int delta) {

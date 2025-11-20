@@ -3,7 +3,7 @@ import 'package:musso_deme_app/pages/AudiosDroits.dart';
 import 'package:musso_deme_app/wingets/AudioTrackTile.dart';
 import 'package:musso_deme_app/wingets/CustomAudioPlayerBar.dart';
 import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
-
+import 'package:musso_deme_app/pages/Notifications.dart';
 
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Colors.white; // Le fond est blanc
@@ -90,10 +90,53 @@ class _AudioContentScreenState extends State<AudioContentScreen> {
     return Scaffold(
       backgroundColor: _kBackgroundColor,
 
-      // 1. AppBar avec le conteneur violet (RÉUTILISABLE)
+      // 1. AppBar avec le conteneur violet personnalisé (avec flèche de retour et titre)
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
-        child: RoundedPurpleContainer(),
+        child: Container(
+          height: 100,
+          decoration: const BoxDecoration(
+            color: _kPrimaryPurple,
+            borderRadius: BorderRadius.only(
+              bottomLeft: Radius.circular(25.0),
+              bottomRight: Radius.circular(25.0),
+            ),
+          ),
+          child: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 15.0),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  const Spacer(),
+                  Text(
+                    widget.screenTitle,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const Spacer(),
+                  IconButton(
+                    icon: const Icon(Icons.notifications_none, color: Colors.white),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => NotificationsScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
 
       // 2. Corps de l'écran : Intro + Liste des Pistes

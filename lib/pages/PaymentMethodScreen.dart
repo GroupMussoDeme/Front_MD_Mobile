@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
-import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
-// import 'package:votre_app/widgets/rounded_purple_container.dart';
-// import 'package:votre_app/widgets/bottom_nav_bar.dart'; 
+import 'package:musso_deme_app/pages/OrderValidationScreen.dart';
 
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Colors.white;
@@ -187,8 +185,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
             // --- Options de paiement ---
             _buildPaymentTile(
-              leading: Image.network(
-                'https://via.placeholder.com/40x40/FF7C00/FFFFFF?text=Orange', // Placeholder Orange Money
+              leading: Image.asset(
+                'assets/images/Orange_logo.svg 2.png', // Placeholder Orange Money
                 width: 40,
                 height: 40,
               ),
@@ -196,8 +194,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               option: PaymentOption.orangeMoney,
             ),
             _buildPaymentTile(
-              leading: Image.network(
-                'https://via.placeholder.com/40x40/1E90FF/FFFFFF?text=Moov', // Placeholder Moov Money
+              leading: Image.asset(
+                'assets/images/payment-methods-moov-money.f34903fd 1.png', // Placeholder Moov Money
                 width: 40,
                 height: 40,
               ),
@@ -269,7 +267,14 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () {},
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const OrderValidationScreen(),
+                    ),
+                  );
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _kPrimaryPurple,
                   shape: RoundedRectangleBorder(

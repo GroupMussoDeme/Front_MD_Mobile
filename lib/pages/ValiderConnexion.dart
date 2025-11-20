@@ -6,7 +6,7 @@ import 'package:musso_deme_app/pages/HomeScreen.dart'; // Import de la page d'ac
 const Color primaryViolet = Color(0xFF491B6D);
 const Color neutralWhite = Colors.white;
 
-const String ASSET_IMAGE_PATH = 'assets/images/background3.png';
+const String ASSET_IMAGE_PATH = 'assets/images/image2.png';
 
 class ValiderConnexion extends StatefulWidget {
   const ValiderConnexion({super.key});

@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/pages/GroupChatScreen.dart';
+import 'package:musso_deme_app/pages/NewCooperativeScreen.dart';
+import 'package:musso_deme_app/pages/Notifications.dart';
+import 'package:musso_deme_app/utils/navigation_utils.dart';
+import 'package:musso_deme_app/pages/Formations.dart';
 
 // NOTE: J'ai retiré l'import de 'HomeScreen.dart' et 'video_player' 
 // car ils ne sont pas nécessaires pour la CooperativePage elle-même.
@@ -7,7 +12,7 @@ import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 const Color primaryPurple = Color(0xFF4A0072);
 const Color neutralWhite = Colors.white;
 
-// --- Widget de chaque ligne de discussion (inchangé) ----
+// --- Widget de chaque ligne de discussion (modifié pour la redirection) ----
 class CooperativeTile extends StatelessWidget {
   final String imagePath;
   final String title;
@@ -40,7 +45,13 @@ class CooperativeTile extends StatelessWidget {
         style: const TextStyle(color: Colors.black54, fontSize: 13),
       ),
       onTap: () {
-        // Logique pour ouvrir le chat de la coopérative
+        // Redirection vers GroupChatScreen lors du clic sur une coopérative
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const GroupChatScreen(),
+          ),
+        );
       },
     );
   }
@@ -113,7 +124,14 @@ class _CooperativePageState extends State<CooperativePage> {
                           icon: const Icon(Icons.add, color: neutralWhite, size: 26),
                           onPressed: () {
                             // Action pour ajouter une coopérative
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => NewCooperativeScreenRevised(),
+                              ),
+                            );
                           },
+
                         ),
                       ),
                     ],
@@ -165,6 +183,20 @@ class _CooperativePageState extends State<CooperativePage> {
         onItemTapped: (index) {
           setState(() {
             _selectedIndex = index;
+            
+            // Gestion de la navigation selon l'index
+            if (index == 0) {
+              // Navigation vers la page d'accueil
+              navigateToHome(context);
+            } else if (index == 1) {
+              // Navigation vers la page Formations
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+              );
+            }
+            // Pour l'index 2 (icône de profil), on reste sur la même page
+            // car cette page est déjà une page de coopérative
           });
         },
       ),
