@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/pages/HomeScreen.dart';
+import 'package:musso_deme_app/services/session_service.dart';
 import 'package:musso_deme_app/wingets/primary_header.dart';
 import 'package:musso_deme_app/pages/InscriptionScreen.dart';
-import 'package:musso_deme_app/pages/ValiderConnexion.dart'; // Import de la nouvelle page
+import 'package:musso_deme_app/services/auth_service.dart';
 
-// --- Définition des couleurs de la Charte Graphique ---
+// Couleurs
 const Color primaryViolet = Color(0xFF491B6D);
 const Color neutralWhite = Colors.white;
 
@@ -18,10 +20,77 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
+  bool _isLoading = false;
 
-  // Fonction de rappel à exécuter lorsque le haut-parleur est cliqué
+  final TextEditingController _identifiantController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  final _formKey = GlobalKey<FormState>();
+
   void _playAudioInstruction(String fieldName) {
-    print("DEMANDE AUDIO : Lecture de l'instruction pour le champ '$fieldName'");
+    // À brancher plus tard avec TTS ou fichiers audio
+    print("DEMANDE AUDIO : Lecture de l'instruction pour '$fieldName'");
+  }
+
+  @override
+  void dispose() {
+    _identifiantController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submitLogin() async {
+    print('🔸 _submitLogin() appelé');
+
+    final formValid = _formKey.currentState?.validate() ?? false;
+    print('🔸 formValid = $formValid');
+
+    if (!formValid) {
+      print('🔸 Formulaire login invalide, annulation');
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    final response = await AuthService.login(
+      identifiant: _identifiantController.text,
+      motDePasse: _passwordController.text,
+    );
+
+    setState(() => _isLoading = false);
+
+    print('🔸 Réponse login: $response');
+
+    if (response["status"] == 200) {
+      final data = response["data"];
+      final accessToken = data["accessToken"] as String;
+      final refreshToken = data["refreshToken"] as String;
+      final role = data["role"] as String;
+      final userId = data["userId"] as int;
+
+      print('✅ Login OK: role=$role, userId=$userId');
+
+      // Sauvegarde locale de la session
+      await SessionService.saveSession(
+        accessToken: accessToken,
+        refreshToken: refreshToken,
+        role: role,
+        userId: userId,
+      );
+
+      // Redirection (mobile = FEMME_RURALE)
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
+      );
+    } else {
+      final message =
+          response["data"]["message"] ?? "Identifiant ou mot de passe invalide";
+      print('❌ Erreur login: $message');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text("Erreur : $message")));
+    }
   }
 
   @override
@@ -30,75 +99,92 @@ class _LoginScreenState extends State<LoginScreen> {
       'assets/images/logo.png',
       fit: BoxFit.contain,
       errorBuilder: (context, error, stackTrace) {
-        return const Icon(
-          Icons.person,
-          color: primaryViolet,
-          size: 45,
-        );
+        return const Icon(Icons.person, color: primaryViolet, size: 45);
       },
     );
 
     return Scaffold(
       backgroundColor: neutralWhite,
-      
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
-            // 1. Zone Supérieure (Tête de page et Logo)
             PrimaryHeader(logoChild: logoImage, showNotification: false),
-            
             const SizedBox(height: 50),
-            
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  // 2. Bouton "Connexion" avec dégradé
-                  _buildLoginButton(),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // 3. Zone de l'Image (simulée par une Card)
-                  _buildImagePlaceholder(),
-                  
-                  const SizedBox(height: 30),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 20.0,
+                vertical: 20.0,
+              ),
+              child: Form(
+                key: _formKey,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: <Widget>[
+                    _buildLoginButton(),
+                    const SizedBox(height: 30),
+                    _buildImagePlaceholder(),
+                    const SizedBox(height: 30),
 
-                  // 4. Champs de Connexion (avec icônes audio)
-                  // Téléphone
-                  _buildAudioTextField(
-                    label: "Téléphone",
-                    icon: Icons.call_outlined,
-                    keyboardType: TextInputType.phone,
-                    isPassword: false,
-                  ),
-                  const SizedBox(height: 20),
+                    // Champ identifiant (Téléphone ou Email)
+                    _buildAudioTextField(
+                      label: "Téléphone ou Email",
+                      icon: Icons.call_outlined,
+                      keyboardType: TextInputType.text,
+                      isPassword: false,
+                      controller: _identifiantController,
+                      validator: (value) {
+                        final v = value?.trim() ?? '';
+                        if (v.isEmpty) {
+                          return 'Identifiant requis';
+                        }
+                        if (v.contains('@')) {
+                          final emailRegex = RegExp(r'^[^@]+@[^@]+\.[^@]+$');
+                          if (!emailRegex.hasMatch(v)) {
+                            return 'Format email invalide';
+                          }
+                        } else {
+                          if (v.length < 8) {
+                            return 'Le numéro doit contenir au moins 8 caractères';
+                          }
+                          if (!RegExp(r'^[0-9+ ]+$').hasMatch(v)) {
+                            return 'Le numéro ne doit contenir que des chiffres, espaces ou +';
+                          }
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 20),
 
-                  // Mot clé (Mot de passe)
-                  _buildAudioTextField(
-                    label: "Mot clé",
-                    icon: Icons.lock_outline,
-                    isPassword: true,
-                  ),
-                  
-                  const SizedBox(height: 15),
+                    // Champ mot de passe
+                    _buildAudioTextField(
+                      label: "Mot clé",
+                      icon: Icons.lock_outline,
+                      isPassword: true,
+                      controller: _passwordController,
+                      validator: (value) {
+                        final v = value ?? '';
+                        if (v.trim().isEmpty) {
+                          return 'Mot de passe requis';
+                        }
+                        if (v.length < 4) {
+                          return 'Le mot de passe doit contenir au moins 4 caractères';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 15),
 
-                  // 5. Lien "S'inscrire"
-                  _buildRegisterLink(),
-                  
-                  const SizedBox(height: 40),
-                  
-                  // 6. Icône d'enregistrement vocal (Microphone) - avec navigation vers ValiderConnexion
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ValiderConnexion()),
-                      );
-                    },
-                    child: _buildMicIcon(),
-                  ),
-                ],
+                    _buildRegisterLink(),
+                    const SizedBox(height: 40),
+
+                    // ICI : le micro joue le rôle de bouton de connexion
+                    GestureDetector(
+                      onTap: _isLoading ? null : _submitLogin,
+                      child: _buildMicIcon(),
+                    ),
+                  ],
+                ),
               ),
             ),
           ],
@@ -107,9 +193,6 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // --- Widgets de construction ---
-
-  // Bouton "Connexion" avec dégradé
   Widget _buildLoginButton() {
     const Gradient loginGradient = LinearGradient(
       colors: [Color(0xFF8A2BE2), primaryViolet],
@@ -117,63 +200,75 @@ class _LoginScreenState extends State<LoginScreen> {
       end: Alignment.centerRight,
     );
 
-    return Container(
-      height: 30,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: primaryViolet.withOpacity(0.3),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
-          ),
-        ],
-        gradient: loginGradient,
+    return InkWell(
+      onTap: _isLoading ? null : _submitLogin,
+      child: Container(
+        height: 30,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(25),
+          boxShadow: [
+            BoxShadow(
+              color: primaryViolet.withOpacity(0.3),
+              spreadRadius: 1,
+              blurRadius: 5,
+              offset: const Offset(0, 3),
+            ),
+          ],
+          gradient: loginGradient,
+        ),
+        child: Center(
+          child: _isLoading
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(neutralWhite),
+                  ),
+                )
+              : const Text(
+                  "Connexion",
+                  style: TextStyle(
+                    color: neutralWhite,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+        ),
       ),
-      child: const Center(
-        child: Text(
-          "Connexion",
-          style: TextStyle(
-            color: neutralWhite,
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-            // fontFamily: 'Inter',
+    );
+  }
+
+  Widget _buildImagePlaceholder() {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15.0)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15.0),
+        child: SizedBox(
+          height: 200,
+          width: double.infinity,
+          child: Image.asset(
+            ASSET_IMAGE_PATH,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              return const Center(
+                child: Text("Erreur de chargement de l'image"),
+              );
+            },
           ),
         ),
       ),
     );
   }
 
-Widget _buildImagePlaceholder() {
-  return Card(
-    elevation: 4,
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(15.0),
-    ),
-    child: ClipRRect( // Utilisez ClipRRect pour s'assurer que l'image est bien arrondie
-      borderRadius: BorderRadius.circular(15.0),
-      child: SizedBox(
-        height: 200, // Augmenté de 180 à 200
-        width: double.infinity, // Occupe toute la largeur disponible
-        child: Image.asset(
-          ASSET_IMAGE_PATH,
-          fit: BoxFit.cover, // Assurez-vous que l'image couvre bien la zone
-          errorBuilder: (context, error, stackTrace) {
-            return Center(child: Text("Erreur de chargement de l'image"));
-          },
-        ),
-      ),
-    ),
-  );
-}
-
-  // Champ de texte unique pour téléphone et mot de passe (gestion audio et visibilité)
   Widget _buildAudioTextField({
     required String label,
     required IconData icon,
     required bool isPassword,
     TextInputType keyboardType = TextInputType.text,
+    TextEditingController? controller,
+    String? Function(String?)? validator,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -186,26 +281,33 @@ Widget _buildImagePlaceholder() {
               color: Colors.black,
               fontWeight: FontWeight.w600,
               fontSize: 14,
-              // fontFamily: 'Inter',
             ),
           ),
         ),
-        
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Champ de Texte
             Expanded(
               child: TextFormField(
+                controller: controller,
                 keyboardType: keyboardType,
                 obscureText: isPassword && !_isPasswordVisible,
+                validator:
+                    validator ??
+                    (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Champ requis';
+                      }
+                      return null;
+                    },
                 decoration: InputDecoration(
                   prefixIcon: Icon(icon, color: primaryViolet),
-                  // Icône de visibilité/dévisibilité pour le mot de passe
                   suffixIcon: isPassword
                       ? IconButton(
                           icon: Icon(
-                            _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                            _isPasswordVisible
+                                ? Icons.visibility
+                                : Icons.visibility_off,
                             color: primaryViolet,
                           ),
                           onPressed: () {
@@ -214,16 +316,17 @@ Widget _buildImagePlaceholder() {
                             });
                           },
                         )
-                      : null, // Pas d'icône si ce n'est pas le mot de passe
-                  contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
-                  border: _getBorder(primaryViolet, 1.5),
+                      : null,
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 15.0,
+                    horizontal: 10.0,
+                  ),
+                  border: _getBorder(Colors.grey, 1.0),
                   enabledBorder: _getBorder(Colors.grey, 1.0),
                   focusedBorder: _getBorder(primaryViolet, 2.0),
                 ),
               ),
             ),
-            
-            // Icône de Haut-parleur (Speaker Icon)
             IconButton(
               onPressed: () => _playAudioInstruction(label),
               icon: const Icon(Icons.volume_up, color: primaryViolet, size: 30),
@@ -235,8 +338,7 @@ Widget _buildImagePlaceholder() {
       ],
     );
   }
-  
-  // Lien vers la page d'inscription
+
   Widget _buildRegisterLink() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -247,11 +349,14 @@ Widget _buildImagePlaceholder() {
         ),
         GestureDetector(
           onTap: () {
-            // Logique de navigation vers la page d'inscription
-            print("Navigation vers la page d'inscription...");
-            Navigator.push(context, MaterialPageRoute(builder: (context) => const InscriptionScreen()));
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const InscriptionScreen(),
+              ),
+            );
           },
-          child: Text(
+          child: const Text(
             "S'inscrire.",
             style: TextStyle(
               color: primaryViolet,
@@ -265,8 +370,7 @@ Widget _buildImagePlaceholder() {
       ],
     );
   }
-  
-  // Icône du Microphone
+
   Widget _buildMicIcon() {
     return Container(
       width: 100,
@@ -283,15 +387,10 @@ Widget _buildImagePlaceholder() {
           ),
         ],
       ),
-      child: const Icon(
-        Icons.mic_none,
-        color: neutralWhite,
-        size: 60,
-      ),
+      child: const Icon(Icons.mic_none, color: neutralWhite, size: 60),
     );
   }
 
-  // Fonction utilitaire pour la bordure
   OutlineInputBorder _getBorder(Color color, double width) {
     return OutlineInputBorder(
       borderRadius: const BorderRadius.all(Radius.circular(10.0)),

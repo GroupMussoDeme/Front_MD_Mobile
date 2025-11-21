@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:musso_deme_app/wingets/CustomAudioPlayerBar.dart'; // Ajout de l'import
+import 'package:musso_deme_app/services/audio_service.dart'; // Import du service audio
+import 'package:provider/provider.dart'; // Import de provider
 
 // --- Définition des couleurs de la Charte Graphique ---
 const Color primaryViolet = Color(0xFF491B6D);
@@ -93,6 +97,7 @@ class AudioChapterItem extends StatelessWidget {
     );
   }
 }
+
 // *****************************************************************
 
 class WomenRightsScreen extends StatefulWidget {
@@ -109,10 +114,39 @@ class _WomenRightsScreenState extends State<WomenRightsScreen> {
   // Simuler le chapitre en cours de lecture
   int _currentPlayingIndex = 2; // Index 2 correspond à "Protection contre la violence"
 
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+  }
+
+  Future<void> _playAudio(int index) async {
+    setState(() {
+      _currentPlayingIndex = index;
+    });
+
+    try {
+      final audioService = Provider.of<AudioService>(context, listen: false);
+      // Charger le fichier audio depuis les assets (utiliser le fichier WAV qui fonctionne)
+      await audioService.playAudio('assets/audios/test.wav', index);
+      
+      // Afficher un message de succès
+      print('Lecture de l\'audio démarrée pour l\'index: $index');
+    } catch (e) {
+      print('Erreur lors de la lecture audio: $e');
+      // Afficher un message d'erreur à l'utilisateur si le contexte est disponible
+      // Nous ne pouvons pas utiliser ScaffoldMessenger ici car ce n'est pas un widget
+    }
   }
 
   // Liste des chapitres
@@ -126,6 +160,8 @@ class _WomenRightsScreenState extends State<WomenRightsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final audioService = Provider.of<AudioService>(context);
+    
     return Scaffold(
       backgroundColor: lightGrey,
       appBar: null,
@@ -205,6 +241,8 @@ class _WomenRightsScreenState extends State<WomenRightsScreen> {
                               setState(() {
                                 // Logique simple de bascule Play/Pause
                                 _currentPlayingIndex = _currentPlayingIndex == index ? -1 : index; 
+                                // Jouer l'audio
+                                _playAudio(index);
                               });
                             },
                           );
@@ -215,7 +253,7 @@ class _WomenRightsScreenState extends State<WomenRightsScreen> {
                 ),
 
                 // 4. Barre de contrôle audio inférieure
-                _buildAudioControls(),
+                CustomAudioPlayerBar(player: audioService.player), // Utiliser le nouveau lecteur audio
               ],
             ),
           ),
@@ -244,18 +282,24 @@ class _WomenRightsScreenState extends State<WomenRightsScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                decoration: BoxDecoration(
-                  color: primaryViolet,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Row(
-                  children: [
-                    Icon(Icons.play_arrow, color: neutralWhite, size: 20),
-                    SizedBox(width: 5),
-                    Text("Intro", style: TextStyle(color: neutralWhite, fontWeight: FontWeight.bold)),
-                  ],
+              GestureDetector(
+                onTap: () {
+                  // Jouer l'audio d'introduction
+                  _playAudio(-1);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: primaryViolet,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.play_arrow, color: neutralWhite, size: 20),
+                      SizedBox(width: 5),
+                      Text("Intro", style: TextStyle(color: neutralWhite, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
                 ),
               ),
               // Simuler le logo d'un partenaire
@@ -268,69 +312,6 @@ class _WomenRightsScreenState extends State<WomenRightsScreen> {
                 ),
                 child: const Center(child: Text("B", style: TextStyle(color: Colors.white, fontSize: 16))),
               )
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // --- Widgets pour la Barre de Contrôle Audio ---
-  Widget _buildAudioControls() {
-    return Container(
-      padding: const EdgeInsets.only(top: 15, bottom: 25, left: 15, right: 15),
-      decoration: BoxDecoration(
-        color: primaryViolet,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            spreadRadius: 2,
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Indicateurs de temps
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text("02:30", style: TextStyle(color: neutralWhite, fontSize: 12)),
-              Text("02:30", style: TextStyle(color: neutralWhite, fontSize: 12)),
-            ],
-          ),
-          
-          // Slider de progression (simulé par un SizedBox ici)
-          Container(height: 5, color: neutralWhite.withOpacity(0.5), margin: const EdgeInsets.symmetric(vertical: 5)),
-
-          // Contrôles (Télécharger, Retour, Pause/Play, Avancer, Recommencer)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              IconButton(icon: const Icon(Icons.file_download_outlined, color: neutralWhite, size: 30), onPressed: () {}),
-              IconButton(icon: const Icon(Icons.fast_rewind, color: neutralWhite, size: 35), onPressed: () {}),
-              
-              // Bouton Play/Pause central
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _isGlobalAudioPlaying = !_isGlobalAudioPlaying;
-                  });
-                },
-                child: Icon(
-                  _isGlobalAudioPlaying ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                  color: neutralWhite,
-                  size: 60,
-                ),
-              ),
-              
-              IconButton(icon: const Icon(Icons.fast_forward, color: neutralWhite, size: 35), onPressed: () {}),
-              IconButton(icon: const Icon(Icons.refresh, color: neutralWhite, size: 30), onPressed: () {}),
             ],
           ),
         ],

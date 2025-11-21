@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/pages/LoginScreen.dart';
 import 'package:musso_deme_app/wingets/primary_header.dart';
-import 'package:musso_deme_app/pages/ValiderInscription.dart'; // Import de la nouvelle page
+import 'package:musso_deme_app/services/auth_service.dart';
 
-// --- Définition des couleurs de la Charte Graphique ---
-
-// Couleur principale : Violet (#491B6D)
+// Couleurs
 const Color primaryViolet = Color(0xFF491B6D);
-// Couleur neutre : Blanc (#FFFFFF)
 const Color neutralWhite = Colors.white;
 
 class InscriptionScreen extends StatefulWidget {
@@ -19,20 +17,28 @@ class InscriptionScreen extends StatefulWidget {
 }
 
 class _InscriptionScreenState extends State<InscriptionScreen> {
-  // État pour gérer la visibilité du mot de passe
   bool _isPasswordVisible = false;
-
-  // État pour activer/désactiver le bouton
   bool _isFormValid = false;
+  bool _isLoading = false;
 
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers pour récupérer les valeurs et valider
   final TextEditingController _nomController = TextEditingController();
   final TextEditingController _prenomController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _localiteController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _nomController.addListener(_validateForm);
+    _prenomController.addListener(_validateForm);
+    _phoneController.addListener(_validateForm);
+    _localiteController.addListener(_validateForm);
+    _passwordController.addListener(_validateForm);
+    _validateForm();
+  }
 
   @override
   void dispose() {
@@ -44,24 +50,13 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
     super.dispose();
   }
 
-  @override
-  void initState() {
-    super.initState();
-    // Écoute des changements pour activer/désactiver le bouton
-    _nomController.addListener(_validateForm);
-    _prenomController.addListener(_validateForm);
-    _phoneController.addListener(_validateForm);
-    _localiteController.addListener(_validateForm);
-    _passwordController.addListener(_validateForm);
-    _validateForm();
-  }
-
   void _validateForm() {
     final nomOk = _nomController.text.trim().isNotEmpty;
     final prenomOk = _prenomController.text.trim().isNotEmpty;
-      final phoneOk = RegExp(r'^\+?[0-9]{7,15}$').hasMatch(_phoneController.text.trim());
+    final phoneOk =
+        RegExp(r'^\+?[0-9]{7,15}$').hasMatch(_phoneController.text.trim());
     final localiteOk = _localiteController.text.trim().isNotEmpty;
-    final passwordOk = _passwordController.text.trim().length >= 6;
+    final passwordOk = _passwordController.text.trim().length >= 4;
 
     final valid = nomOk && prenomOk && phoneOk && localiteOk && passwordOk;
     if (valid != _isFormValid) {
@@ -71,73 +66,85 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
     }
   }
 
-  void _submitForm() {
-    // Exécuter la validation du Form pour afficher les erreurs côté champs
+  Future<void> _submitForm() async {
+    print('🔸 _submitForm() appelé (Inscription)');
+
     final formValid = _formKey.currentState?.validate() ?? false;
+    print('🔸 formValid = $formValid');
+
     if (!formValid) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Veuillez remplir tous les champs correctement')));
+      print('🔸 Formulaire inscription invalide, annulation');
       return;
     }
 
-    // Vérifications additionnelles (format téléphone et longueur mot de passe)
-      if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(_phoneController.text.trim())) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Format de téléphone invalide')));
-      return;
-    }
+    setState(() => _isLoading = true);
 
-    if (_passwordController.text.trim().length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Le mot de passe doit contenir au moins 6 caractères')));
-      return;
-    }
+    final response = await AuthService.registerUser(
+      nom: _nomController.text,
+      prenom: _prenomController.text,
+      telephone: _phoneController.text,
+      localite: _localiteController.text,
+      password: _passwordController.text,
+    );
 
-    // Tous les champs sont remplis correctement -> on peut naviguer
-    Navigator.pushReplacementNamed(context, '/ConfirmationScreen');
+    setState(() => _isLoading = false);
+
+    print('🔸 Réponse inscription: $response');
+
+    if (response["status"] == 200 || response["status"] == 201) {
+      // Inscription OK -> aller à l’écran de connexion
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginScreen()),
+      );
+    } else {
+      final message =
+          response["data"]["message"] ?? "Inscription impossible, veuillez réessayer";
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Erreur : $message")),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Le widget de votre logo Image.asset
     final Widget logoImage = Image.asset(
       InscriptionScreen.LOGO_ASSET_PATH,
-      fit: BoxFit.cover, // Assure que l'image remplit bien le cercle
-      // Vous pouvez utiliser un BoxFit.contain si l'image est petite
+      fit: BoxFit.cover,
     );
+
     return Scaffold(
       backgroundColor: neutralWhite,
-
-      // Le SingleChildScrollView permet aux champs de défiler si l'écran est petit (ou le clavier s'ouvre)
       body: SingleChildScrollView(
         child: Column(
           children: <Widget>[
-            // 1. Zone Supérieure (Tête de page et Logo)
             PrimaryHeader(
               logoChild: logoImage,
               showNotification: false,
             ),
-
-            // 2. Le Corps du Formulaire - descendu avec plus de marge
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0), // Augmentation de la marge verticale
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20.0, vertical: 40.0),
               child: Form(
                 key: _formKey,
+                autovalidateMode: AutovalidateMode.onUserInteraction,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: <Widget>[
-                    // 3. Bouton "Inscription" avec dégradé (devient cliquable)
                     _buildInscriptionButton(),
-
                     const SizedBox(height: 30),
-
-                    // 4. Champs de Formulaire
-                    // Nom
-                    _buildTextField(label: "Nom", icon: Icons.person_outline, controller: _nomController),
+                    _buildTextField(
+                      label: "Nom",
+                      icon: Icons.person_outline,
+                      controller: _nomController,
+                    ),
                     const SizedBox(height: 20),
-
-                    // Prenom
-                    _buildTextField(label: "Prenom", icon: Icons.person_outline, controller: _prenomController),
+                    _buildTextField(
+                      label: "Prenom",
+                      icon: Icons.person_outline,
+                      controller: _prenomController,
+                    ),
                     const SizedBox(height: 20),
-
-                    // Téléphone
                     _buildTextField(
                       label: "Téléphone",
                       icon: Icons.call_outlined,
@@ -145,30 +152,28 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
                       controller: _phoneController,
                     ),
                     const SizedBox(height: 20),
-
-                    // Localité
-                    _buildTextField(label: "Localité", icon: Icons.location_on_outlined, controller: _localiteController),
+                    _buildTextField(
+                      label: "Localité",
+                      icon: Icons.location_on_outlined,
+                      controller: _localiteController,
+                    ),
                     const SizedBox(height: 20),
-
-                    // Mot clé (Mot de passe)
                     _buildPasswordTextField(),
-
                     const SizedBox(height: 50),
 
-                    // 5. Icône Audio (Oreille) - changée - avec navigation vers ValiderInscription
+                    // L’ICÔNE JOUE ICI LE RÔLE DE BOUTON D’INSCRIPTION
                     Center(
                       child: GestureDetector(
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const ValiderInscription()),
-                          );
-                        },
-                        child: const Icon(
-                          // Changement de l'icône
-                          Icons.hearing, // Utilisation d'une icône Material par défaut
-                          color: primaryViolet,
-                          size: 80, // Icône plus grande
+                        onTap: (!_isFormValid || _isLoading)
+                            ? null
+                            : _submitForm,
+                        child: Opacity(
+                          opacity: _isFormValid ? 1.0 : 0.5,
+                          child: const Icon(
+                            Icons.hearing,
+                            color: primaryViolet,
+                            size: 80,
+                          ),
                         ),
                       ),
                     ),
@@ -182,66 +187,19 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
     );
   }
 
-  // --- Widgets de construction ---
-
-  // Construction de la zone de tête (Container violet, courbes et cercle de profil)
-  Widget _buildHeader(BuildContext context) {
-    final double screenWidth = MediaQuery.of(context).size.width;
-
-    return Container(
-      width: screenWidth,
-      height: 180, // Hauteur fixe pour la zone de tête
-      decoration: const BoxDecoration(
-        color: primaryViolet,
-        // Les coins arrondis dans le design sont simulés par la forme du Container
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(30),
-          bottomRight: Radius.circular(30),
-        ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Le cercle de profil centré
-            Container(
-              margin: const EdgeInsets.only(top: 50), // Ajustement pour centrer visuellement
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                color: neutralWhite,
-                shape: BoxShape.circle,
-                border: Border.all(color: primaryViolet, width: 4),
-              ),
-              child: const Center(
-                child: Icon(
-                  Icons.person,
-                  color: primaryViolet,
-                  size: 45,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Construction du bouton "Inscription" avec dégradé
   Widget _buildInscriptionButton() {
-    // Le dégradé du bouton est Violet clair au Violet foncé
     const Gradient inscriptionGradient = LinearGradient(
-      colors: [Color(0xFF8A2BE2), primaryViolet], // Du violet plus clair au violet principal
+      colors: [Color(0xFF8A2BE2), primaryViolet],
       begin: Alignment.centerLeft,
       end: Alignment.centerRight,
     );
 
     return IgnorePointer(
-      ignoring: !_isFormValid,
+      ignoring: !_isFormValid || _isLoading,
       child: Opacity(
         opacity: _isFormValid ? 1.0 : 0.5,
         child: InkWell(
-          onTap: _isFormValid ? _submitForm : null,
+          onTap: _isFormValid && !_isLoading ? _submitForm : null,
           child: Container(
             height: 50,
             decoration: BoxDecoration(
@@ -256,24 +214,29 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
               ],
               gradient: inscriptionGradient,
             ),
-            child: const Center(
-              child: Text(
-                "Inscription",
-                style: TextStyle(
-                  color: neutralWhite,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                  fontFamily: 'Inter',
-                ),
-              ),
+            child: Center(
+              child: _isLoading
+                  ? const CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor:
+                          AlwaysStoppedAnimation<Color>(neutralWhite),
+                    )
+                  : const Text(
+                      "Inscription",
+                      style: TextStyle(
+                        color: neutralWhite,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        fontFamily: 'Inter',
+                      ),
+                    ),
             ),
           ),
         ),
       ),
     );
   }
-  
-  // Widget pour un champ de texte standard
+
   Widget _buildTextField({
     required String label,
     required IconData icon,
@@ -299,13 +262,21 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
           controller: controller,
           keyboardType: keyboardType,
           validator: (value) {
-            if (value == null || value.trim().isEmpty) return 'Champ requis';
+            if (value == null || value.trim().isEmpty) {
+              return 'Champ requis';
+            }
+            if (label == "Téléphone") {
+              final v = value.trim();
+              if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(v)) {
+                return 'Numéro invalide';
+              }
+            }
             return null;
           },
           decoration: InputDecoration(
-            // L'icône est positionnée à gauche du champ
             prefixIcon: Icon(icon, color: primaryViolet),
-            contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
             border: const OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(10.0)),
               borderSide: BorderSide(color: primaryViolet, width: 1.5),
@@ -323,8 +294,7 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
       ],
     );
   }
-  
-  // Widget spécifique pour le champ du mot de passe
+
   Widget _buildPasswordTextField() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -345,8 +315,12 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
           controller: _passwordController,
           obscureText: !_isPasswordVisible,
           validator: (value) {
-            if (value == null || value.isEmpty) return 'Mot de passe requis';
-            if (value.length < 6) return 'Le mot de passe doit contenir au moins 6 caractères';
+            if (value == null || value.isEmpty) {
+              return 'Mot de passe requis';
+            }
+            if (value.length < 4) {
+              return 'Le mot de passe doit contenir au moins 4 caractères';
+            }
             return null;
           },
           decoration: InputDecoration(
@@ -362,7 +336,8 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
                 });
               },
             ),
-            contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
             border: const OutlineInputBorder(
               borderRadius: BorderRadius.all(Radius.circular(10.0)),
               borderSide: BorderSide(color: primaryViolet, width: 1.5),
@@ -378,21 +353,6 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  // Construction de l'image d'arrière-plan (Placeholder)
-  Widget _buildImagePlaceholder() {
-    return Container(
-      height: 200, // Augmenté de 180 à 200
-      width: double.infinity,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        image: const DecorationImage(
-          image: AssetImage(InscriptionScreen.LOGO_ASSET_PATH),
-          fit: BoxFit.cover,
-        ),
-      ),
     );
   }
 }

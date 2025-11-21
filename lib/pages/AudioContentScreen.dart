@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/AudiosDroits.dart';
 import 'package:musso_deme_app/wingets/AudioTrackTile.dart';
 import 'package:musso_deme_app/wingets/CustomAudioPlayerBar.dart';
 import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
+import 'package:musso_deme_app/services/audio_service.dart'; // Import du service audio
+import 'package:provider/provider.dart'; // Import de provider
 
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Colors.white; // Le fond est blanc
@@ -25,18 +28,50 @@ class AudioContentScreen extends StatefulWidget {
 }
 
 class _AudioContentScreenState extends State<AudioContentScreen> {
-  // Simuler la piste actuellement en cours de lecture pour l'état d'icône
   int _currentPlayingIndex = -1; // -1 = aucune piste de la liste n'est jouée
 
-  void _onTrackTapped(int index) {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
+  Future<void> _playAudio(int index) async {
     setState(() {
-      // Si la même piste est re-tapée, on la met en pause (ou changez de logique)
-      if (_currentPlayingIndex == index) {
-        _currentPlayingIndex = -1;
-      } else {
-        _currentPlayingIndex = index;
-      }
+      _currentPlayingIndex = index;
     });
+
+    try {
+      final audioService = Provider.of<AudioService>(context, listen: false);
+      // Charger le fichier audio depuis les assets (utiliser le fichier WAV qui fonctionne)
+      await audioService.playAudio('assets/audios/test.wav', index);
+      
+      // Afficher un message de succès
+      print('Lecture de l\'audio démarrée pour l\'index: $index');
+    } catch (e) {
+      print('Erreur lors de la lecture audio: $e');
+      // Afficher un message d'erreur à l'utilisateur avec plus de détails
+      String errorMessage = 'Erreur lors de la lecture audio';
+      if (e is Exception) {
+        errorMessage = e.toString();
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
+  }
+
+  void _onTrackTapped(int index) {
+    _playAudio(index);
   }
 
   // --- Widget d'introduction (le bandeau "Bienvenue...") ---
@@ -87,6 +122,8 @@ class _AudioContentScreenState extends State<AudioContentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final audioService = Provider.of<AudioService>(context);
+    
     return Scaffold(
       backgroundColor: _kBackgroundColor,
 
@@ -111,16 +148,21 @@ class _AudioContentScreenState extends State<AudioContentScreen> {
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Spacer(),
-                  Text(
-                    widget.screenTitle,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(width: 8), // Petit espace fixe
+                  Expanded(
+                    child: Text(
+                      widget.screenTitle,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      overflow: TextOverflow.ellipsis, // Gérer le débordement avec des points de suspension
+                      maxLines: 1, // Limiter à une seule ligne
+                      textAlign: TextAlign.center, // Centrer le texte
                     ),
                   ),
-                  const Spacer(),
+                  const SizedBox(width: 8), // Petit espace fixe
                   IconButton(
                     icon: const Icon(Icons.notifications_none, color: Colors.white),
                     onPressed: () {
@@ -175,7 +217,7 @@ class _AudioContentScreenState extends State<AudioContentScreen> {
       ),
 
       // 3. Barre de lecture audio (RÉUTILISABLE)
-      bottomNavigationBar: const CustomAudioPlayerBar(),
+      bottomNavigationBar: CustomAudioPlayerBar(player: audioService.player), // Passer l'instance du lecteur
     );
   }
 }

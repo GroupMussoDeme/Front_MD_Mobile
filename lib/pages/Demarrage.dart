@@ -189,6 +189,18 @@ class _DemarrageState extends State<Demarrage> {
                 },
               ),
             ),
+            
+            // Bouton de test audio en haut à droite
+            Positioned(
+              top: 50,
+              right: 20,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/TestAudio');
+                },
+                child: Text('Test Audio'),
+              ),
+            ),
           ],
         ),
       ),
