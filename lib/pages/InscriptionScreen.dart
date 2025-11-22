@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/wingets/primary_header.dart';
 import 'package:musso_deme_app/pages/ValiderInscription.dart'; // Import de la nouvelle page
+import 'package:musso_deme_app/services/api_service.dart'; // Import du service API
 
 // --- Définition des couleurs de la Charte Graphique ---
 
@@ -80,7 +81,7 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
     }
 
     // Vérifications additionnelles (format téléphone et longueur mot de passe)
-      if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(_phoneController.text.trim())) {
+    if (!RegExp(r'^\+?[0-9]{7,15}$').hasMatch(_phoneController.text.trim())) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Format de téléphone invalide')));
       return;
     }
@@ -90,8 +91,32 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
       return;
     }
 
-    // Tous les champs sont remplis correctement -> on peut naviguer
-    Navigator.pushReplacementNamed(context, '/ConfirmationScreen');
+    // Appel à l'API pour l'inscription
+    _registerUser();
+  }
+
+  void _registerUser() async {
+    try {
+      final result = await ApiService.register(
+        nom: _nomController.text.trim(),
+        prenom: _prenomController.text.trim(),
+        numeroTel: _phoneController.text.trim(),
+        localite: _localiteController.text.trim(),
+        motCle: _passwordController.text.trim(),
+      );
+
+      if (result != null) {
+        // Inscription réussie
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inscription réussie!')));
+        // Naviguer vers la page de confirmation
+        Navigator.pushReplacementNamed(context, '/ConfirmationScreen');
+      } else {
+        // Erreur lors de l'inscription
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Erreur lors de l\'inscription. Veuillez réessayer.')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
+    }
   }
 
   @override
