@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
 import 'package:musso_deme_app/wingets/CustomAudioPlayerBar.dart';
+import 'package:musso_deme_app/services/audio_service.dart'; // Import du service audio
+import 'package:provider/provider.dart'; // Import de provider
 
 const Color primaryViolet = Color(0xFF491B6D);
 const Color lightViolet = Color(0xFFEAE1F4);
@@ -15,7 +17,6 @@ class NutritionScreen extends StatefulWidget {
 }
 
 class _NutritionScreenState extends State<NutritionScreen> {
-
   @override
   void initState() {
     super.initState();
@@ -23,8 +24,33 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   @override
   void dispose() {
-    // _player.dispose();
     super.dispose();
+  }
+
+  Future<void> _playAudio(int index) async {
+    try {
+      final audioService = Provider.of<AudioService>(context, listen: false);
+      // Charger le fichier audio depuis les assets (utiliser le fichier WAV qui fonctionne)
+      await audioService.playAudio('assets/audios/test.wav', index);
+      
+      // Afficher un message de succès
+      print('Lecture de l\'audio démarrée pour l\'index: $index');
+    } catch (e) {
+      print('Erreur lors de la lecture audio: $e');
+      // Afficher un message d'erreur à l'utilisateur avec plus de détails
+      String errorMessage = 'Erreur lors de la lecture audio';
+      if (e is Exception) {
+        errorMessage = e.toString();
+      }
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errorMessage),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+        ),
+      );
+    }
   }
 
   // Widget d'une carte (titre, description, icône + bouton play)
@@ -107,6 +133,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
   @override
   Widget build(BuildContext context) {
     final headerHeight = 72.0;
+    final audioService = Provider.of<AudioService>(context);
+    
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -144,6 +172,9 @@ class _NutritionScreenState extends State<NutritionScreen> {
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                             ),
+                            overflow: TextOverflow.ellipsis, // Gérer le débordement avec des points de suspension
+                            maxLines: 1, // Limiter à une seule ligne
+                            textAlign: TextAlign.center, // Centrer le texte
                           ),
                         ),
                         IconButton(
@@ -190,8 +221,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
                                 ElevatedButton.icon(
                                   onPressed: () {
                                     // lance l'intro (index 0)
-                                    // await _loadIndex(0);
-                                    // await _player.play();
+                                    _playAudio(0);
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: primaryViolet,
@@ -234,36 +264,36 @@ class _NutritionScreenState extends State<NutritionScreen> {
                           subtitle: 'Repas équilibré avec les produits locaux',
                           icon: Icons.restaurant,
                           onPlay: () {
-                                                      // correspond à _tracks[1]
-                                                      // _playTrackByCardIndex(0);
-                                                    }
+                            // correspond à _tracks[1]
+                            _playAudio(1);
+                          }
                         ),
                         _buildCard(
                           title: 'Alimentation\ndes enfants',
                           subtitle: 'Biens nutritionnels par âge',
                           icon: Icons.child_care,
                           onPlay: () {
-                                                      // _tracks[2]
-                                                      // _playTrackByCardIndex(1);
-                                                    }
+                            // _tracks[2]
+                            _playAudio(2);
+                          }
                         ),
                         _buildCard(
                           title: 'Bien être des\nnouveaux nés',
                           subtitle: 'Nutriments essentiels pour bébé et la maman',
                           icon: Icons.add_circle,
                           onPlay: () {
-                                                      // _tracks[3]
-                                                      // _playTrackByCardIndex(2);
-                                                    }
+                            // _tracks[3]
+                            _playAudio(3);
+                          }
                         ),
                         _buildCard(
                           title: 'L’eau et l’hygiène\nalimentaire',
                           subtitle: "Importance de potable et l'hygiène",
                           icon: Icons.water_drop,
                           onPlay: () {
-                                                      // _tracks[4]
-                                                      // _playTrackByCardIndex(3);
-                                                    }
+                            // _tracks[4]
+                            _playAudio(4);
+                          }
                         ),
                       ],
                     ),
@@ -276,7 +306,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const CustomAudioPlayerBar(),
+      bottomNavigationBar: CustomAudioPlayerBar(player: audioService.player), // Passer l'instance du lecteur
     );
   }
 }

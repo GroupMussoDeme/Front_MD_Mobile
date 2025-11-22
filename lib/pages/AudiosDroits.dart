@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:musso_deme_app/wingets/CustomAudioPlayerBar.dart'; // Ajout de l'import
+import 'package:musso_deme_app/services/audio_service.dart'; // Import du service audio
+import 'package:provider/provider.dart'; // Import de provider
 
 // --- Définition des couleurs de la Charte Graphique ---
 const Color primaryViolet = Color(0xFF491B6D);
@@ -109,8 +113,10 @@ class AudioListItem extends StatelessWidget {
             ),
           ),
           onTap: () {
-            // Logique de lecture/pause
-            print("Playing: ${track.title}");
+            // Trouver l'index de la piste dans la liste
+            final index = tracks.indexOf(track);
+            // Accéder à l'état du parent pour jouer l'audio
+            (context.findAncestorStateOfType<_DroitsDesFemmesScreenState>() as _DroitsDesFemmesScreenState)._playAudio(index);
           },
         ),
       ),
@@ -121,8 +127,41 @@ class AudioListItem extends StatelessWidget {
 // *****************************************************************
 // 2. Écran Principal (Droits des femmes)
 // *****************************************************************
-class DroitsDesFemmesScreen extends StatelessWidget {
+class DroitsDesFemmesScreen extends StatefulWidget {
   const DroitsDesFemmesScreen({super.key});
+
+  @override
+  State<DroitsDesFemmesScreen> createState() => _DroitsDesFemmesScreenState();
+}
+
+class _DroitsDesFemmesScreenState extends State<DroitsDesFemmesScreen> {
+  int _currentPlayingIndex = -1;
+
+  Future<void> _playAudio(int index) async {
+    setState(() {
+      _currentPlayingIndex = index;
+    });
+
+    try {
+      final audioService = Provider.of<AudioService>(context, listen: false);
+      // Charger le fichier audio depuis les assets (utiliser le fichier WAV qui fonctionne)
+      await audioService.playAudio('assets/audios/test.wav', index);
+      
+      // Afficher un message de succès
+      print('Lecture de l\'audio démarrée pour l\'index: $index');
+    } catch (e) {
+      print('Erreur lors de la lecture audio: $e');
+      // Afficher un message d'erreur à l'utilisateur
+      if (context != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la lecture audio: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 
   // Composant du "message d'introduction"
   Widget _buildIntroCard() {
@@ -161,7 +200,10 @@ class DroitsDesFemmesScreen extends StatelessWidget {
                   color: primaryViolet,
                   borderRadius: BorderRadius.circular(20),
                   child: InkWell(
-                    onTap: () {},
+                    onTap: () {
+                      // Jouer l'audio d'introduction (index -1 pour indiquer l'intro)
+                      _playAudio(-1);
+                    },
                     borderRadius: BorderRadius.circular(20),
                     child: const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 15, vertical: 8),
@@ -198,82 +240,13 @@ class DroitsDesFemmesScreen extends StatelessWidget {
     );
   }
 
-  // Composant de la barre de lecteur de musique en bas
-  Widget _buildBottomPlayer() {
-    return Container(
-      height: 110, // Hauteur totale du lecteur
-      decoration: const BoxDecoration(
-        color: primaryViolet,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Barre de progression (Slider)
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 3.0,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
-              activeTrackColor: neutralWhite,
-              inactiveTrackColor: neutralWhite.withOpacity(0.3),
-              thumbColor: neutralWhite,
-              overlayColor: neutralWhite.withOpacity(0.2),
-            ),
-            child: Slider(
-              value: 0.5, // Valeur actuelle (2:30 sur 5:00)
-              min: 0,
-              max: 1.0,
-              onChanged: (double value) {},
-            ),
-          ),
-
-          // Durées et boutons de contrôle
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("02:30", style: TextStyle(color: neutralWhite, fontSize: 12)),
-                const Text("02:30", style: TextStyle(color: neutralWhite, fontSize: 12)),
-                // La capture d'écran montre 02:30 / 02:30. 
-                // Je vais utiliser 02:30 pour le début et 04:60 (simulé) pour la fin.
-              ],
-            ),
-          ),
-
-          // Boutons de contrôle (Télécharger, Précédent, Pause, Suivant, Rejouer)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _playerButton(Icons.file_download_outlined, 24),
-                _playerButton(Icons.skip_previous, 35),
-                _playerButton(Icons.pause, 50),
-                _playerButton(Icons.skip_next, 35),
-                _playerButton(Icons.refresh, 24),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Fonction utilitaire pour les icônes du lecteur
-  Widget _playerButton(IconData icon, double size) {
-    return Icon(icon, color: neutralWhite, size: size);
-  }
-
   // ***************************************************************
   // 3. Le Scaffold (Structure de la page)
   // ***************************************************************
   @override
   Widget build(BuildContext context) {
+    final audioService = Provider.of<AudioService>(context);
+    
     return Scaffold(
       // La couleur de fond derrière la carte blanche
       backgroundColor: lightGrey,
@@ -325,7 +298,7 @@ class DroitsDesFemmesScreen extends StatelessWidget {
           // Lecteur de médias en bas (positionné en bas de la pile)
           Align(
             alignment: Alignment.bottomCenter,
-            child: _buildBottomPlayer(),
+            child: CustomAudioPlayerBar(player: audioService.player), // Passer l'instance du lecteur
           ),
         ],
       ),
