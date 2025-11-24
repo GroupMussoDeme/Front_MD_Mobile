@@ -69,16 +69,8 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
         title: 'Secteur d\'activité',
         value: secteur,
       ),
-      FinanceDetail(
-        icon: Icons.percent,
-        title: 'Taux d\'intérêt',
-        value: taux,
-      ),
-      FinanceDetail(
-        icon: Icons.phone,
-        title: 'Téléphone',
-        value: tel,
-      ),
+      FinanceDetail(icon: Icons.percent, title: 'Taux d\'intérêt', value: taux),
+      FinanceDetail(icon: Icons.phone, title: 'Téléphone', value: tel),
     ];
   }
 
@@ -101,21 +93,47 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
 
     // Gestion logo (asset ou backend)
     Widget buildLogo() {
+      final inst = widget.institution;
+
       if (inst.logoUrl.isEmpty) {
-        return const Icon(Icons.account_balance, color: primaryPurple, size: 50);
+        return const Icon(
+          Icons.account_balance,
+          color: primaryPurple,
+          size: 50,
+        );
       }
 
       if (inst.logoUrl.startsWith('assets/')) {
         return Image.asset(
           inst.logoUrl,
           fit: BoxFit.contain,
+          errorBuilder: (_, __, ___) {
+            debugPrint('Erreur asset logo détail: ${inst.logoUrl}');
+            return const Icon(
+              Icons.account_balance,
+              color: primaryPurple,
+              size: 50,
+            );
+          },
         );
       }
 
       final fullLogoUrl = InstitutionApiService.fileUrl(inst.logoUrl);
+      debugPrint(
+        'DETAIL logo brut="${inst.logoUrl}" -> complet="$fullLogoUrl"',
+      );
+
       return Image.network(
         fullLogoUrl,
         fit: BoxFit.contain,
+        errorBuilder: (_, __, ___) {
+          debugPrint('Erreur network logo détail: $fullLogoUrl');
+          return const Icon(
+            Icons.account_balance,
+            color: primaryPurple,
+            size: 50,
+          );
+        },
       );
     }
 
@@ -159,8 +177,10 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.notifications_none,
-                            color: neutralWhite),
+                        icon: const Icon(
+                          Icons.notifications_none,
+                          color: neutralWhite,
+                        ),
                         onPressed: () {},
                       ),
                     ],
@@ -185,7 +205,9 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                            color: primaryPurple.withOpacity(0.5), width: 2),
+                          color: primaryPurple.withOpacity(0.5),
+                          width: 2,
+                        ),
                       ),
                       child: Center(
                         child: Padding(
@@ -243,9 +265,10 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                       children: [
                         ..._details.map(_buildDetailRow),
                         const Divider(
-                            height: 30.0,
-                            thickness: 1.0,
-                            color: Colors.black12),
+                          height: 30.0,
+                          thickness: 1.0,
+                          color: Colors.black12,
+                        ),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
@@ -292,10 +315,7 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                 const SizedBox(height: 4.0),
                 Text(
                   detail.value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                  ),
+                  style: const TextStyle(fontSize: 14, color: Colors.black87),
                 ),
               ],
             ),
@@ -323,8 +343,8 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
   Widget _buildActionIcon(IconData icon) {
     return IconButton(
       icon: Icon(icon, color: _kIconColor, size: 28),
-      onPressed: () => debugPrint(
-          'Action: ${icon == Icons.phone ? 'Appeler' : 'Favori'}'),
+      onPressed: () =>
+          debugPrint('Action: ${icon == Icons.phone ? 'Appeler' : 'Favori'}'),
     );
   }
 }

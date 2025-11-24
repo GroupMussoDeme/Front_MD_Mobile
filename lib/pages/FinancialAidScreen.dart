@@ -99,8 +99,10 @@ class _FinancialAidScreenState extends State<FinancialAidScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.notifications_none,
-                            color: neutralWhite),
+                        icon: const Icon(
+                          Icons.notifications_none,
+                          color: neutralWhite,
+                        ),
                         onPressed: () {},
                       ),
                     ],
@@ -114,8 +116,10 @@ class _FinancialAidScreenState extends State<FinancialAidScreen> {
           Positioned.fill(
             top: 100,
             child: SingleChildScrollView(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 15.0, vertical: 15.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 15.0,
+                vertical: 15.0,
+              ),
               child: FutureBuilder<List<InstitutionFinanciere>>(
                 future: _futureInstitutions,
                 builder: (context, snapshot) {
@@ -154,9 +158,8 @@ class _FinancialAidScreenState extends State<FinancialAidScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => MicrocreditDetailsScreen(
-                                institution: inst,
-                              ),
+                              builder: (context) =>
+                                  MicrocreditDetailsScreen(institution: inst),
                             ),
                           );
                         },
@@ -164,9 +167,8 @@ class _FinancialAidScreenState extends State<FinancialAidScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => AppelScreen(
-                                institution: inst,
-                              ),
+                              builder: (context) =>
+                                  AppelScreen(institution: inst),
                             ),
                           );
                         },
@@ -220,8 +222,11 @@ class FinancialInstitutionCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             if (icon != null) ...[
-              Icon(icon,
-                  color: isPrimary ? neutralWhite : primaryViolet, size: 20),
+              Icon(
+                icon,
+                color: isPrimary ? neutralWhite : primaryViolet,
+                size: 20,
+              ),
               const SizedBox(width: 5),
             ],
             Text(
@@ -258,12 +263,11 @@ class FinancialInstitutionCard extends StatelessWidget {
 
     // Gestion du logo (assets ou backend)
     Widget buildLogo() {
+      // 1) Pas de logo : fallback lettre
       if (institution.logoUrl.isEmpty) {
         return Center(
           child: Text(
-            institution.nom.isNotEmpty
-                ? institution.nom.substring(0, 1)
-                : '?',
+            institution.nom.isNotEmpty ? institution.nom.substring(0, 1) : '?',
             style: const TextStyle(
               color: primaryViolet,
               fontWeight: FontWeight.bold,
@@ -273,11 +277,39 @@ class FinancialInstitutionCard extends StatelessWidget {
         );
       }
 
+      // 2) Logo local dans assets
       if (institution.logoUrl.startsWith('assets/')) {
         return Image.asset(
           institution.logoUrl,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Center(
+          errorBuilder: (_, __, ___) {
+            debugPrint('Erreur chargement asset logo: ${institution.logoUrl}');
+            return Center(
+              child: Text(
+                institution.nom.substring(0, 1),
+                style: const TextStyle(
+                  color: primaryViolet,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            );
+          },
+        );
+      }
+
+      // 3) Logo venant du backend
+      final fullLogoUrl = InstitutionApiService.fileUrl(institution.logoUrl);
+      debugPrint(
+        'Logo institution ${institution.nom} '
+        'brut="${institution.logoUrl}" -> complet="$fullLogoUrl"',
+      );
+
+      return Image.network(
+        fullLogoUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) {
+          debugPrint('Erreur chargement network logo: $fullLogoUrl');
+          return Center(
             child: Text(
               institution.nom.substring(0, 1),
               style: const TextStyle(
@@ -285,24 +317,8 @@ class FinancialInstitutionCard extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-          ),
-        );
-      }
-
-      final fullLogoUrl = InstitutionApiService.fileUrl(institution.logoUrl);
-
-      return Image.network(
-        fullLogoUrl,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => Center(
-          child: Text(
-            institution.nom.substring(0, 1),
-            style: const TextStyle(
-              color: primaryViolet,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
+          );
+        },
       );
     }
 
@@ -363,10 +379,7 @@ class FinancialInstitutionCard extends StatelessWidget {
                     ),
                     Text(
                       sectors,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey,
-                      ),
+                      style: const TextStyle(fontSize: 13, color: Colors.grey),
                     ),
                     Text(
                       'Taux : $rate',
@@ -408,13 +421,19 @@ class FinancialInstitutionCard extends StatelessWidget {
                 isPrimary: true,
               ),
               IconButton(
-                icon: const Icon(Icons.favorite_border,
-                    color: darkGrey, size: 28),
+                icon: const Icon(
+                  Icons.favorite_border,
+                  color: darkGrey,
+                  size: 28,
+                ),
                 onPressed: () {},
               ),
               IconButton(
-                icon:
-                    const Icon(Icons.call_outlined, color: darkGrey, size: 28),
+                icon: const Icon(
+                  Icons.call_outlined,
+                  color: darkGrey,
+                  size: 28,
+                ),
                 onPressed: onCall,
               ),
             ],
