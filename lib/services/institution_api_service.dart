@@ -25,16 +25,26 @@ class InstitutionApiService {
   }
 
   /// Construit une URL absolue à partir d’un chemin renvoyé par le backend
-  static String fileUrl(String? relativePath) {
-    if (relativePath == null || relativePath.isEmpty) {
-      return '';
+  static String fileUrl(String relative) {
+    if (relative.isEmpty) return '';
+
+    var base = _baseUrl;
+    var path = relative.replaceAll('\\', '/'); // au cas où
+
+    // Si le backend renvoie déjà une URL complète
+    if (path.startsWith('http')) return path;
+
+    // Normaliser le slash entre base et path
+    final bool baseEndsWithSlash = base.endsWith('/');
+    final bool pathStartsWithSlash = path.startsWith('/');
+
+    if (baseEndsWithSlash && pathStartsWithSlash) {
+      path = path.substring(1); // on enlève un slash au début
+    } else if (!baseEndsWithSlash && !pathStartsWithSlash) {
+      path = '/$path';
     }
-    if (relativePath.startsWith('http://') ||
-        relativePath.startsWith('https://')) {
-      return relativePath;
-    }
-    // Exemple: "uploads/logos/kafo.png" -> http://10.0.2.2:8080/uploads/logos/kafo.png
-    final normalized = relativePath.replaceAll('\\', '/');
-    return '$_baseUrl/$normalized';
+
+    final full = '$base$path';
+    return full;
   }
 }

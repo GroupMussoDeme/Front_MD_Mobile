@@ -263,41 +263,6 @@ class FinancialInstitutionCard extends StatelessWidget {
 
     // Gestion du logo (assets ou backend)
     Widget buildLogo() {
-      // 1) Pas de logo : fallback lettre
-      if (institution.logoUrl.isEmpty) {
-        return Center(
-          child: Text(
-            institution.nom.isNotEmpty ? institution.nom.substring(0, 1) : '?',
-            style: const TextStyle(
-              color: primaryViolet,
-              fontWeight: FontWeight.bold,
-              fontSize: 22,
-            ),
-          ),
-        );
-      }
-
-      // 2) Logo local dans assets
-      if (institution.logoUrl.startsWith('assets/')) {
-        return Image.asset(
-          institution.logoUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) {
-            debugPrint('Erreur chargement asset logo: ${institution.logoUrl}');
-            return Center(
-              child: Text(
-                institution.nom.substring(0, 1),
-                style: const TextStyle(
-                  color: primaryViolet,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            );
-          },
-        );
-      }
-
-      // 3) Logo venant du backend
       final fullLogoUrl = InstitutionApiService.fileUrl(institution.logoUrl);
       debugPrint(
         'Logo institution ${institution.nom} '
@@ -307,8 +272,8 @@ class FinancialInstitutionCard extends StatelessWidget {
       return Image.network(
         fullLogoUrl,
         fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) {
-          debugPrint('Erreur chargement network logo: $fullLogoUrl');
+        errorBuilder: (_, error, ___) {
+          debugPrint('Erreur network logo: $fullLogoUrl | error=$error');
           return Center(
             child: Text(
               institution.nom.substring(0, 1),
