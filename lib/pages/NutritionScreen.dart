@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
-import 'package:musso_deme_app/services/contenu.dart';
+import 'package:musso_deme_app/models/contenu.dart';
 import 'package:musso_deme_app/widgets/CustomAudioPlayerBar.dart';
 import 'package:musso_deme_app/services/audio_service.dart';
 import 'package:musso_deme_app/services/media_api_service.dart';

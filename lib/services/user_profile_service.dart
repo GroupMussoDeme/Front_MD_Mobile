@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_service.dart';
-import '../modeles/user_model.dart';
+import '../models/user_model.dart';
 
 class UserProfileService {
   static const String _endpoint = '/profile';

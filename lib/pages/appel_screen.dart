@@ -1,6 +1,6 @@
 // lib/pages/appel_screen.dart
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/services/institution.dart';
+import 'package:musso_deme_app/models/institution.dart';
 
 const Color primaryViolet = Color(0xFF491B6D);
 const Color neutralWhite = Colors.white;

@@ -2,22 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/widgets/RoundedPurpleContainer.dart';
 
-// --- COULEURS ET CONSTANTES ---
+// API / modèles
+import 'package:musso_deme_app/models/marche_models.dart';
+import 'package:musso_deme_app/services/femme_rurale_api.dart';
+
+// Couleurs
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Color(0xFFF0F0F0);
 const Color _kCardColor = Colors.white;
 const Color _kTextColor = Colors.black87;
 
-// --- MODÈLE DE DONNÉES ---
-class SaleItem {
-  final String imageUrl;
-  final String name;
-  final String quantitySold; // Ex: '40 Kg vendu'
-
-  SaleItem({required this.imageUrl, required this.name, required this.quantitySold});
-}
-
-// --- WIDGET PRINCIPAL : ÉCRAN MES VENTES ---
 class MySalesScreen extends StatefulWidget {
   const MySalesScreen({super.key});
 
@@ -26,60 +20,53 @@ class MySalesScreen extends StatefulWidget {
 }
 
 class _MySalesScreenState extends State<MySalesScreen> {
-  int _selectedIndex = 1; // L'icône centrale (Formation) est sélectionnée par défaut
+  int _selectedIndex = 1;
+
+  final FemmeRuraleApi _api = FemmeRuraleApi();
+  late Future<List<Commande>> _futureVentes;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVentes();
+  }
+
+  void _loadVentes() {
+    _futureVentes = _api.getMesVentes();
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
-    print('Navigation vers l\'index: $index');
+    // Éventuellement navigation si tu veux
   }
 
-  // Liste des articles vendus factices
-  final List<SaleItem> _sales = [
-    SaleItem(
-      imageUrl: 'assets/images/beurredecarrite.png',
-      name: 'Soumbala',
-      quantitySold: '40 Kg vendu',
-    ),
-    SaleItem(
-      imageUrl: 'assets/images/beurredecarrite.png',
-      name: 'Savons',
-      quantitySold: '400 M vendu',
-    ),
-    SaleItem(
-      imageUrl: 'assets/images/beurredecarrite.png',
-      name: 'Karité',
-      quantitySold: '30 Kg vendu',
-    ),
-    SaleItem(
-      imageUrl: 'assets/images/beurredecarrite.png',
-      name: 'Légumes',
-      quantitySold: '100 Kg vendu',
-    ),
-  ];
+  String _buildQuantiteLabel(Commande commande) {
+    // Tu pourras spécialiser par type produit (Kg, M, etc.) si nécessaire
+    return '${commande.quantite} vendu(s)';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBackgroundColor,
 
-      // L'AppBar avec le conteneur violet arrondi (Widget Réutilisable)
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
         child: AppBar(
           automaticallyImplyLeading: false,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          // Utilisation du RoundedPurpleContainer
-          flexibleSpace: const RoundedPurpleContainer(height: 100.0), 
+          flexibleSpace: const RoundedPurpleContainer(height: 100.0),
           title: Padding(
             padding: const EdgeInsets.only(top: 10.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                  icon:
+                      const Icon(Icons.arrow_back_ios, color: Colors.white),
                   onPressed: () => Navigator.pop(context),
                 ),
                 const Text(
@@ -91,7 +78,8 @@ class _MySalesScreenState extends State<MySalesScreen> {
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.notifications_none, color: Colors.white),
+                  icon: const Icon(Icons.notifications_none,
+                      color: Colors.white),
                   onPressed: () {},
                 ),
               ],
@@ -100,25 +88,53 @@ class _MySalesScreenState extends State<MySalesScreen> {
         ),
       ),
 
-      // Corps de l'écran avec la grille des ventes
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: GridView.builder(
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2, // 2 colonnes comme dans le design
-            crossAxisSpacing: 16.0,
-            mainAxisSpacing: 16.0,
-            childAspectRatio: 0.8, // Ajustement léger pour mieux coller au design
-          ),
-          itemCount: _sales.length,
-          itemBuilder: (context, index) {
-            final item = _sales[index];
-            return SalesItemCard(item: item);
+        child: FutureBuilder<List<Commande>>(
+          future: _futureVentes,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
+            if (snapshot.hasError) {
+              return Center(
+                child: Text(
+                  'Erreur chargement ventes : ${snapshot.error}',
+                  style: const TextStyle(color: Colors.red),
+                ),
+              );
+            }
+
+            final ventes = snapshot.data ?? [];
+            if (ventes.isEmpty) {
+              return const Center(
+                child: Text('Vous n’avez pas encore de ventes.'),
+              );
+            }
+
+            return GridView.builder(
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 16.0,
+                mainAxisSpacing: 16.0,
+                childAspectRatio: 0.8,
+              ),
+              itemCount: ventes.length,
+              itemBuilder: (context, index) {
+                final commande = ventes[index];
+                final produit = commande.produit; // peut être null
+                final quantiteLabel = _buildQuantiteLabel(commande);
+
+                return SalesItemCard(
+                  produit: produit,
+                  quantiteLabel: quantiteLabel,
+                );
+              },
+            );
           },
         ),
       ),
 
-      // La barre de navigation inférieure personnalisée (Widget Réutilisable)
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
@@ -127,14 +143,20 @@ class _MySalesScreenState extends State<MySalesScreen> {
   }
 }
 
-// --- WIDGET DE LA CARTE D'ARTICLE VENDU (RÉUTILISABLE) ---
 class SalesItemCard extends StatelessWidget {
-  final SaleItem item;
+  final Produit? produit;        // nullable
+  final String quantiteLabel;
 
-  const SalesItemCard({super.key, required this.item});
+  const SalesItemCard({
+    super.key,
+    required this.produit,
+    required this.quantiteLabel,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final productName = produit?.nom ?? 'Produit inconnu';
+
     return Card(
       color: _kCardColor,
       elevation: 4.0,
@@ -146,23 +168,15 @@ class SalesItemCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Image de l'article
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10.0),
-                child: Image.asset(
-                  item.imageUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) {
-                    return const Center(child: Icon(Icons.image, size: 50));
-                  },
-                ),
+                child: _buildProductImage(),
               ),
             ),
             const SizedBox(height: 8.0),
-            // Nom de l'article
             Text(
-              item.name,
+              productName,
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -173,19 +187,17 @@ class SalesItemCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4.0),
-            // Quantité vendue
             Text(
-              item.quantitySold,
+              quantiteLabel,
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: _kPrimaryPurple, // Mis en violet pour accentuer la donnée
+                color: _kPrimaryPurple,
               ),
             ),
             const SizedBox(height: 8.0),
-            // Icône Haut-parleur
-            Center(
+            const Center(
               child: Icon(
                 Icons.volume_up,
                 color: _kPrimaryPurple,
@@ -194,6 +206,43 @@ class SalesItemCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildProductImage() {
+    final img = produit?.image;
+    Widget child;
+
+    if (img != null && img.isNotEmpty) {
+      if (img.startsWith('http://') || img.startsWith('https://')) {
+        child = Image.network(
+          img,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder(),
+        );
+      } else {
+        final fullUrl = 'http://10.0.2.2:8080/uploads/$img';
+        child = Image.network(
+          fullUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder(),
+        );
+      }
+    } else {
+      child = _placeholder();
+    }
+
+    return child;
+  }
+
+  Widget _placeholder() {
+    return Container(
+      color: Colors.grey.shade200,
+      child: const Icon(
+        Icons.image_outlined,
+        color: Colors.grey,
+        size: 50,
       ),
     );
   }

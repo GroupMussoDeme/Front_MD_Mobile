@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-import 'package:musso_deme_app/services/contenu.dart';
+import 'package:musso_deme_app/models/contenu.dart';
 import 'package:musso_deme_app/services/auth_service.dart';
 
 class MediaApiService {

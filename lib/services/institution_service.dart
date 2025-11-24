@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_service.dart';
-import '../modeles/institution_model.dart';
+import '../models/institution_model.dart';
 
 class InstitutionService {
   static const String _endpoint = '/institutions';

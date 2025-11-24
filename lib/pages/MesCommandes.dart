@@ -1,31 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
+import 'package:musso_deme_app/models/marche_models.dart';
+import 'package:musso_deme_app/services/femme_rurale_api.dart';
 
-// Définition des couleurs
+// Couleurs
 const Color primaryPurple = Color(0xFF491B6D);
 const Color backgroundColor = Color(0xFFF0F0F0);
 const Color cardColor = Colors.white;
 const Color textColor = Colors.black87;
 const Color neutralWhite = Colors.white;
-
-// Modèle de données pour une commande
-class Order {
-  final String imageUrl;
-  final String productName;
-  final String price;
-  final String date;
-  final String status; // En cours, Livrée, Annulée
-  final String seller;
-
-  Order({
-    required this.imageUrl,
-    required this.productName,
-    required this.price,
-    required this.date,
-    required this.status,
-    required this.seller,
-  });
-}
 
 class MesCommandesScreen extends StatefulWidget {
   const MesCommandesScreen({super.key});
@@ -37,46 +20,64 @@ class MesCommandesScreen extends StatefulWidget {
 class _MesCommandesScreenState extends State<MesCommandesScreen> {
   int _selectedIndex = 0;
 
+  final FemmeRuraleApi _api = FemmeRuraleApi();
+  late Future<List<Commande>> _futureCommandes;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCommandes();
+  }
+
+  void _loadCommandes() {
+    _futureCommandes = _api.getMesCommandes();
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+      // À compléter si tu veux une navigation spécifique
     });
   }
 
-  // Liste de commandes factices
-  final List<Order> _orders = [
-    Order(
-      imageUrl: 'assets/images/beurredecarrite.png',
-      productName: 'Beurre de karité',
-      price: '1000 FCFA',
-      date: '26/10/2025',
-      status: 'En cours',
-      seller: 'Aminata Traoré',
-    ),
-    Order(
-      imageUrl: 'assets/images/pagne.png',
-      productName: 'Pagne tissé',
-      price: '6000 FCFA',
-      date: '25/10/2025',
-      status: 'Livrée',
-      seller: 'Fatoumata Diarra',
-    ),
-    Order(
-      imageUrl: 'assets/images/beurredecarrite.png',
-      productName: 'Soumbala',
-      price: '600 FCFA',
-      date: '20/10/2025',
-      status: 'Annulée',
-      seller: 'Mariam Coulibaly',
-    ),
-  ];
+  String _formatDate(DateTime date) {
+    final d = date.day.toString().padLeft(2, '0');
+    final m = date.month.toString().padLeft(2, '0');
+    final y = date.year.toString();
+    return '$d/$m/$y';
+  }
+
+  String _statusLabel(String rawStatus) {
+    switch (rawStatus.toUpperCase()) {
+      case 'EN_COURS':
+        return 'En cours';
+      case 'LIVREE':
+        return 'Livrée';
+      case 'ANNULEE':
+        return 'Annulée';
+      default:
+        return rawStatus;
+    }
+  }
+
+  Color _statusColor(String rawStatus) {
+    switch (rawStatus.toUpperCase()) {
+      case 'EN_COURS':
+        return Colors.orange;
+      case 'LIVREE':
+        return Colors.green;
+      case 'ANNULEE':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor,
       appBar: null,
-      
       body: Stack(
         children: [
           // Header violet arrondi
@@ -114,7 +115,10 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.notifications_none, color: neutralWhite),
+                        icon: const Icon(
+                          Icons.notifications_none,
+                          color: neutralWhite,
+                        ),
                         onPressed: () {},
                       ),
                     ],
@@ -123,16 +127,53 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
               ),
             ),
           ),
+
           // Contenu scrollable
           Positioned.fill(
             top: 100,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: ListView.builder(
-                itemCount: _orders.length,
-                itemBuilder: (context, index) {
-                  final order = _orders[index];
-                  return OrderCard(order: order);
+              child: FutureBuilder<List<Commande>>(
+                future: _futureCommandes,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Center(
+                      child: Text(
+                        'Erreur chargement commandes : ${snapshot.error}',
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    );
+                  }
+
+                  final commandes = snapshot.data ?? [];
+                  if (commandes.isEmpty) {
+                    return const Center(
+                      child: Text('Aucune commande pour le moment.'),
+                    );
+                  }
+
+                  return ListView.builder(
+                    itemCount: commandes.length,
+                    itemBuilder: (context, index) {
+                      final commande = commandes[index];
+                      final produit = commande.produit; // Peut être null
+                      final statusLabel =
+                          _statusLabel(commande.statutCommande ?? '');
+                      final statusColor =
+                          _statusColor(commande.statutCommande ?? '');
+
+                      return CommandeCard(
+                        commande: commande,
+                        produit: produit,
+                        statusLabel: statusLabel,
+                        statusColor: statusColor,
+                        dateFormatted: _formatDate(commande.dateAchat),
+                      );
+                    },
+                  );
                 },
               ),
             ),
@@ -140,7 +181,6 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
         ],
       ),
 
-      // Barre de navigation avec BottomNavBar widget
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
@@ -149,27 +189,31 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
   }
 }
 
-/// Widget représentant une carte de commande
-class OrderCard extends StatelessWidget {
-  final Order order;
+/// Carte de commande basée sur Commande + Produit du backend
+class CommandeCard extends StatelessWidget {
+  final Commande commande;
+  final Produit? produit;              // nullable
+  final String statusLabel;
+  final Color statusColor;
+  final String dateFormatted;
 
-  const OrderCard({super.key, required this.order});
-
-  Color _getStatusColor() {
-    switch (order.status) {
-      case 'En cours':
-        return Colors.orange;
-      case 'Livrée':
-        return Colors.green;
-      case 'Annulée':
-        return Colors.red;
-      default:
-        return Colors.grey;
-    }
-  }
+  const CommandeCard({
+    super.key,
+    required this.commande,
+    required this.produit,
+    required this.statusLabel,
+    required this.statusColor,
+    required this.dateFormatted,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // Fallback si produit est null
+    final productName = produit?.nom ?? 'Produit inconnu';
+    final vendeur = commande.vendeuseNom ?? 'Vendeuse inconnue';
+    final montant =
+        (commande.montantTotal?.toStringAsFixed(0) ?? '-') + ' FCFA';
+
     return Card(
       margin: const EdgeInsets.only(bottom: 16.0),
       color: cardColor,
@@ -185,31 +229,14 @@ class OrderCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Image du produit
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10.0),
-                  child: Image.asset(
-                    order.imageUrl,
-                    width: 80,
-                    height: 80,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: 80,
-                        height: 80,
-                        color: Colors.grey[300],
-                        child: const Icon(Icons.image, size: 40),
-                      );
-                    },
-                  ),
-                ),
+                _buildProductImage(),
                 const SizedBox(width: 16.0),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        order.productName,
+                        productName,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -218,7 +245,7 @@ class OrderCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4.0),
                       Text(
-                        'Vendeur: ${order.seller}',
+                        'Vendeur : $vendeur',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[600],
@@ -226,7 +253,7 @@ class OrderCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4.0),
                       Text(
-                        'Prix : ${order.price}',
+                        'Montant : $montant',
                         style: const TextStyle(
                           fontSize: 16,
                           color: textColor,
@@ -235,27 +262,35 @@ class OrderCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4.0),
                       Text(
-                        'Date: ${order.date}',
+                        'Date : $dateFormatted',
                         style: TextStyle(
                           fontSize: 13,
                           color: Colors.grey[500],
                         ),
                       ),
+                      const SizedBox(height: 4.0),
+                      Text(
+                        'Quantité : ${commande.quantite}',
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: textColor,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-                // Badge de statut
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: _getStatusColor().withOpacity(0.2),
+                    color: statusColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: _getStatusColor(), width: 1.5),
+                    border: Border.all(color: statusColor, width: 1.5),
                   ),
                   child: Text(
-                    order.status,
+                    statusLabel,
                     style: TextStyle(
-                      color: _getStatusColor(),
+                      color: statusColor,
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
@@ -267,7 +302,6 @@ class OrderCard extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                // Bouton Audio
                 _buildActionButton(
                   icon: Icons.volume_up,
                   label: '',
@@ -275,27 +309,25 @@ class OrderCard extends StatelessWidget {
                   textColor: primaryPurple,
                   isOutline: true,
                   onPressed: () {
-                    print('Audio pour ${order.productName}');
+                    // TODO : lecture audio si tu ajoutes un audio pour la commande
                   },
                 ),
-                // Bouton Détails
                 _buildActionButton(
                   icon: Icons.info_outline,
                   label: 'Détails',
                   color: primaryPurple,
                   textColor: Colors.white,
                   onPressed: () {
-                    print('Détails de ${order.productName}');
+                    // TODO : rediriger vers détail de commande si besoin
                   },
                 ),
-                // Bouton Contacter
                 _buildActionButton(
                   icon: Icons.phone,
                   label: 'Contacter',
                   color: Colors.green,
                   textColor: Colors.white,
                   onPressed: () {
-                    print('Contacter ${order.seller}');
+                    // TODO : ouvrir écran de contact avec la vendeuse
                   },
                 ),
               ],
@@ -303,6 +335,48 @@ class OrderCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildProductImage() {
+    final img = produit?.image;
+    Widget child;
+
+    if (img != null && img.isNotEmpty) {
+      if (img.startsWith('http://') || img.startsWith('https://')) {
+        child = Image.network(
+          img,
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder(),
+        );
+      } else {
+        final fullUrl = 'http://10.0.2.2:8080/uploads/$img';
+        child = Image.network(
+          fullUrl,
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder(),
+        );
+      }
+    } else {
+      child = _placeholder();
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(10.0),
+      child: child,
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      width: 80,
+      height: 80,
+      color: Colors.grey[300],
+      child: const Icon(Icons.image_outlined, size: 40, color: Colors.grey),
     );
   }
 
@@ -319,7 +393,11 @@ class OrderCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 4.0),
         child: ElevatedButton.icon(
           onPressed: onPressed,
-          icon: Icon(icon, color: isOutline ? textColor : Colors.white, size: 20),
+          icon: Icon(
+            icon,
+            color: isOutline ? textColor : Colors.white,
+            size: 20,
+          ),
           label: Text(
             label,
             style: TextStyle(
@@ -335,7 +413,8 @@ class OrderCard extends StatelessWidget {
                   ? BorderSide(color: textColor, width: 1.5)
                   : BorderSide.none,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             elevation: isOutline ? 0 : 2,
           ),
         ),

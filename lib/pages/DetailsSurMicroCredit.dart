@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
-import 'package:musso_deme_app/services/institution.dart';
+import 'package:musso_deme_app/models/institution.dart';
 import 'package:musso_deme_app/services/institution_api_service.dart';
 
 const Color primaryPurple = Color(0xFF491B6D);

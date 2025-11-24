@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'api_service.dart';
-import '../modeles/content_model.dart';
+import '../models/content_model.dart';
 
 class ContentService {
   static const String _endpoint = '/contenus';
