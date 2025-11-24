@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
 
 // Defined colors for consistency
@@ -7,6 +6,8 @@ const Color primaryColor = Color(0xFF6A1B9A); // Deep purple
 const Color lightPurple = Color(0xFFE1BEE7); // Light purple
 
 class AddMembersScreen extends StatefulWidget {
+  const AddMembersScreen({super.key});
+
   @override
   _AddMembersScreenState createState() => _AddMembersScreenState();
 }

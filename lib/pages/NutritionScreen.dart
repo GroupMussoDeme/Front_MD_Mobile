@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
-import 'package:musso_deme_app/wingets/CustomAudioPlayerBar.dart';
-import 'package:musso_deme_app/services/audio_service.dart'; // Import du service audio
-import 'package:provider/provider.dart'; // Import de provider
+import 'package:musso_deme_app/services/contenu.dart';
+import 'package:musso_deme_app/widgets/CustomAudioPlayerBar.dart';
+import 'package:musso_deme_app/services/audio_service.dart';
+import 'package:musso_deme_app/services/media_api_service.dart';
+import 'package:provider/provider.dart';
 
 const Color primaryViolet = Color(0xFF491B6D);
 const Color lightViolet = Color(0xFFEAE1F4);
@@ -17,43 +18,35 @@ class NutritionScreen extends StatefulWidget {
 }
 
 class _NutritionScreenState extends State<NutritionScreen> {
+  late Future<List<Contenu>> _futureNutritions;
+
   @override
   void initState() {
     super.initState();
+    _futureNutritions = MediaApiService.fetchContenus(
+      typeInfo: 'NUTRITION',
+      typeCategorie: 'AUDIOS',
+    );
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
-  Future<void> _playAudio(int index) async {
+  Future<void> _playContenu(Contenu contenu, int index) async {
     try {
       final audioService = Provider.of<AudioService>(context, listen: false);
-      // Charger le fichier audio depuis les assets (utiliser le fichier WAV qui fonctionne)
-      await audioService.playAudio('assets/audios/test.wav', index);
-      
-      // Afficher un message de succès
-      print('Lecture de l\'audio démarrée pour l\'index: $index');
+      final fullUrl = MediaApiService.fileUrl(contenu.urlContenu);
+
+      await audioService.playFromUrl(fullUrl, index);
+      debugPrint('Lecture audio depuis backend: $fullUrl');
     } catch (e) {
-      print('Erreur lors de la lecture audio: $e');
-      // Afficher un message d'erreur à l'utilisateur avec plus de détails
-      String errorMessage = 'Erreur lors de la lecture audio';
-      if (e is Exception) {
-        errorMessage = e.toString();
-      }
-      
+      debugPrint('Erreur lors de la lecture audio: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(errorMessage),
+          content: Text('Erreur de lecture audio : $e'),
           backgroundColor: Colors.red,
-          duration: const Duration(seconds: 5),
         ),
       );
     }
   }
 
-  // Widget d'une carte (titre, description, icône + bouton play)
   Widget _buildCard({
     required String title,
     required String subtitle,
@@ -81,7 +74,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
             Container(
               width: 58,
               height: 58,
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: lightViolet,
               ),
@@ -91,6 +84,8 @@ class _NutritionScreenState extends State<NutritionScreen> {
             Text(
               title,
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: primaryViolet,
                 fontWeight: FontWeight.w700,
@@ -101,27 +96,25 @@ class _NutritionScreenState extends State<NutritionScreen> {
             Text(
               subtitle,
               textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: Colors.black.withOpacity(0.6),
                 fontSize: 11,
               ),
             ),
             const Spacer(),
-            // bouton play rond
-            Align(
-              alignment: Alignment.center,
-              child: GestureDetector(
-                onTap: onPlay,
-                child: Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    border: Border.all(color: primaryViolet.withOpacity(0.15)),
-                    color: lightViolet,
-                  ),
-                  child: Icon(Icons.play_arrow, color: primaryViolet),
+            GestureDetector(
+              onTap: onPlay,
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: primaryViolet.withOpacity(0.15)),
+                  color: lightViolet,
                 ),
+                child: const Icon(Icons.play_arrow, color: primaryViolet),
               ),
             ),
           ],
@@ -132,26 +125,25 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final headerHeight = 72.0;
     final audioService = Provider.of<AudioService>(context);
-    
+    const headerHeight = 72.0;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Stack(
           children: [
-            // Contenu principal scrollable
             SingleChildScrollView(
-              padding: const EdgeInsets.only(bottom: 120), // espace pour le player en bas
+              padding: const EdgeInsets.only(bottom: 120),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Bandeau titre
+                  // Header
                   Container(
                     height: headerHeight,
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: primaryViolet,
-                      borderRadius: const BorderRadius.only(
+                      borderRadius: BorderRadius.only(
                         bottomLeft: Radius.circular(18),
                         bottomRight: Radius.circular(18),
                       ),
@@ -164,17 +156,17 @@ class _NutritionScreenState extends State<NutritionScreen> {
                           icon: const Icon(Icons.arrow_back, color: neutralWhite),
                         ),
                         const SizedBox(width: 4),
-                        Expanded(
+                        const Expanded(
                           child: Text(
                             'Tout savoir sur la nutrition',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: neutralWhite,
                               fontSize: 18,
                               fontWeight: FontWeight.w700,
                             ),
-                            overflow: TextOverflow.ellipsis, // Gérer le débordement avec des points de suspension
-                            maxLines: 1, // Limiter à une seule ligne
-                            textAlign: TextAlign.center, // Centrer le texte
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
+                            textAlign: TextAlign.center,
                           ),
                         ),
                         IconButton(
@@ -186,16 +178,16 @@ class _NutritionScreenState extends State<NutritionScreen> {
                               ),
                             );
                           },
-                          icon: const Icon(Icons.notifications_none, color: neutralWhite),
+                          icon: const Icon(Icons.notifications_none,
+                              color: neutralWhite),
                         ),
-
                       ],
                     ),
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Bloc Intro (fond violet clair, illustration à droite)
+                  // Bloc Intro
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: Container(
@@ -206,40 +198,28 @@ class _NutritionScreenState extends State<NutritionScreen> {
                       padding: const EdgeInsets.all(12),
                       child: Row(
                         children: [
-                          Expanded(
+                          const Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  "Decouvrir comment bien nourrir\nles enfants avec les produits de la region.",
+                                  "Découvrir comment bien nourrir\nles enfants avec les produits de la région.",
                                   style: TextStyle(
                                     color: primaryViolet,
                                     fontSize: 13,
                                   ),
                                 ),
-                                const SizedBox(height: 10),
-                                ElevatedButton.icon(
-                                  onPressed: () {
-                                    // lance l'intro (index 0)
-                                    _playAudio(0);
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: primaryViolet,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(20),
-                                    ),
-                                  ),
-                                  icon: const Icon(Icons.play_arrow),
-                                  label: const Text('Intro'),
-                                ),
+                                SizedBox(height: 10),
                               ],
                             ),
                           ),
-                          // illustration
                           SizedBox(
                             width: 84,
                             height: 84,
-                            child: Image.asset('assets/images/gouverne copy.png', fit: BoxFit.contain),
+                            child: Image.asset(
+                              'assets/images/gouverne copy.png',
+                              fit: BoxFit.contain,
+                            ),
                           ),
                         ],
                       ),
@@ -248,54 +228,62 @@ class _NutritionScreenState extends State<NutritionScreen> {
 
                   const SizedBox(height: 18),
 
-                  // Grid des 4 cartes (2x2)
+                  // Grid audios backend
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: GridView.count(
-                      crossAxisCount: 2,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 16,
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      childAspectRatio: 0.86,
-                      children: [
-                        _buildCard(
-                          title: 'Bien manger\nchaque jour',
-                          subtitle: 'Repas équilibré avec les produits locaux',
-                          icon: Icons.restaurant,
-                          onPlay: () {
-                            // correspond à _tracks[1]
-                            _playAudio(1);
-                          }
-                        ),
-                        _buildCard(
-                          title: 'Alimentation\ndes enfants',
-                          subtitle: 'Biens nutritionnels par âge',
-                          icon: Icons.child_care,
-                          onPlay: () {
-                            // _tracks[2]
-                            _playAudio(2);
-                          }
-                        ),
-                        _buildCard(
-                          title: 'Bien être des\nnouveaux nés',
-                          subtitle: 'Nutriments essentiels pour bébé et la maman',
-                          icon: Icons.add_circle,
-                          onPlay: () {
-                            // _tracks[3]
-                            _playAudio(3);
-                          }
-                        ),
-                        _buildCard(
-                          title: 'L’eau et l’hygiène\nalimentaire',
-                          subtitle: "Importance de potable et l'hygiène",
-                          icon: Icons.water_drop,
-                          onPlay: () {
-                            // _tracks[4]
-                            _playAudio(4);
-                          }
-                        ),
-                      ],
+                    child: FutureBuilder<List<Contenu>>(
+                      future: _futureNutritions,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return Padding(
+                            padding: const EdgeInsets.all(12.0),
+                            child: Text(
+                              'Erreur lors du chargement des audios : ${snapshot.error}',
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          );
+                        }
+
+                        final contenus = snapshot.data ?? [];
+                        if (contenus.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: Text(
+                              "Aucun audio de nutrition disponible pour le moment.",
+                              style: TextStyle(color: primaryViolet),
+                            ),
+                          );
+                        }
+
+                        return GridView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: contenus.length,
+                          gridDelegate:
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: 2,
+                            crossAxisSpacing: 12,
+                            mainAxisSpacing: 16,
+                            childAspectRatio: 0.86,
+                          ),
+                          itemBuilder: (context, index) {
+                            final c = contenus[index];
+                            return _buildCard(
+                              title: c.titre,
+                              subtitle: c.description ?? '',
+                              icon: Icons.restaurant,
+                              onPlay: () => _playContenu(c, index),
+                            );
+                          },
+                        );
+                      },
                     ),
                   ),
 
@@ -306,7 +294,7 @@ class _NutritionScreenState extends State<NutritionScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: CustomAudioPlayerBar(player: audioService.player), // Passer l'instance du lecteur
+      bottomNavigationBar: CustomAudioPlayerBar(player: audioService.player),
     );
   }
 }

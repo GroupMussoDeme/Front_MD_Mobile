@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/primary_header.dart';
+import 'package:musso_deme_app/widgets/primary_header.dart';
 import 'package:musso_deme_app/pages/LoginScreen.dart'; // Import de la page de connexion
 
 // --- Définition des couleurs de la Charte Graphique ---

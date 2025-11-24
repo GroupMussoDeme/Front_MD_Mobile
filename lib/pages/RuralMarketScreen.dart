@@ -3,7 +3,7 @@ import 'package:musso_deme_app/pages/product_publish_screen.dart';
 import 'package:musso_deme_app/pages/MesProduits.dart';
 import 'package:musso_deme_app/pages/MesCommandes.dart';
 import 'package:musso_deme_app/pages/MesVentes.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/ProductDetailsScreen.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/pages/Formations.dart';

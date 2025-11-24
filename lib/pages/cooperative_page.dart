@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/GroupChatScreen.dart';
 import 'package:musso_deme_app/pages/NewCooperativeScreen.dart';
-import 'package:musso_deme_app/pages/Notifications.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
 

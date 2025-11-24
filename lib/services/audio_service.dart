@@ -1,91 +1,54 @@
-import 'package:just_audio/just_audio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart' show rootBundle;
+import 'package:just_audio/just_audio.dart';
 
-class AudioService with ChangeNotifier {
-  static final AudioService _instance = AudioService._internal();
-  factory AudioService() => _instance;
-  AudioService._internal();
+class AudioService extends ChangeNotifier {
+  final AudioPlayer player = AudioPlayer();
 
-  final AudioPlayer _player = AudioPlayer();
-  String _currentAudioAsset = '';
-  int _currentTrackIndex = -1;
+  int? currentIndex;
+  bool isPlaying = false;
 
-  AudioPlayer get player => _player;
-  String get currentAudioAsset => _currentAudioAsset;
-  int get currentTrackIndex => _currentTrackIndex;
-
-  /// Vérifie si un fichier audio existe dans les assets
-  Future<bool> _assetExists(String assetPath) async {
+  Future<void> playAsset(String assetPath, int index) async {
     try {
-      // Charger le manifeste des assets
-      final manifestContent = await rootBundle.loadString('AssetManifest.json');
-      // Vérifier si le chemin du fichier est présent dans le manifeste
-      return manifestContent.contains(assetPath);
-    } catch (e) {
-      print('Erreur lors de la vérification de l\'existence du fichier: $e');
-      return false;
-    }
-  }
-
-  Future<void> playAudio(String assetPath, int trackIndex) async {
-    try {
-      // Vérifier si le fichier existe
-      final exists = await _assetExists(assetPath);
-      if (!exists) {
-        throw Exception('Fichier audio introuvable: $assetPath');
-      }
-
-      // Si c'est le même fichier et qu'il est déjà chargé, on reprend la lecture
-      if (_currentAudioAsset == assetPath && _player.duration != null) {
-        if (_player.playing) {
-          await _player.pause();
-        } else {
-          await _player.play();
-        }
-      } else {
-        // Charger et jouer un nouveau fichier
-        _currentAudioAsset = assetPath;
-        _currentTrackIndex = trackIndex;
-        await _player.setAsset(assetPath);
-        await _player.play();
-      }
-      
+      await player.setAsset(assetPath);
+      await player.play();
+      currentIndex = index;
+      isPlaying = true;
       notifyListeners();
     } catch (e) {
-      print('Erreur lors de la lecture audio: $e');
+      debugPrint('Erreur lecture asset: $e');
       rethrow;
     }
   }
 
-  Future<void> pauseAudio() async {
-    if (_player.playing) {
-      await _player.pause();
+  Future<void> playFromUrl(String url, int index) async {
+    try {
+      await player.setUrl(url);
+      await player.play();
+      currentIndex = index;
+      isPlaying = true;
       notifyListeners();
+    } catch (e) {
+      debugPrint('Erreur lecture URL: $e');
+      rethrow;
     }
   }
 
-  Future<void> resumeAudio() async {
-    if (!_player.playing) {
-      await _player.play();
-      notifyListeners();
-    }
-  }
-
-  Future<void> stopAudio() async {
-    await _player.stop();
-    _currentAudioAsset = '';
-    _currentTrackIndex = -1;
+  Future<void> pause() async {
+    await player.pause();
+    isPlaying = false;
     notifyListeners();
   }
 
-  void seekTo(Duration position) {
-    _player.seek(position);
+  Future<void> stop() async {
+    await player.stop();
+    isPlaying = false;
+    currentIndex = null;
+    notifyListeners();
   }
 
   @override
   void dispose() {
-    _player.dispose();
+    player.dispose();
     super.dispose();
   }
 }

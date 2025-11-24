@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/Bienvenue.dart';
-import 'package:musso_deme_app/wingets/CustomNextButton.dart'; // Import du bouton personnalisé
+import 'package:musso_deme_app/widgets/CustomNextButton.dart'; // Import du bouton personnalisé
 
 class Demarrage3 extends StatefulWidget {
   const Demarrage3({super.key});

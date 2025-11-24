@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/LoginScreen.dart';
-import 'package:musso_deme_app/wingets/primary_header.dart';
+import 'package:musso_deme_app/widgets/primary_header.dart';
 import 'package:musso_deme_app/services/auth_service.dart';
 
 // Couleurs

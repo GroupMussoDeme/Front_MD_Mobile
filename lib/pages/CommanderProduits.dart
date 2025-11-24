@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/PaymentMethodScreen.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
 import 'package:musso_deme_app/pages/ProfileScreen.dart';

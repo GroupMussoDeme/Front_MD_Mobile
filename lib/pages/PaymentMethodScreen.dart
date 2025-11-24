@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/OrderValidationScreen.dart';
 
 const Color _kPrimaryPurple = Color(0xFF5E2B97);

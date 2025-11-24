@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/HomeScreen.dart';
 import 'package:musso_deme_app/services/session_service.dart';
-import 'package:musso_deme_app/wingets/primary_header.dart';
+import 'package:musso_deme_app/widgets/primary_header.dart';
 import 'package:musso_deme_app/pages/InscriptionScreen.dart';
 import 'package:musso_deme_app/services/auth_service.dart';
 

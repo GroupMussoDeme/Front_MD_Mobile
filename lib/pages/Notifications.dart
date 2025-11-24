@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 
 // Définition des couleurs pour la cohérence
 const Color primaryColor = Color(0xFF6A1B9A); // Violet foncé
@@ -16,6 +15,8 @@ class NotificationsScreen extends StatelessWidget {
     {'title': 'Nouvelle commande', 'description': 'Vous avez une nouvelles commande pour vos produits/', 'time': 'Il y a 2h'},
     {'title': 'Nouvelle commande', 'description': 'Vous avez une nouvelles commande pour vos produits/', 'time': 'Il y a 2h'},
   ];
+
+  const NotificationsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

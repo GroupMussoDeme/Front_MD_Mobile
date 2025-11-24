@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 
 // Définition des couleurs
 const Color primaryPurple = Color(0xFF491B6D);

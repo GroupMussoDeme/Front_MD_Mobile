@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
-import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/RoundedPurpleContainer.dart';
 // Assurez-vous d'importer vos widgets réutilisables ici
 // import 'package:votre_app/widgets/rounded_purple_container.dart';
 // import 'package:votre_app/widgets/bottom_nav_bar.dart';

@@ -1,15 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/ConseilNouvelleMaman.dart';
-import 'package:musso_deme_app/pages/AudioContentScreen.dart';
-import 'package:musso_deme_app/pages/DroitsDesEnfants.dart';
-import 'package:musso_deme_app/pages/DroitsDesFemmes.dart';
 import 'package:musso_deme_app/pages/NutritionScreen.dart';
 import 'package:musso_deme_app/pages/FinancialAidScreen.dart';
 import 'package:musso_deme_app/pages/RuralMarketScreen.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
 import 'package:musso_deme_app/pages/cooperative_page.dart';
 import 'package:musso_deme_app/pages/ProfileScreen.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
+import 'package:musso_deme_app/pages/DroitsScreens.dart';
 import 'dart:math' as math;
 
 // --- Définition des couleurs principales ---
@@ -134,7 +131,7 @@ class _HomeScreenState extends State<HomeScreen> {
         context,
         MaterialPageRoute(builder: (context) => const ProfileScreen()),
       );
-    } 
+    }
     // Si l'utilisateur clique sur l'icône Home (index 0) alors qu'il est déjà sur HomeScreen
     else if (index == 0) {
       // Ne rien faire car on est déjà sur la page d'accueil
@@ -276,58 +273,45 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                             break;
+
                           case 'Droits des enfants':
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => AudioContentScreen(
-                                  screenTitle: 'Droits des enfants',
-                                  introMessage:
-                                      'Bienvenue dans l\'espace droit des',
-                                  tracks: childRightsTracks,
-                                ),
+                                builder: (_) => const DroitsDesEnfantsScreen(),
                               ),
                             );
                             break;
+
                           case 'Droits des femmes':
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => AudioContentScreen(
-                                  screenTitle: 'Droits des femmes',
-                                  introMessage:
-                                      'Bienvenue dans l\'espace droit des femmes.\nÉcouter vos droits expliques en Bambara.',
-                                  tracks: womenRightsTracks,
-                                ),
+                                builder: (_) => const DroitsDesFemmesScreen(),
                               ),
                             );
                             break;
+
                           case 'Conseils aux mamans':
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => AudioContentScreen(
-                                  screenTitle: 'Conseils aux mamans',
-                                  introMessage:
-                                      'Bienvenue dans l\'espace santé de la femmes.\nÉcouter des conseils sur la santé en Bambara.',
-                                  tracks: newMomsAdviceTracks,
-                                ),
+                                builder: (_) =>
+                                    const ConseilsNouvellesMamansScreen(),
                               ),
                             );
                             break;
+
                           case 'Protection contre la violence':
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => AudioContentScreen(
-                                  screenTitle: 'Protection contre la violance',
-                                  introMessage:
-                                      'Bienvenue dans l\'espace santé de la femmes.\nÉcouter des conseils sur la santé en Bambara.',
-                                  tracks: newMomsAdviceTracks,
-                                ),
+                                builder: (_) =>
+                                    const ProtectionViolenceScreen(),
                               ),
                             );
                             break;
+
                           case 'Marchés':
                             Navigator.push(
                               context,
@@ -336,6 +320,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                             break;
+
                           case 'Aides aux financements':
                             Navigator.push(
                               context,
@@ -344,6 +329,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                             break;
+
                           case 'Formations':
                             Navigator.push(
                               context,
@@ -352,6 +338,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                             break;
+
                           case 'Coopératives':
                             Navigator.push(
                               context,
@@ -360,6 +347,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             );
                             break;
+
                           default:
                             Navigator.push(
                               context,
@@ -369,6 +357,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                         }
                       },
+
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

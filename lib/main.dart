@@ -6,8 +6,7 @@ import 'package:musso_deme_app/pages/LoginScreen.dart';
 import 'package:musso_deme_app/pages/Demarrage.dart';
 import 'package:musso_deme_app/pages/ValiderInscription.dart';
 import 'package:musso_deme_app/pages/ValiderConnexion.dart'; // Import de la nouvelle page
-import 'package:musso_deme_app/test_audio.dart'; // Import de l'écran de test audio
-import 'package:musso_deme_app/services/audio_service.dart'; // Import du service audio
+import 'package:musso_deme_app/services/audio_service.dart';// Import de l'écran de test audio // Import du service audio
 import 'package:provider/provider.dart'; // Import de provider
 
 void main() {
@@ -39,7 +38,6 @@ class MyApp extends StatelessWidget {
         '/HomeScreen': (context) => HomeScreen(),
         '/ValiderInscription': (context) => const ValiderInscription(),
         '/ValiderConnexion': (context) => const ValiderConnexion(), // Ajout de la nouvelle route
-        '/TestAudio': (context) => const AudioTestScreen(), // Ajout de la route de test audio
       },
     );
   }

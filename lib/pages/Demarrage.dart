@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/Demarrage2.dart';
 import 'package:flutter_tts/flutter_tts.dart'; // Import du package TTS
-import 'package:musso_deme_app/wingets/CustomNextButton.dart'; // Import du bouton personnalisé
+import 'package:musso_deme_app/widgets/CustomNextButton.dart'; // Import du bouton personnalisé
 
 class Demarrage extends StatefulWidget {
   const Demarrage({super.key});

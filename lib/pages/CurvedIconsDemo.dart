@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/CurvedIcon.dart';
+import 'package:musso_deme_app/widgets/CurvedIcon.dart';
 
 class CurvedIconsDemo extends StatelessWidget {
   const CurvedIconsDemo({super.key});

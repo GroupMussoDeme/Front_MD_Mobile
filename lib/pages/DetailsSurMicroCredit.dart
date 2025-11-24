@@ -1,15 +1,16 @@
+// lib/pages/DetailsSurMicroCredit.dart
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
-import 'package:musso_deme_app/pages/Formations.dart'; 
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
+import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:musso_deme_app/services/institution.dart';
+import 'package:musso_deme_app/services/institution_api_service.dart';
 
-// --- COULEURS ET CONSTANTES ---
 const Color primaryPurple = Color(0xFF491B6D);
 const Color neutralWhite = Colors.white;
-const Color _kBackgroundColor = Colors.white; // Le fond est blanc
+const Color _kBackgroundColor = Colors.white;
 const Color _kCardColor = Colors.white;
 const Color _kIconColor = primaryPurple;
 
-// --- MODÈLE DE DONNÉES (pour le bloc Details) ---
 class FinanceDetail {
   final IconData icon;
   final String title;
@@ -18,58 +19,109 @@ class FinanceDetail {
   FinanceDetail({required this.icon, required this.title, required this.value});
 }
 
-
 class MicrocreditDetailsScreen extends StatefulWidget {
-  const MicrocreditDetailsScreen({super.key});
+  final InstitutionFinanciere institution;
+
+  const MicrocreditDetailsScreen({super.key, required this.institution});
 
   @override
-  State<MicrocreditDetailsScreen> createState() => _MicrocreditDetailsScreenState();
+  State<MicrocreditDetailsScreen> createState() =>
+      _MicrocreditDetailsScreenState();
 }
 
 class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
-  int _selectedIndex = 0; // Index par défaut pour l'Accueil
+  int _selectedIndex = 0;
+
+  late final List<FinanceDetail> _details;
+
+  @override
+  void initState() {
+    super.initState();
+
+    final inst = widget.institution;
+
+    String montant;
+    if (inst.montantMin != null && inst.montantMax != null) {
+      montant =
+          '${inst.montantMin!.toStringAsFixed(0)} FCFA à ${inst.montantMax!.toStringAsFixed(0)} FCFA';
+    } else {
+      montant = 'Montant à définir avec l’institution';
+    }
+
+    final secteur = inst.secteurActivite?.isNotEmpty == true
+        ? inst.secteurActivite!
+        : 'Commerce, agriculture, artisanat (à préciser)';
+
+    final taux = inst.tauxInteret?.isNotEmpty == true
+        ? inst.tauxInteret!
+        : 'Taux non renseigné';
+
+    final tel = inst.numeroTel.isNotEmpty ? inst.numeroTel : 'Non renseigné';
+
+    _details = [
+      FinanceDetail(
+        icon: Icons.account_balance_wallet,
+        title: 'Montant du financement',
+        value: montant,
+      ),
+      FinanceDetail(
+        icon: Icons.apartment,
+        title: 'Secteur d\'activité',
+        value: secteur,
+      ),
+      FinanceDetail(
+        icon: Icons.percent,
+        title: 'Taux d\'intérêt',
+        value: taux,
+      ),
+      FinanceDetail(
+        icon: Icons.phone,
+        title: 'Téléphone',
+        value: tel,
+      ),
+    ];
+  }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      
-      // Si l'utilisateur clique sur l'icône centrale (index 1) - Formations
+
       if (index == 1) {
-        // Naviguer vers la page Formations
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const FormationVideosPage()),
         );
       }
     });
-    print('Navigation vers l\'index: $index');
   }
-
-  // Les données pour la carte de détails
-  final List<FinanceDetail> _details = [
-    FinanceDetail(
-      icon: Icons.account_balance_wallet,
-      title: 'Montant du financement',
-      value: '10000 FCFA à 500000 FCFA',
-    ),
-    FinanceDetail(
-      icon: Icons.apartment,
-      title: 'Secteur d\'activité',
-      value: 'Commerce, agricole, Artinat',
-    ),
-    FinanceDetail(
-      icon: Icons.percent,
-      title: 'Taux d\'intérêt',
-      value: '2% par mois',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
+    final inst = widget.institution;
+
+    // Gestion logo (asset ou backend)
+    Widget buildLogo() {
+      if (inst.logoUrl.isEmpty) {
+        return const Icon(Icons.account_balance, color: primaryPurple, size: 50);
+      }
+
+      if (inst.logoUrl.startsWith('assets/')) {
+        return Image.asset(
+          inst.logoUrl,
+          fit: BoxFit.contain,
+        );
+      }
+
+      final fullLogoUrl = InstitutionApiService.fileUrl(inst.logoUrl);
+      return Image.network(
+        fullLogoUrl,
+        fit: BoxFit.contain,
+      );
+    }
+
     return Scaffold(
       backgroundColor: _kBackgroundColor,
       appBar: null,
-
       body: Stack(
         children: [
           // Header violet arrondi
@@ -95,11 +147,11 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                         icon: const Icon(Icons.arrow_back, color: neutralWhite),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
                           'Détails sur le microcrédit',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: neutralWhite,
                             fontWeight: FontWeight.bold,
                             fontSize: 20,
@@ -107,7 +159,8 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.notifications_none, color: neutralWhite),
+                        icon: const Icon(Icons.notifications_none,
+                            color: neutralWhite),
                         onPressed: () {},
                       ),
                     ],
@@ -116,7 +169,7 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
               ),
             ),
           ),
-          // Contenu scrollable
+          // Contenu
           Positioned.fill(
             top: 100,
             child: SingleChildScrollView(
@@ -124,42 +177,45 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // --- Section 1 : Logo et Institution ---
+                  // Logo + nom
                   Center(
                     child: Container(
                       width: 140,
                       height: 140,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        border: Border.all(color: primaryPurple.withOpacity(0.5), width: 2),
+                        border: Border.all(
+                            color: primaryPurple.withOpacity(0.5), width: 2),
                       ),
                       child: Center(
-                        // Placeholder pour le logo "Kafo Jiginew"
-                        child: Container(
+                        child: Padding(
                           padding: const EdgeInsets.all(16.0),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.green, width: 1.5),
-                            borderRadius: BorderRadius.circular(5.0),
-                          ),
-                          child: Image.asset('assets/images/logo.png'),
+                          child: buildLogo(),
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 20.0),
-                  
-                  // Titre de l'institution
-                  const Text(
-                    'La caisse des femmes pour le développement',
-                    style: TextStyle(
-                      fontSize: 16,
+                  Text(
+                    inst.nom,
+                    style: const TextStyle(
+                      fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Colors.black87,
                     ),
                   ),
+                  if (inst.description.isNotEmpty) ...[
+                    const SizedBox(height: 8.0),
+                    Text(
+                      inst.description,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Colors.black54,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 30.0),
 
-                  // --- Section 2 : Carte des Détails du Financement ---
                   const Text(
                     'Détails du financement',
                     style: TextStyle(
@@ -170,7 +226,6 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                   ),
                   const SizedBox(height: 10.0),
 
-                  // Conteneur / Carte des détails
                   Container(
                     padding: const EdgeInsets.all(16.0),
                     decoration: BoxDecoration(
@@ -186,12 +241,11 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
                     ),
                     child: Column(
                       children: [
-                        // Liste des détails (Montant, Secteur, Taux)
-                        ..._details.map((detail) => _buildDetailRow(detail)),
-                        
-                        const Divider(height: 30.0, thickness: 1.0, color: Colors.black12),
-                        
-                        // Boutons d'action (Écouter, Favori, Appeler)
+                        ..._details.map(_buildDetailRow),
+                        const Divider(
+                            height: 30.0,
+                            thickness: 1.0,
+                            color: Colors.black12),
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceAround,
                           children: [
@@ -209,8 +263,6 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
           ),
         ],
       ),
-
-      // 3. Barre de navigation (Widget Réutilisable 2)
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
@@ -218,7 +270,6 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
     );
   }
 
-  // Helper pour construire une ligne de détail
   Widget _buildDetailRow(FinanceDetail detail) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
@@ -253,11 +304,10 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
       ),
     );
   }
-  
-  // Helper pour construire le bouton Écouter
+
   Widget _buildActionButton(IconData icon, String label) {
     return TextButton.icon(
-      onPressed: () => print('Action: $label'),
+      onPressed: () => debugPrint('Action: $label'),
       icon: Icon(icon, color: _kIconColor, size: 28),
       label: Text(
         label,
@@ -270,11 +320,11 @@ class _MicrocreditDetailsScreenState extends State<MicrocreditDetailsScreen> {
     );
   }
 
-  // Helper pour construire les icônes Favori et Appeler
   Widget _buildActionIcon(IconData icon) {
     return IconButton(
       icon: Icon(icon, color: _kIconColor, size: 28),
-      onPressed: () => print('Action: ${icon == Icons.phone ? 'Appeler' : 'Favori'}'),
+      onPressed: () => debugPrint(
+          'Action: ${icon == Icons.phone ? 'Appeler' : 'Favori'}'),
     );
   }
 }

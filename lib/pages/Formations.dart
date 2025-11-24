@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:video_player/video_player.dart';
-import 'HomeScreen.dart';
+import 'package:musso_deme_app/pages/HomeScreen.dart';
+import 'package:musso_deme_app/services/contenu.dart';
+import 'package:musso_deme_app/services/media_api_service.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/TutorialVideoCard.dart';
+
+import 'full_screen_video_page.dart'; // voir section 3 ci-dessous
+
+const Color kPrimaryPurple = Color(0xFF491B6D);
 
 class FormationVideosPage extends StatefulWidget {
   const FormationVideosPage({super.key});
@@ -13,105 +19,109 @@ class FormationVideosPage extends StatefulWidget {
 
 class _FormationVideosPageState extends State<FormationVideosPage> {
   int _selectedIndex = 1;
-  final Color primaryPurple = const Color(0xFF491B6D);
-  final List<String> videoUrls = [
-    'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
-    'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
-    'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
-    'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
-    'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4',
-    'https://flutter.github.io/assets-for-api-docs/assets/videos/butterfly.mp4',
-  ];
+
+  late Future<List<Contenu>> _futureVideos;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureVideos = MediaApiService.fetchContenus(
+      typeInfo: 'VIDEO_FORMATION',
+      typeCategorie: 'VIDEOS',
+    );
+  }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-      
-      // Si l'utilisateur clique sur l'icône Home (index 0)
-      if (index == 0) {
-        // Retourner à la page d'accueil
-        navigateToHome(context);
-      }
-      // Si l'utilisateur clique sur l'icône centrale (index 1) - Formations
-      else if (index == 1) {
-        // Nous sommes déjà sur la page Formations, donc on ne fait rien
-        // Cette condition est ajoutée pour éviter d'autres actions
-      }
-    });
+    setState(() => _selectedIndex = index);
+
+    if (index == 0) {
+      // Accueil
+      navigateToHome(context);
+    } else if (index == 1) {
+      // Formation -> on est déjà dessus
+      return;
+    } else if (index == 2) {
+      // Profil (si tu as une page profil, remplace ici)
+      // Navigator.push(...);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Column(
-        children: [
-          // Header
-          Container(
-            decoration: BoxDecoration(
-              color: primaryPurple,
-              borderRadius: const BorderRadius.vertical(
-                bottom: Radius.circular(20),
-              ),
-            ),
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-            child: SafeArea(
-              bottom: false,
-              child: Column(
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back,
-                          color: Colors.white,
-                          size: 26,
+      body: SafeArea(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(),
+            const SizedBox(height: 16),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: FutureBuilder<List<Contenu>>(
+                  future: _futureVideos,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    if (snapshot.hasError) {
+                      return Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          "Erreur lors du chargement des vidéos : ${snapshot.error}",
+                          style: const TextStyle(color: Colors.red),
                         ),
-                        onPressed: () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const HomeScreen(),
-                            ),
-                          );
-                        },
-                      ),
-                      const Text(
-                        "Vidéos de formations",
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 22,
-                        ),
-                      ),
-                      const Icon(Icons.volume_up, color: Colors.white),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
+                      );
+                    }
 
-          // Main content
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: GridView.builder(
-                itemCount: videoUrls.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 10,
-                  mainAxisSpacing: 10,
-                  childAspectRatio: 1,
+                    final videos = snapshot.data ?? [];
+                    if (videos.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          "Aucun tuto vidéo pour le moment.",
+                          style: TextStyle(
+                            color: kPrimaryPurple,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      );
+                    }
+
+                    return ListView.builder(
+                      itemCount: videos.length,
+                      itemBuilder: (context, index) {
+                        final contenu = videos[index];
+                        final videoUrl = MediaApiService.fileUrl(
+                          contenu.urlContenu,
+                        );
+
+                        return TutorialVideoCard(
+                          title: contenu.titre ?? 'Titre indisponible',
+                          duration: (contenu.duree ?? '').isNotEmpty
+                              ? contenu.duree!
+                              : '56 min', // valeur par défaut
+                          videoUrl: videoUrl ?? '',
+                          onOpenFullScreen: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => FullScreenVideoPage(
+                                  videoUrl: videoUrl ?? '',
+                                  title: contenu.titre ?? 'Vidéo',
+                                ),
+                              ),
+                            );
+                          },
+                        );
+                      },
+                    );
+                  },
                 ),
-                itemBuilder: (context, index) {
-                  return VideoCard(url: videoUrls[index]);
-                },
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
@@ -120,165 +130,31 @@ class _FormationVideosPageState extends State<FormationVideosPage> {
     );
   }
 
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    int index, {
-    bool active = false,
-  }) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 32, color: active ? Colors.white : Colors.white70),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: active ? Colors.white : Colors.white70,
-              fontWeight: active ? FontWeight.bold : FontWeight.normal,
-              fontSize: 12,
-            ),
-          ),
-        ],
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      decoration: const BoxDecoration(
+        color: kPrimaryPurple,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(22)),
       ),
-    );
-  }
-}
-
-class VideoCard extends StatefulWidget {
-  final String url;
-  const VideoCard({super.key, required this.url});
-
-  @override
-  State<VideoCard> createState() => _VideoCardState();
-}
-
-class _VideoCardState extends State<VideoCard> {
-  late VideoPlayerController _controller;
-  bool _isPlaying = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.url))
-      ..initialize().then((_) => setState(() {}));
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  void _togglePlay() {
-    setState(() {
-      if (_isPlaying) {
-        _controller.pause();
-      } else {
-        _controller.play();
-      }
-      _isPlaying = !_isPlaying;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      color: Colors.white,
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-      child: Column(
+      child: Row(
         children: [
-          Expanded(
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(10),
-                  ),
-                  child: _controller.value.isInitialized
-                      ? AspectRatio(
-                          aspectRatio: _controller.value.aspectRatio,
-                          child: VideoPlayer(_controller),
-                        )
-                      : Container(
-                          color: Colors.grey[300],
-                          child: const Center(
-                            child: Icon(Icons.videocam, size: 40),
-                          ),
-                        ),
-                ),
-                GestureDetector(
-                  onTap: _togglePlay,
-                  child: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.black.withOpacity(0.5),
-                    child: Icon(
-                      _isPlaying ? Icons.pause : Icons.play_arrow,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
+          GestureDetector(
+            onTap: () => Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => const HomeScreen()),
             ),
+            child: const Icon(Icons.arrow_back, color: Colors.white, size: 26),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 8.0,
-            ).copyWith(bottom: 4),
-            child: Column(
-              children: [
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 3,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 4,
-                    ),
-                  ),
-                  child: Slider(
-                    value: _controller.value.isInitialized
-                        ? _controller.value.position.inMilliseconds.toDouble()
-                        : 0,
-                    max: _controller.value.isInitialized
-                        ? _controller.value.duration.inMilliseconds.toDouble()
-                        : 1,
-                    onChanged: (value) {
-                      _controller.seekTo(Duration(milliseconds: value.toInt()));
-                    },
-                  ),
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.skip_previous, size: 18),
-                      onPressed: () {
-                        _controller.seekTo(Duration.zero);
-                      },
-                    ),
-                    IconButton(
-                      icon: Icon(
-                        _isPlaying ? Icons.pause : Icons.play_arrow,
-                        size: 18,
-                      ),
-                      onPressed: _togglePlay,
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.skip_next, size: 18),
-                      onPressed: () {
-                        _controller.seekTo(_controller.value.duration);
-                      },
-                    ),
-                  ],
-                ),
-              ],
+          const Expanded(
+            child: Text(
+              "Tutos",
+              textAlign: TextAlign.left,
+              style: TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
             ),
           ),
         ],

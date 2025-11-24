@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/BottomNavBar.dart';
-import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
+import 'package:musso_deme_app/widgets/BottomNavBar.dart';
+import 'package:musso_deme_app/widgets/RoundedPurpleContainer.dart';
 
 // --- COULEURS ET CONSTANTES ---
 const Color _kPrimaryPurple = Color(0xFF5E2B97);

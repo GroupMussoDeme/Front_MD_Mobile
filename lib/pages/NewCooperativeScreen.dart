@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
+import 'package:musso_deme_app/widgets/RoundedPurpleContainer.dart';
 import 'package:musso_deme_app/pages/AddMembersScreen.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
 
@@ -11,6 +11,8 @@ class NewCooperativeScreenRevised extends StatelessWidget {
   // Controllers to manage the text input
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+
+  NewCooperativeScreenRevised({super.key});
 
   @override
   Widget build(BuildContext context) {
