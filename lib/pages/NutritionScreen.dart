@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:musso_deme_app/constants/assets.dart'; // Ajout de l'import pour les assets
 import 'package:musso_deme_app/pages/Notifications.dart';
 import 'package:musso_deme_app/wingets/CustomAudioPlayerBar.dart';
 
@@ -15,16 +16,44 @@ class NutritionScreen extends StatefulWidget {
 }
 
 class _NutritionScreenState extends State<NutritionScreen> {
+  late AudioPlayer _audioPlayer; // Ajout du lecteur audio
+  bool _isPlayingAudio = false; // État de lecture de l'audio
 
   @override
   void initState() {
     super.initState();
+    _audioPlayer = AudioPlayer();
+    _playNutritionAudio(); // Lecture de l'audio de nutrition au démarrage
   }
 
   @override
   void dispose() {
-    // _player.dispose();
+    _audioPlayer.dispose(); // Libération des ressources audio
     super.dispose();
+  }
+
+  // Lecture de l'audio de nutrition
+  Future<void> _playNutritionAudio() async {
+    try {
+      await _audioPlayer.setAsset(AppAssets.audioConseilNutrition);
+      await _audioPlayer.play();
+      setState(() {
+        _isPlayingAudio = true;
+      });
+      
+      // Mettre à jour l'état lorsque la lecture est terminée
+      _audioPlayer.playerStateStream.firstWhere(
+        (state) => state.processingState == ProcessingState.completed,
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _isPlayingAudio = false;
+          });
+        }
+      });
+    } catch (e) {
+      print('Erreur lors de la lecture de l\'audio de nutrition: $e');
+    }
   }
 
   // Widget d'une carte (titre, description, icône + bouton play)
@@ -157,6 +186,14 @@ class _NutritionScreenState extends State<NutritionScreen> {
                           },
                           icon: const Icon(Icons.notifications_none, color: neutralWhite),
                         ),
+                        // Bouton pour lire l'audio de nutrition
+                        IconButton(
+                          onPressed: _playNutritionAudio,
+                          icon: Icon(
+                            _isPlayingAudio ? Icons.pause : Icons.volume_up,
+                            color: neutralWhite,
+                          ),
+                        ),
 
                       ],
                     ),
@@ -188,19 +225,15 @@ class _NutritionScreenState extends State<NutritionScreen> {
                                 ),
                                 const SizedBox(height: 10),
                                 ElevatedButton.icon(
-                                  onPressed: () {
-                                    // lance l'intro (index 0)
-                                    // await _loadIndex(0);
-                                    // await _player.play();
-                                  },
+                                  onPressed: _playNutritionAudio, // Lecture de l'audio de nutrition
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: primaryViolet,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                   ),
-                                  icon: const Icon(Icons.play_arrow),
-                                  label: const Text('Intro'),
+                                  icon: Icon(_isPlayingAudio ? Icons.pause : Icons.play_arrow),
+                                  label: Text(_isPlayingAudio ? 'En cours de lecture...' : 'Intro'),
                                 ),
                               ],
                             ),
@@ -234,36 +267,36 @@ class _NutritionScreenState extends State<NutritionScreen> {
                           subtitle: 'Repas équilibré avec les produits locaux',
                           icon: Icons.restaurant,
                           onPlay: () {
-                                                      // correspond à _tracks[1]
-                                                      // _playTrackByCardIndex(0);
-                                                    }
+                            // correspond à _tracks[1]
+                            // _playTrackByCardIndex(0);
+                          }
                         ),
                         _buildCard(
                           title: 'Alimentation\ndes enfants',
                           subtitle: 'Biens nutritionnels par âge',
                           icon: Icons.child_care,
                           onPlay: () {
-                                                      // _tracks[2]
-                                                      // _playTrackByCardIndex(1);
-                                                    }
+                            // _tracks[2]
+                            // _playTrackByCardIndex(1);
+                          }
                         ),
                         _buildCard(
                           title: 'Bien être des\nnouveaux nés',
                           subtitle: 'Nutriments essentiels pour bébé et la maman',
                           icon: Icons.add_circle,
                           onPlay: () {
-                                                      // _tracks[3]
-                                                      // _playTrackByCardIndex(2);
-                                                    }
+                            // _tracks[3]
+                            // _playTrackByCardIndex(2);
+                          }
                         ),
                         _buildCard(
                           title: 'L’eau et l’hygiène\nalimentaire',
                           subtitle: "Importance de potable et l'hygiène",
                           icon: Icons.water_drop,
                           onPlay: () {
-                                                      // _tracks[4]
-                                                      // _playTrackByCardIndex(3);
-                                                    }
+                            // _tracks[4]
+                            // _playTrackByCardIndex(3);
+                          }
                         ),
                       ],
                     ),

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart'; // Ajout de l'import pour la lecture audio
+import 'package:musso_deme_app/constants/assets.dart'; // Ajout de l'import pour les assets
 
 // --- Définition des couleurs de la Charte Graphique ---
 const Color primaryViolet = Color(0xFF491B6D);
@@ -121,213 +123,171 @@ class AudioListItem extends StatelessWidget {
 // *****************************************************************
 // 2. Écran Principal (Droits des femmes)
 // *****************************************************************
-class DroitsDesFemmesScreen extends StatelessWidget {
+class DroitsDesFemmesScreen extends StatefulWidget { // Changement de StatelessWidget à StatefulWidget
   const DroitsDesFemmesScreen({super.key});
 
-  // Composant du "message d'introduction"
-  Widget _buildIntroCard() {
-    return Container(
-      margin: const EdgeInsets.all(20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: neutralWhite,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  "Bienvenue dans l'espace droit des femmes.",
-                  style: TextStyle(color: darkGrey, fontSize: 14),
-                ),
-                const Text(
-                  "Écouter vos droits expliqués en Bambara.",
-                  style: TextStyle(color: darkGrey, fontSize: 14),
-                ),
-                const SizedBox(height: 15),
-                // Bouton Intro
-                Material(
-                  color: primaryViolet,
-                  borderRadius: BorderRadius.circular(20),
-                  child: InkWell(
-                    onTap: () {},
-                    borderRadius: BorderRadius.circular(20),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 15, vertical: 8),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.play_arrow, color: neutralWhite, size: 20),
-                          SizedBox(width: 8),
-                          Text("Intro", style: TextStyle(color: neutralWhite, fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 10),
-          // Placeholder pour le logo/image de la femme
-          Container(
-            width: 50,
-            height: 50,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: primaryViolet, width: 2),
-              color: Colors.lightBlue.shade50, // Couleur de fond du logo
-            ),
-            child: const Center(
-              child: Icon(Icons.sentiment_satisfied_alt, color: Colors.blue, size: 30),
-            ),
-          )
-        ],
-      ),
-    );
+  @override
+  State<DroitsDesFemmesScreen> createState() => _DroitsDesFemmesScreenState();
+}
+
+class _DroitsDesFemmesScreenState extends State<DroitsDesFemmesScreen> {
+  late AudioPlayer _audioPlayer; // Ajout du lecteur audio
+  bool _isPlayingAudio = false; // État de lecture de l'audio
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer(); // Initialisation du lecteur audio
+    _playWomenRightsAudio(); // Lecture de l'audio des droits des femmes au démarrage
   }
 
-  // Composant de la barre de lecteur de musique en bas
-  Widget _buildBottomPlayer() {
-    return Container(
-      height: 110, // Hauteur totale du lecteur
-      decoration: const BoxDecoration(
-        color: primaryViolet,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(30),
-          topRight: Radius.circular(30),
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Barre de progression (Slider)
-          SliderTheme(
-            data: SliderThemeData(
-              trackHeight: 3.0,
-              thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6.0),
-              overlayShape: const RoundSliderOverlayShape(overlayRadius: 12.0),
-              activeTrackColor: neutralWhite,
-              inactiveTrackColor: neutralWhite.withOpacity(0.3),
-              thumbColor: neutralWhite,
-              overlayColor: neutralWhite.withOpacity(0.2),
-            ),
-            child: Slider(
-              value: 0.5, // Valeur actuelle (2:30 sur 5:00)
-              min: 0,
-              max: 1.0,
-              onChanged: (double value) {},
-            ),
-          ),
-
-          // Durées et boutons de contrôle
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 25.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("02:30", style: TextStyle(color: neutralWhite, fontSize: 12)),
-                const Text("02:30", style: TextStyle(color: neutralWhite, fontSize: 12)),
-                // La capture d'écran montre 02:30 / 02:30. 
-                // Je vais utiliser 02:30 pour le début et 04:60 (simulé) pour la fin.
-              ],
-            ),
-          ),
-
-          // Boutons de contrôle (Télécharger, Précédent, Pause, Suivant, Rejouer)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 10.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _playerButton(Icons.file_download_outlined, 24),
-                _playerButton(Icons.skip_previous, 35),
-                _playerButton(Icons.pause, 50),
-                _playerButton(Icons.skip_next, 35),
-                _playerButton(Icons.refresh, 24),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); // Libération des ressources audio
+    super.dispose();
   }
 
-  // Fonction utilitaire pour les icônes du lecteur
-  Widget _playerButton(IconData icon, double size) {
-    return Icon(icon, color: neutralWhite, size: size);
+  // Lecture de l'audio des droits des femmes
+  Future<void> _playWomenRightsAudio() async {
+    try {
+      await _audioPlayer.setAsset(AppAssets.audioDroitsDesFemmes);
+      await _audioPlayer.play();
+      setState(() {
+        _isPlayingAudio = true;
+      });
+      
+      // Mettre à jour l'état lorsque la lecture est terminée
+      _audioPlayer.playerStateStream.firstWhere(
+        (state) => state.processingState == ProcessingState.completed,
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _isPlayingAudio = false;
+          });
+        }
+      });
+    } catch (e) {
+      print('Erreur lors de la lecture de l\'audio des droits des femmes: $e');
+    }
   }
 
-  // ***************************************************************
-  // 3. Le Scaffold (Structure de la page)
-  // ***************************************************************
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // La couleur de fond derrière la carte blanche
-      backgroundColor: lightGrey,
-      
-      // Barre d'application (App Bar)
       appBar: AppBar(
-        backgroundColor: primaryViolet,
-        // Éliminer l'ombre par défaut
-        elevation: 0, 
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: neutralWhite),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-        title: const Text(
-          "Droits des femmes",
-          style: TextStyle(
-            color: neutralWhite,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
-          ),
-        ),
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: neutralWhite),
-            onPressed: () {},
-          ),
-        ],
+        title: const Text('Droits des Femmes'),
+        backgroundColor: const Color(0xFF4A0072),
+        foregroundColor: Colors.white,
       ),
-      
-      body: Stack(
-        children: [
-          // Liste des pistes (le contenu principal)
-          Column(
-            children: [
-              _buildIntroCard(),
-              Expanded(
-                child: ListView.builder(
-                  padding: const EdgeInsets.only(bottom: 120), // Espace pour le lecteur
-                  itemCount: tracks.length,
-                  itemBuilder: (context, index) {
-                    return AudioListItem(track: tracks[index]);
-                  },
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Les Droits des Femmes au Mali',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4A0072),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Au Mali, les femmes jouissent de droits protégés par la Constitution et diverses lois nationales. '
+              'Ces droits incluent l\'égalité devant la loi, le droit de vote, l\'accès à l\'éducation, '
+              'à la santé, et la protection contre les violences basées sur le genre.',
+              style: TextStyle(fontSize: 16, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Droits Politiques et Juridiques',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4A0072),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '• Droit de vote et d\'élection\n'
+              '• Accès aux fonctions publiques\n'
+              '• Représentation politique\n'
+              '• Égalité devant la justice',
+              style: TextStyle(fontSize: 16, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Droits Sociaux et Économiques',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4A0072),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              '• Droit à l\'éducation\n'
+              '• Droit à la santé\n'
+              '• Accès à l\'emploi\n'
+              '• Propriété et gestion des biens\n'
+              '• Accès aux crédits et financements',
+              style: TextStyle(fontSize: 16, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Protection Juridique',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4A0072),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Le Mali a adopté plusieurs lois pour protéger les femmes, notamment :\n\n'
+              '• La loi sur le Code de la Famille (2011) qui garantit l\'égalité dans le mariage\n'
+              '• La loi sur la lutte contre les violences faites aux femmes et aux enfants\n'
+              '• La loi sur l\'excision (2015)\n'
+              '• La loi sur la participation des femmes à la vie politique',
+              style: TextStyle(fontSize: 16, height: 1.5),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'Défis et Perspectives',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF4A0072),
+              ),
+            ),
+            const SizedBox(height: 10),
+            const Text(
+              'Malgré les avancées légales, des défis subsistent :\n\n'
+              '• Application inégale des lois dans les zones rurales\n'
+              '• Pratiques culturelles persistantes\n'
+              '• Faible représentation politique\n'
+              '• Accès limité aux services de santé et à l\'éducation',
+              style: TextStyle(fontSize: 16, height: 1.5),
+            ),
+            const SizedBox(height: 30),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: _playWomenRightsAudio, // Lecture de l'audio des droits des femmes
+                icon: Icon(_isPlayingAudio ? Icons.pause : Icons.play_arrow),
+                label: Text(_isPlayingAudio ? 'En cours de lecture...' : 'Écouter l\'audio'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF4A0072),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(30),
+                  ),
                 ),
               ),
-            ],
-          ),
-          
-          // Lecteur de médias en bas (positionné en bas de la pile)
-          Align(
-            alignment: Alignment.bottomCenter,
-            child: _buildBottomPlayer(),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }

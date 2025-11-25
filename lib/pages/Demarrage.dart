@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/Demarrage2.dart';
-import 'package:flutter_tts/flutter_tts.dart'; // Import du package TTS
-import 'package:musso_deme_app/wingets/CustomNextButton.dart'; // Import du bouton personnalisé
+import 'package:just_audio/just_audio.dart';
+import 'package:musso_deme_app/constants/assets.dart';
+import 'package:musso_deme_app/wingets/CustomNextButton.dart';
 
 class Demarrage extends StatefulWidget {
   const Demarrage({super.key});
@@ -12,64 +13,44 @@ class Demarrage extends StatefulWidget {
 
 class _DemarrageState extends State<Demarrage> {
   late PageController _pageController;
-  late FlutterTts flutterTts; // Instance de FlutterTts
-  bool _isSpeaking = false; // Indicateur pour savoir si la lecture est en cours
+  late AudioPlayer _audioPlayer;
+  bool _isPlaying = false;
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
-    _initTts(); // Initialisation du TTS
-    
-    // La navigation automatique est maintenant gérée par la fin de la lecture vocale
+    _audioPlayer = AudioPlayer();
+    _playWelcomeAudio();
   }
-  
-  // Initialisation du TTS
-  void _initTts() async {
-    flutterTts = FlutterTts();
-    
-    // Configuration de la langue en bambara (bamanankan)
-    await flutterTts.setLanguage("bm"); // bm est le code ISO pour le bambara
-    
-    // Configuration d'une voix féminine si disponible
-    await flutterTts.setVoice({"name": "bm-ML-language", "locale": "bm-ML"});
-    
-    // Réglage du pitch (hauteur) un peu plus élevé pour une voix féminine
-    await flutterTts.setPitch(1.2);
-    
-    // Réglage de la vitesse de parole (0.5 = plus lent, pour une meilleure compréhension)
-    await flutterTts.setSpeechRate(0.5);
-    
-    // Gestionnaires d'événements
-    flutterTts.setStartHandler(() {
-      setState(() {
-        _isSpeaking = true;
+
+  /// 🔊 Lecture de l'audio de bienvenue
+  void _playWelcomeAudio() async {
+    try {
+      await _audioPlayer.setAsset(AppAssets.audioBienvenue);
+      setState(() => _isPlaying = true);
+      
+      // Jouer l'audio
+      await _audioPlayer.play();
+      
+      // Naviguer vers la page suivante une fois l'audio terminé
+      _audioPlayer.playerStateStream.firstWhere(
+        (state) => state.processingState == ProcessingState.completed,
+      ).then((_) {
+        if (mounted) {
+          setState(() => _isPlaying = false);
+          _navigateToNextPage();
+        }
       });
-    });
-    
-    flutterTts.setCompletionHandler(() {
-      setState(() {
-        _isSpeaking = false;
-      });
-      // Navigation vers la page suivante lorsque la lecture est terminée
+    } catch (e) {
+      print('Erreur lors de la lecture de l\'audio de bienvenue: $e');
+      // En cas d'erreur, naviguer quand même vers la page suivante
       _navigateToNextPage();
-    });
-    
-    flutterTts.setErrorHandler((msg) {
-      setState(() {
-        _isSpeaking = false;
-      });
-      // En cas d'erreur, on navigue quand même vers la page suivante
-      _navigateToNextPage();
-    });
-    
-    // Lecture automatique du message traduit en bamanankan au démarrage avec une voix féminine
-    await flutterTts.speak("I BISSIMILAH MUSODEME SANFE! NIN APPLI NIN FEMMES WERI KAN JATIGUIYE DON. SABABU NI O YIRESE, NI O BAGA WERI KAN JATIGUIYE, SABABU NI O SE KAN JATIGUIYE. I BE SE KOMA COMPTE I JEN!");
+    }
   }
-  
-  // Navigation vers la page suivante avec animation
+
+  ///  Navigation automatique vers Demarrage2 après la voix
   void _navigateToNextPage() {
-    // Animation de droite à gauche
     Navigator.pushReplacement(
       context,
       PageRouteBuilder(
@@ -77,8 +58,7 @@ class _DemarrageState extends State<Demarrage> {
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(1.0, 0.0);
           const end = Offset.zero;
-          const curve = Curves.ease;
-          var tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          var tween = Tween(begin: begin, end: end);
           return SlideTransition(
             position: animation.drive(tween),
             child: child,
@@ -87,11 +67,11 @@ class _DemarrageState extends State<Demarrage> {
       ),
     );
   }
-  
+
   @override
   void dispose() {
     _pageController.dispose();
-    flutterTts.stop(); // Arrêter la lecture TTS lors de la destruction
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -99,37 +79,36 @@ class _DemarrageState extends State<Demarrage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          color: Color(0xFFC983DE), 
+        decoration: const BoxDecoration(
+          color: Color(0xFFC983DE),
         ),
         child: Stack(
           children: [
-            // Logo centré
+            ///  Logo centré
             Positioned(
-              top: MediaQuery.of(context).size.height / 2 - 150, // Centrer verticalement
+              top: MediaQuery.of(context).size.height / 2 - 150,
               left: 0,
               right: 0,
               child: Image.asset(
                 'assets/images/logo.png',
                 width: 300,
                 height: 300,
-                fit: BoxFit.contain,
               ),
             ),
-            
-            // Haut-parleur en bas du logo
+
+            /// 🔊 Haut-parleur animé si la voix parle
             Positioned(
-              top: MediaQuery.of(context).size.height / 2 + 180, // Positionné sous le logo
+              top: MediaQuery.of(context).size.height / 2 + 180,
               left: 0,
               right: 0,
               child: Icon(
-                Icons.volume_up, // Icône de haut-parleur
-                color: Colors.white,
+                Icons.volume_up,
+                color: _isPlaying ? Colors.yellow : Colors.white,
                 size: 60,
               ),
             ),
-            
-            // Points 
+
+            /// 🔵 Points + "Skip"
             Positioned(
               bottom: 60,
               left: 20,
@@ -138,59 +117,47 @@ class _DemarrageState extends State<Demarrage> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 5),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.5),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      SizedBox(width: 5),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.5),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
+                      _buildDot(active: true),
+                      const SizedBox(width: 5),
+                      _buildDot(),
+                      const SizedBox(width: 5),
+                      _buildDot(),
                     ],
                   ),
-                  SizedBox(height: 10),
-                  Text(
-                    'Skip',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
+                  const SizedBox(height: 10),
+                  GestureDetector(
+                    onTap: _navigateToNextPage,
+                    child: const Text(
+                      'Skip',
+                      style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
-                  ),
+                  )
                 ],
               ),
             ),
-            
-            // Bouton Next personnalisé en bas à droite
+
+            /// 👉 Bouton Next
             Positioned(
               bottom: 60,
               right: 20,
               child: CustomNextButton(
-                onPressed: () {
-                  // Navigation immédiate si l'utilisateur clique sur le bouton
-                  _navigateToNextPage();
-                },
+                onPressed: _navigateToNextPage,
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Widget pour les petits points
+  Widget _buildDot({bool active = false}) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        color: active ? Colors.white : Colors.white.withOpacity(0.5),
+        shape: BoxShape.circle,
       ),
     );
   }

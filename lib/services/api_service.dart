@@ -1,6 +1,10 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+import 'package:musso_deme_app/modeles/auth.dart';
+import 'package:musso_deme_app/modeles/user.dart';
+import 'package:musso_deme_app/services/user_preferences_service.dart'; // Ajout de l'import
+
 class ApiService {
   // L'URL de l'API Spring Boot
   static const String baseUrl = 'http://localhost:8080/api';
@@ -12,20 +16,36 @@ class ApiService {
   };
 
   // Méthode pour la connexion
-  static Future<Map<String, dynamic>?> login(String identifiant, String motDePasse) async {
+  static Future<AuthResponse?> login(String telephone, String motCle) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
         headers: jsonHeaders,
         body: jsonEncode({
-          'identifiant': identifiant,
-          'motDePasse': motDePasse,
+          'telephone': telephone,
+          'motcle': motCle,
         }),
       );
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> data = jsonDecode(response.body);
-        return data;
+        final authResponse = AuthResponse.fromJson(data);
+        
+        // Sauvegarder les informations de l'utilisateur
+        final user = authResponse.user;
+        // Le modèle User dans auth.dart n'a pas de champ 'name', utilisons 'email' à la place
+        // Ou mieux, sauvegardons directement depuis les données reçues
+        final userData = data['user'] as Map<String, dynamic>;
+        final userName = userData['name'] as String? ?? 'Utilisateur';
+        final userNameParts = userName.split(' ');
+        if (userNameParts.isNotEmpty) {
+          await UserPreferencesService.saveUserFirstName(userNameParts[0]);
+          if (userNameParts.length > 1) {
+            await UserPreferencesService.saveUserLastName(userNameParts.sublist(1).join(' '));
+          }
+        }
+        
+        return authResponse;
       } else {
         print('Erreur de connexion: ${response.statusCode}');
         print('Message: ${response.body}');
@@ -60,6 +80,11 @@ class ApiService {
 
       if (response.statusCode == 201) {
         final Map<String, dynamic> data = jsonDecode(response.body);
+        
+        // Sauvegarder les informations de l'utilisateur
+        await UserPreferencesService.saveUserFirstName(prenom);
+        await UserPreferencesService.saveUserLastName(nom);
+        
         return data;
       } else {
         print('Erreur d\'inscription: ${response.statusCode}');

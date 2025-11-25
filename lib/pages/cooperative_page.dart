@@ -5,6 +5,8 @@ import 'package:musso_deme_app/pages/NewCooperativeScreen.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:just_audio/just_audio.dart'; // Ajout de l'import pour la lecture audio
+import 'package:musso_deme_app/constants/assets.dart'; // Ajout de l'import pour les assets
 
 // NOTE: J'ai retiré l'import de 'HomeScreen.dart' et 'video_player' 
 // car ils ne sont pas nécessaires pour la CooperativePage elle-même.
@@ -70,7 +72,46 @@ class CooperativePage extends StatefulWidget {
 class _CooperativePageState extends State<CooperativePage> {
   // L'index sélectionné (simulé ici, à connecter à un contrôleur de navigation si besoin)
   int _selectedIndex = 0; 
+  late AudioPlayer _audioPlayer; // Ajout du lecteur audio
+  bool _isPlayingAudio = false; // État de lecture de l'audio
   
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+    _playCooperativeAudio(); // Lecture de l'audio de coopérative au démarrage
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); // Libération des ressources audio
+    super.dispose();
+  }
+
+  // Lecture de l'audio de coopérative
+  Future<void> _playCooperativeAudio() async {
+    try {
+      await _audioPlayer.setAsset(AppAssets.audioCooperative); // Utilisation de l'audio existant pour les coopératives
+      await _audioPlayer.play();
+      setState(() {
+        _isPlayingAudio = true;
+      });
+      
+      // Mettre à jour l'état lorsque la lecture est terminée
+      _audioPlayer.playerStateStream.firstWhere(
+        (state) => state.processingState == ProcessingState.completed,
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _isPlayingAudio = false;
+          });
+        }
+      });
+    } catch (e) {
+      print('Erreur lors de la lecture de l\'audio de coopérative: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -112,6 +153,15 @@ class _CooperativePageState extends State<CooperativePage> {
                           fontWeight: FontWeight.bold,
                           fontSize: 22,
                         ),
+                      ),
+                      // Bouton pour lire l'audio de coopérative
+                      IconButton(
+                        icon: Icon(
+                          _isPlayingAudio ? Icons.pause : Icons.volume_up,
+                          color: neutralWhite,
+                          size: 26,
+                        ),
+                        onPressed: _playCooperativeAudio,
                       ),
                       // Bouton d'ajout (Icône +)
                       Container(

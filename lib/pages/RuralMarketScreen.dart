@@ -7,6 +7,8 @@ import 'package:musso_deme_app/wingets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/ProductDetailsScreen.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:just_audio/just_audio.dart'; // Ajout de l'import pour la lecture audio
+import 'package:musso_deme_app/constants/assets.dart'; // Ajout de l'import pour les assets
 
 // Définissez vos couleurs principales pour la réutilisation
 const Color primaryPurple = Color(0xFF5A1489); // Couleur violette dominante (conserve les couleurs existantes)
@@ -28,6 +30,45 @@ class RuralMarketScreen extends StatefulWidget {
 
 class _RuralMarketScreenState extends State<RuralMarketScreen> {
   int _selectedIndex = 0;
+  late AudioPlayer _audioPlayer; // Ajout du lecteur audio
+  bool _isPlayingAudio = false; // État de lecture de l'audio
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer();
+    _playMarketAudio(); // Lecture de l'audio du marché au démarrage
+  }
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose(); // Libération des ressources audio
+    super.dispose();
+  }
+
+  // Lecture de l'audio du marché
+  Future<void> _playMarketAudio() async {
+    try {
+      await _audioPlayer.setAsset(AppAssets.audioLeMarche);
+      await _audioPlayer.play();
+      setState(() {
+        _isPlayingAudio = true;
+      });
+      
+      // Mettre à jour l'état lorsque la lecture est terminée
+      _audioPlayer.playerStateStream.firstWhere(
+        (state) => state.processingState == ProcessingState.completed,
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _isPlayingAudio = false;
+          });
+        }
+      });
+    } catch (e) {
+      print('Erreur lors de la lecture de l\'audio du marché: $e');
+    }
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -88,6 +129,14 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
                             fontSize: 20,
                           ),
                         ),
+                      ),
+                      // Bouton pour lire l'audio du marché
+                      IconButton(
+                        icon: Icon(
+                          _isPlayingAudio ? Icons.pause : Icons.volume_up,
+                          color: neutralWhite,
+                        ),
+                        onPressed: _playMarketAudio,
                       ),
                       IconButton(
                         icon: const Icon(Icons.notifications_none, color: neutralWhite),

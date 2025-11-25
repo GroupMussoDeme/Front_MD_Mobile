@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart'; // Ajout de l'import pour la lecture audio
+import 'package:musso_deme_app/constants/assets.dart'; // Ajout de l'import pour les assets
 import 'package:musso_deme_app/wingets/primary_header.dart';
+import 'package:musso_deme_app/wingets/SpeakerIcon.dart'; 
 import 'package:musso_deme_app/pages/InscriptionScreen.dart';
-import 'package:musso_deme_app/pages/ValiderConnexion.dart'; // Import de la nouvelle page
+import 'package:musso_deme_app/pages/ValiderConnexion.dart';
+import 'package:musso_deme_app/services/api_service.dart'; // Import de l'API service
+import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:permission_handler/permission_handler.dart';
 
 // --- Définition des couleurs de la Charte Graphique ---
 const Color primaryViolet = Color(0xFF491B6D);
@@ -18,10 +25,264 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordVisible = false;
+  final TextEditingController _phoneController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _isLoading = false;
+  late AudioPlayer _audioPlayer; // Ajout du lecteur audio
+  bool _isPlayingAudio = false; // État de lecture de l'audio
+  
+  // Speech to text & TTS
+  late FlutterTts _flutterTts;
+  late stt.SpeechToText _speechToText;
+  bool _isListening = false;
+  int _currentStep = 0;
+
+  // Prompts en bamanankan
+  final List<String> _prompts = [
+    "I tɛlɛfɔn nimɔrɔ ko dɔnni ?",  // Téléphone
+    "I ka sira siri ko dɔnni ?",    // Mot de passe
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _audioPlayer = AudioPlayer(); // Initialisation du lecteur audio
+    _flutterTts = FlutterTts();
+    _speechToText = stt.SpeechToText();
+    _initTts();
+    _initSpeech();
+    _playInscriptionAudio(); // Lecture de l'audio d'inscription au démarrage
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _audioPlayer.dispose(); // Libération des ressources du lecteur audio
+    super.dispose();
+  }
+
+  // Fonction pour jouer l'audio d'inscription
+  Future<void> _playInscriptionAudio() async {
+    try {
+      setState(() {
+        _isPlayingAudio = true;
+      });
+      
+      await _audioPlayer.setAsset(AppAssets.audioInscription);
+      
+      // Écouter la fin de la lecture
+      _audioPlayer.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed) {
+          setState(() {
+            _isPlayingAudio = false;
+          });
+        }
+      });
+      
+      await _audioPlayer.play();
+    } catch (e) {
+      print('Erreur lors de la lecture de l\'audio d\'inscription: $e');
+      setState(() {
+        _isPlayingAudio = false;
+      });
+    }
+  }
+
+  // ==================== TTS ====================
+  Future<void> _initTts() async {
+    await _flutterTts.setLanguage("fr-FR");
+    await _flutterTts.setSpeechRate(0.9);
+    // Optionnel : voix féminine
+    final voices = await _flutterTts.getVoices;
+    final female = voices.firstWhere(
+      (v) => v['locale'].toString().startsWith('fr') && (v['gender'] ?? '').toString().contains('female'),
+      orElse: () => voices.firstWhere((v) => v['locale'].toString().startsWith('fr'), orElse: () => voices[0]),
+    );
+    await _flutterTts.setVoice({"name": female['name'], "locale": female['locale']});
+  }
+
+  // ==================== Speech Recognition ====================
+  Future<void> _initSpeech() async {
+    // Request microphone permission
+    final status = await Permission.microphone.request();
+    if (!status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Autorise le micro pour la reconnaissance vocale")),
+      );
+      return;
+    }
+
+    // Initialize speech recognition
+    bool available = await _speechToText.initialize(
+      onStatus: (status) {
+        print('Speech recognition status: $status');
+        if (status == stt.SpeechToText.listeningStatus) {
+          setState(() => _isListening = true);
+        } else {
+          setState(() => _isListening = false);
+        }
+      },
+      onError: (error) {
+        print('Speech recognition error: $error');
+        setState(() => _isListening = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Erreur reconnaissance vocale : $error")),
+        );
+      },
+      debugLogging: true,
+    );
+
+    if (available) {
+      // On ne démarre pas automatiquement la reconnaissance vocale pour la connexion
+      // L'utilisateur doit appuyer sur le microphone
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Reconnaissance vocale non disponible")),
+      );
+    }
+  }
+
+  Future<void> _startVoiceGuidance() async {
+    if (_currentStep >= _prompts.length) {
+      await _flutterTts.speak("Tout est prêt ! I bɛ se ka valider kɔnɔ.");
+      // Rediriger vers la page de validation
+      _navigateToValidationPage();
+      return;
+    }
+
+    await _flutterTts.speak(_prompts[_currentStep]);
+    _startListening();
+  }
+
+  Future<void> _startListening() async {
+    if (_isListening) return;
+
+    // Start listening for speech
+    _speechToText.listen(
+      localeId: 'fr_FR', // French locale
+      listenFor: const Duration(seconds: 8), // Listen for 8 seconds
+      pauseFor: const Duration(seconds: 3), // Pause for 3 seconds before stopping
+      partialResults: true, // Get partial results
+    );
+    
+    setState(() => _isListening = true);
+
+    // Set up a timer to stop listening after 8 seconds
+    Future.delayed(const Duration(seconds: 8), () {
+      if (_isListening) {
+        _stopListening();
+        _checkField();
+      }
+    });
+  }
+
+  void _stopListening() {
+    if (_isListening) {
+      _speechToText.stop();
+      setState(() => _isListening = false);
+    }
+  }
+
+  void _checkField() {
+    // Get the last recognized words
+    String recognizedWords = _speechToText.lastRecognizedWords;
+    
+    if (recognizedWords.trim().isEmpty) {
+      _flutterTts.speak("Champ vide, veuillez répéter").then((_) => _startListening());
+    } else {
+      _fillCurrentField(recognizedWords);
+      _currentStep++;
+      if (_currentStep < _prompts.length) {
+        _startVoiceGuidance();
+      } else {
+        _flutterTts.speak("Tout est rempli ! Vous allez être redirigé vers la page de validation.");
+        // Rediriger vers la page de validation après un court délai
+        Future.delayed(const Duration(seconds: 3), () {
+          _navigateToValidationPage();
+        });
+      }
+    }
+  }
+
+  void _fillCurrentField(String text) {
+    switch (_currentStep) {
+      case 0:
+        // Nettoie le numéro (garde chiffres uniquement)
+        _phoneController.text = text.replaceAll(RegExp(r'[^0-9+]'), '');
+        break;
+      case 1:
+        _passwordController.text = text;
+        break;
+    }
+  }
+
+  void _navigateToValidationPage() {
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ValiderConnexion(
+            telephone: _phoneController.text,
+            motDePasse: _passwordController.text,
+          ),
+        ),
+      );
+    }
+  }
 
   // Fonction de rappel à exécuter lorsque le haut-parleur est cliqué
   void _playAudioInstruction(String fieldName) {
     print("DEMANDE AUDIO : Lecture de l'instruction pour le champ '$fieldName'");
+  }
+
+  // Fonction pour gérer la connexion
+  Future<void> _handleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await ApiService.login(
+        _phoneController.text.trim(),
+        _passwordController.text.trim(),
+      );
+
+      if (result != null) {
+        // Connexion réussie - naviguer vers la page de validation
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ValiderConnexion()),
+          );
+        }
+      } else {
+        // Erreur de connexion
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Échec de la connexion. Veuillez vérifier vos identifiants."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erreur: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -41,68 +302,83 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: neutralWhite,
       
-      body: SingleChildScrollView(
-        child: Column(
-          children: <Widget>[
-            // 1. Zone Supérieure (Tête de page et Logo)
-            PrimaryHeader(logoChild: logoImage, showNotification: false),
-            
-            const SizedBox(height: 50),
-            
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  // 2. Bouton "Connexion" avec dégradé
-                  _buildLoginButton(),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // 3. Zone de l'Image (simulée par une Card)
-                  _buildImagePlaceholder(),
-                  
-                  const SizedBox(height: 30),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              children: <Widget>[
+                // 1. Zone Supérieure (Tête de page et Logo)
+                PrimaryHeader(logoChild: logoImage, showNotification: false),
+                
+                const SizedBox(height: 50),
+                
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      // Indicateur d'écoute
+                      if (_isListening)
+                        Column(
+                          children: const [
+                            Icon(Icons.mic, size: 70, color: primaryViolet),
+                            SizedBox(height: 10),
+                            Text("Écoute...", style: TextStyle(fontSize: 18, color: primaryViolet)),
+                          ],
+                        ),
+                      if (_isListening)
+                        const SizedBox(height: 20),
+                      
+                      // 2. Bouton "Connexion" avec dégradé
+                      _buildLoginButton(),
+                      
+                      const SizedBox(height: 30),
+                      
+                      // 3. Zone de l'Image (simulée par une Card)
+                      _buildImagePlaceholder(),
+                      
+                      const SizedBox(height: 30),
 
-                  // 4. Champs de Connexion (avec icônes audio)
-                  // Téléphone
-                  _buildAudioTextField(
-                    label: "Téléphone",
-                    icon: Icons.call_outlined,
-                    keyboardType: TextInputType.phone,
-                    isPassword: false,
-                  ),
-                  const SizedBox(height: 20),
+                      // 4. Champs de Connexion (avec icônes audio)
+                      // Téléphone
+                      _buildAudioTextField(
+                        label: "Téléphone",
+                        icon: Icons.call_outlined,
+                        keyboardType: TextInputType.phone,
+                        isPassword: false,
+                        controller: _phoneController,
+                      ),
+                      const SizedBox(height: 20),
 
-                  // Mot clé (Mot de passe)
-                  _buildAudioTextField(
-                    label: "Mot clé",
-                    icon: Icons.lock_outline,
-                    isPassword: true,
-                  ),
-                  
-                  const SizedBox(height: 15),
+                      // Mot clé (Mot de passe)
+                      _buildAudioTextField(
+                        label: "Mot clé",
+                        icon: Icons.lock_outline,
+                        isPassword: true,
+                        controller: _passwordController,
+                      ),
+                      
+                      const SizedBox(height: 15),
 
-                  // 5. Lien "S'inscrire"
-                  _buildRegisterLink(),
-                  
-                  const SizedBox(height: 40),
-                  
-                  // 6. Icône d'enregistrement vocal (Microphone) - avec navigation vers ValiderConnexion
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => const ValiderConnexion()),
-                      );
-                    },
-                    child: _buildMicIcon(),
+                      // 5. Lien "S'inscrire"
+                      _buildRegisterLink(),
+                      
+                      const SizedBox(height: 40),
+                      
+                      // 6. Icône d'enregistrement vocal (Microphone) - avec navigation vers ValiderConnexion
+                      GestureDetector(
+                        onTap: _isLoading || _isListening ? null : _startVoiceGuidance,
+                        child: _buildMicIcon(),
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          // Ajout de l'icône de haut-parleur
+          const SpeakerIcon(),
+        ],
       ),
     );
   }
@@ -173,6 +449,7 @@ Widget _buildImagePlaceholder() {
     required String label,
     required IconData icon,
     required bool isPassword,
+    required TextEditingController controller,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Column(
@@ -197,6 +474,7 @@ Widget _buildImagePlaceholder() {
             // Champ de Texte
             Expanded(
               child: TextFormField(
+                controller: controller,
                 keyboardType: keyboardType,
                 obscureText: isPassword && !_isPasswordVisible,
                 decoration: InputDecoration(
@@ -283,11 +561,15 @@ Widget _buildImagePlaceholder() {
           ),
         ],
       ),
-      child: const Icon(
-        Icons.mic_none,
-        color: neutralWhite,
-        size: 60,
-      ),
+      child: _isLoading
+          ? const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            )
+          : const Icon(
+              Icons.mic_none,
+              color: neutralWhite,
+              size: 60,
+            ),
     );
   }
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/wingets/SpeakerIcon.dart'; // Changement d'import
 import 'package:musso_deme_app/wingets/primary_header.dart';
 import 'package:musso_deme_app/pages/HomeScreen.dart'; // Import de la page d'accueil
+import 'package:musso_deme_app/services/api_service.dart'; // Import de l'API service
 
 // --- Définition des couleurs de la Charte Graphique ---
 const Color primaryViolet = Color(0xFF491B6D);
@@ -9,7 +11,14 @@ const Color neutralWhite = Colors.white;
 const String ASSET_IMAGE_PATH = 'assets/images/image2.png';
 
 class ValiderConnexion extends StatefulWidget {
-  const ValiderConnexion({super.key});
+  final String? telephone;
+  final String? motDePasse;
+
+  const ValiderConnexion({
+    super.key,
+    this.telephone,
+    this.motDePasse,
+  });
 
   @override
   State<ValiderConnexion> createState() => _ValiderConnexionState();
@@ -17,10 +26,77 @@ class ValiderConnexion extends StatefulWidget {
 
 class _ValiderConnexionState extends State<ValiderConnexion> {
   bool _isPasswordVisible = false;
+  late TextEditingController _phoneController;
+  late TextEditingController _passwordController;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _phoneController = TextEditingController(text: widget.telephone);
+    _passwordController = TextEditingController(text: widget.motDePasse);
+  }
 
   // Fonction de rappel à exécuter lorsque le haut-parleur est cliqué
   void _playAudioInstruction(String fieldName) {
     print("DEMANDE AUDIO : Lecture de l'instruction pour le champ '$fieldName'");
+  }
+
+  // Fonction pour gérer la connexion
+  Future<void> _handleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final result = await ApiService.login(
+        _phoneController.text.trim(),
+        _passwordController.text.trim(),
+      );
+
+      if (result != null) {
+        // Connexion réussie - naviguer vers la page d'accueil
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => HomeScreen()),
+            (route) => false,
+          );
+        }
+      } else {
+        // Erreur de connexion
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("Échec de la connexion. Veuillez vérifier vos identifiants."),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Erreur: $e"),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
@@ -40,60 +116,68 @@ class _ValiderConnexionState extends State<ValiderConnexion> {
     return Scaffold(
       backgroundColor: neutralWhite,
       
-      body: SingleChildScrollView(
-        child: Column(
-          children: <Widget>[
-            // 1. Zone Supérieure (Tête de page et Logo)
-            PrimaryHeader(logoChild: logoImage, showNotification: false),
-            
-            const SizedBox(height: 50),
-            
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: <Widget>[
-                  // 2. Bouton "Connexion" avec dégradé
-                  _buildLoginButton(),
-                  
-                  const SizedBox(height: 30),
-                  
-                  // 3. Zone de l'Image (simulée par une Card)
-                  _buildImagePlaceholder(),
-                  
-                  const SizedBox(height: 30),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            child: Column(
+              children: <Widget>[
+                // 1. Zone Supérieure (Tête de page et Logo)
+                PrimaryHeader(logoChild: logoImage, showNotification: false),
+                
+                const SizedBox(height: 50),
+                
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: <Widget>[
+                      // 2. Bouton "Connexion" avec dégradé
+                      _buildLoginButton(),
+                      
+                      const SizedBox(height: 30),
+                      
+                      // 3. Zone de l'Image (simulée par une Card)
+                      _buildImagePlaceholder(),
+                      
+                      const SizedBox(height: 30),
 
-                  // 4. Champs de Connexion (avec icônes audio)
-                  // Téléphone
-                  _buildAudioTextField(
-                    label: "Téléphone",
-                    icon: Icons.call_outlined,
-                    keyboardType: TextInputType.phone,
-                    isPassword: false,
+                      // 4. Champs de Connexion (avec icônes audio)
+                      // Téléphone
+                      _buildAudioTextField(
+                        label: "Téléphone",
+                        icon: Icons.call_outlined,
+                        keyboardType: TextInputType.phone,
+                        isPassword: false,
+                        controller: _phoneController,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Mot clé (Mot de passe)
+                      _buildAudioTextField(
+                        label: "Mot clé",
+                        icon: Icons.lock_outline,
+                        isPassword: true,
+                        controller: _passwordController,
+                      ),
+                      
+                      const SizedBox(height: 15),
+
+                      // 5. Lien "S'inscrire"
+                      _buildRegisterLink(),
+                      
+                      const SizedBox(height: 40),
+                      
+                      // 6. Icône de validation au lieu du microphone
+                      _buildValidationIcon(),
+                    ],
                   ),
-                  const SizedBox(height: 20),
-
-                  // Mot clé (Mot de passe)
-                  _buildAudioTextField(
-                    label: "Mot clé",
-                    icon: Icons.lock_outline,
-                    isPassword: true,
-                  ),
-                  
-                  const SizedBox(height: 15),
-
-                  // 5. Lien "S'inscrire"
-                  _buildRegisterLink(),
-                  
-                  const SizedBox(height: 40),
-                  
-                  // 6. Icône de validation au lieu du microphone
-                  _buildValidationIcon(),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+          // Ajout de l'icône de microphone
+          const SpeakerIcon(),
+        ],
       ),
     );
   }
@@ -163,6 +247,7 @@ class _ValiderConnexionState extends State<ValiderConnexion> {
     required String label,
     required IconData icon,
     required bool isPassword,
+    required TextEditingController controller,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return Column(
@@ -186,6 +271,7 @@ class _ValiderConnexionState extends State<ValiderConnexion> {
             // Champ de Texte
             Expanded(
               child: TextFormField(
+                controller: controller,
                 keyboardType: keyboardType,
                 obscureText: isPassword && !_isPasswordVisible,
                 decoration: InputDecoration(
@@ -279,13 +365,7 @@ class _ValiderConnexionState extends State<ValiderConnexion> {
   Widget _buildValidationIcon() {
     return Center(
       child: GestureDetector(
-        onTap: () {
-          // Navigation vers la page d'accueil
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => HomeScreen()),
-          );
-        },
+        onTap: _isLoading ? null : _handleLogin,
         child: Container(
           width: 80,
           height: 80,
@@ -301,11 +381,15 @@ class _ValiderConnexionState extends State<ValiderConnexion> {
               ),
             ],
           ),
-          child: const Icon(
-            Icons.check, // Icône de validation
-            color: neutralWhite,
-            size: 40,
-          ),
+          child: _isLoading
+              ? const CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                )
+              : const Icon(
+                  Icons.check, // Icône de validation
+                  color: neutralWhite,
+                  size: 40,
+                ),
         ),
       ),
     );

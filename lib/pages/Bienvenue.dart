@@ -1,8 +1,40 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:musso_deme_app/pages/Ecoute.dart'; // Import de la page Ecoute
 
-class BienvenuePage extends StatelessWidget {
+class BienvenuePage extends StatefulWidget {  // Changé en Stateful pour gérer TTS
   const BienvenuePage({super.key});
+
+  @override
+  _BienvenuePageState createState() => _BienvenuePageState();
+}
+
+class _BienvenuePageState extends State<BienvenuePage> {
+  late FlutterTts flutterTts;
+
+  @override
+  void initState() {
+    super.initState();
+    flutterTts = FlutterTts();
+    _initTtsAndPlayWelcome();  // Joue le message au démarrage
+  }
+
+  Future<void> _initTtsAndPlayWelcome() async {
+    // Configurer la voix féminine (fr-FR pour approximation bambara)
+    await flutterTts.setLanguage("fr-FR");
+    var voices = await flutterTts.getVoices;
+    var femaleVoice = voices.firstWhere(
+      (voice) => voice['gender'] == 'female' && voice['locale'].startsWith('fr'),
+      orElse: () => voices.firstWhere((voice) => voice['locale'].startsWith('fr')),
+    );
+    await flutterTts.setVoice({"name": femaleVoice['name'], "locale": femaleVoice['locale']});
+    await flutterTts.setSpeechRate(0.9);  // Légèrement plus lent pour clarté
+
+    // Message traduit en bamanankan
+    const welcomeMessage = "I ni ce i ni ce Musodeme app la, app ye musow min ye min ye baara kɛ ni musow ye, i ye i ni i denw ye, ani i ye i ni i denw ye, ani i ye i ni i denw ye, ani i ye i ni i denw ye. I ni ce i ni ce, i bɛ se ka i konto dɔn.";
+
+    await flutterTts.speak(welcomeMessage);
+  }
 
   @override
   Widget build(BuildContext context) {

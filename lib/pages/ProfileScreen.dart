@@ -2,10 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/wingets/RoundedPurpleContainer.dart';
 import 'package:musso_deme_app/wingets/BottomNavBar.dart';
+import 'package:musso_deme_app/wingets/SpeakerIcon.dart'; // Changement d'import
 import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:image_picker/image_picker.dart'; // Ajout de l'import pour ImagePicker
+import 'dart:io'; // Ajout de l'import pour File
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final Function(String)? onProfileImageUpdated; // Ajout du callback optionnel
+
+  const ProfileScreen({super.key, this.onProfileImageUpdated});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -13,6 +18,8 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedIndex = 2; // Profil sélectionné par défaut
+  String _profileImageUrl = 'https://img.freepik.com/free-photo/portrait-young-african-woman-with-traditional-clothes_23-2148928488.jpg'; // URL de l'image de profil
+  final ImagePicker _picker = ImagePicker(); // Ajout de ImagePicker
 
   void _onItemTapped(int index) {
     setState(() {
@@ -36,6 +43,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Nous sommes déjà sur la page de profil, donc on ne fait rien
       }
     });
+  }
+
+  // Correction du bouton retour
+  void _goBack() {
+    Navigator.of(context).pop();
+  }
+
+  // Méthode pour changer la photo de profil
+  Future<void> _changeProfileImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      setState(() {
+        // Dans une vraie application, vous enverriez cette image au serveur
+        // Pour cette démo, nous utilisons simplement l'URL de l'image sélectionnée
+        _profileImageUrl = image.path; // Utiliser le chemin de l'image sélectionnée
+      });
+      
+      // Appeler le callback s'il est fourni
+      if (widget.onProfileImageUpdated != null) {
+        widget.onProfileImageUpdated!(_profileImageUrl);
+      }
+    }
   }
 
   @override
@@ -64,9 +93,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // Flèche de retour
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
+                    onPressed: _goBack, // Correction du bouton retour
                   ),
                   // Titre centré
                   const Text(
@@ -109,6 +136,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
           ),
+          
+          // Ajout de l'icône de microphone
+          const SpeakerIcon(),
         ],
       ),
       // Remplacer la barre de navigation personnalisée par BottomNavBar
@@ -209,10 +239,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   border: Border.all(color: Colors.purple.shade100, width: 3),
                   color: Colors.white,
                 ),
-                child: const CircleAvatar(
-                  radius: 50,
-                  backgroundImage: NetworkImage('https://img.freepik.com/free-photo/portrait-young-african-woman-with-traditional-clothes_23-2148928488.jpg'),
-                  backgroundColor: Colors.grey,
+                child: GestureDetector(
+                  onTap: _changeProfileImage, // Ajout du gestionnaire de clic pour changer l'image
+                  child: CircleAvatar(
+                    radius: 50,
+                    backgroundImage: NetworkImage(_profileImageUrl),
+                    backgroundColor: Colors.grey,
+                  ),
                 ),
               ),
               Container(

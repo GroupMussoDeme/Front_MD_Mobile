@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:musso_deme_app/services/vosk_service.dart';
+
 // import 'package:votre_app/widgets/rounded_purple_container.dart';
 // import 'package:votre_app/widgets/bottom_nav_bar.dart'; // Non utilisé ici, mais bonne pratique
 
@@ -15,6 +17,12 @@ class CreateCooperativeScreen extends StatefulWidget {
 class _CreateCooperativeScreenState extends State<CreateCooperativeScreen> {
   // Simule l'état de l'écran (non essentiel ici, mais bonne pratique)
   bool _isLoading = false; 
+
+  @override
+void initState() {
+  super.initState();
+  VoskService.init();
+}
 
   void _submitCooperative() {
     setState(() {
