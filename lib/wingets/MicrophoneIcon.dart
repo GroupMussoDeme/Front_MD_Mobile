@@ -123,7 +123,8 @@ class _SpeakerIconState extends State<SpeakerIcon> {
             child: NumericKeypad(
               onKeyPress: _handleKeyPress,
               onBackspace: _handleBackspace,
-              onCall: _handleCall,
+              onCall: (value){},
+              onNavigation: (value){},
             ),
           ),
           
