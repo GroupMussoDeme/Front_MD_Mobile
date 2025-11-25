@@ -25,6 +25,11 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
   void initState() {
     super.initState();
     _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
+      ..addListener(() {
+        // On force le rebuild pour mettre à jour la barre et les temps
+        if (!mounted) return;
+        setState(() {});
+      })
       ..initialize().then((_) {
         setState(() => _isReady = true);
         _controller.play();
@@ -48,8 +53,23 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
     });
   }
 
+  String _formatDuration(Duration d) {
+    String twoDigits(int n) => n.toString().padLeft(2, '0');
+    final hours = d.inHours;
+    final minutes = twoDigits(d.inMinutes.remainder(60));
+    final seconds = twoDigits(d.inSeconds.remainder(60));
+
+    if (hours > 0) {
+      return '$hours:$minutes:$seconds';
+    }
+    return '$minutes:$seconds';
+  }
+
   @override
   Widget build(BuildContext context) {
+    final duration = _controller.value.duration;
+    final position = _controller.value.position;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -62,7 +82,7 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
                   )
                 : const CircularProgressIndicator(color: Colors.white),
           ),
-          // Back
+          // Bouton retour
           Positioned(
             top: 40,
             left: 16,
@@ -90,23 +110,65 @@ class _FullScreenVideoPageState extends State<FullScreenVideoPage> {
               ),
             ),
           ),
-          // Bouton play/pause
+          // Contrôles du lecteur
           if (_isReady)
             Positioned(
-              bottom: 40,
+              bottom: 30,
               left: 0,
               right: 0,
-              child: Center(
-                child: IconButton(
-                  iconSize: 56,
-                  icon: Icon(
-                    _controller.value.isPlaying
-                        ? Icons.pause_circle_filled
-                        : Icons.play_circle_fill,
-                    color: kPrimaryPurple,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Barre de progression manipulable
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: VideoProgressIndicator(
+                      _controller,
+                      allowScrubbing: true,
+                      colors: VideoProgressColors(
+                        playedColor: kPrimaryPurple,
+                        bufferedColor: Colors.white38,
+                        backgroundColor: Colors.white24,
+                      ),
+                    ),
                   ),
-                  onPressed: _togglePlayPause,
-                ),
+                  const SizedBox(height: 8),
+                  // Temps + Play/Pause
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      // Temps courant
+                      Text(
+                        _formatDuration(position),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Bouton Play/Pause
+                      IconButton(
+                        iconSize: 56,
+                        icon: Icon(
+                          _controller.value.isPlaying
+                              ? Icons.pause_circle_filled
+                              : Icons.play_circle_fill,
+                          color: kPrimaryPurple,
+                        ),
+                        onPressed: _togglePlayPause,
+                      ),
+                      const SizedBox(width: 8),
+                      // Durée totale
+                      Text(
+                        _formatDuration(duration),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
         ],
