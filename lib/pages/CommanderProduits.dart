@@ -49,136 +49,14 @@ class _OrderScreenState extends State<OrderScreen> {
     });
   }
 
-  // Prix unitaire à partir du produit, sinon 1000 par défaut
-  int get _unitPrice => widget.produit?.prix?.round() ?? 1000;
-
+  int get _unitPrice => widget.produit.prix?.round() ?? 1000;
   int get _subtotal => _unitPrice * _quantity;
   int get _total => _subtotal + _deliveryFee;
-
-  // Widget pour la carte du produit et le compteur
-  Widget _buildProductCard() {
-    final produit = widget.produit;
-    final productName = produit?.nom ?? 'Beurre de karité';
-    final productPriceText = '${_unitPrice.toString()} FCFA';
-
-    return Container(
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15.0),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8.0),
-            child: Image.asset(
-              'assets/images/beurredecarrite.png', // image par défaut
-              width: 80,
-              height: 80,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const SizedBox(width: 15.0),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  productName,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  'Prix : $productPriceText',
-                  style: const TextStyle(color: Colors.grey, fontSize: 14),
-                ),
-                const SizedBox(height: 8.0),
-                Row(
-                  children: [
-                    _buildQuantityButton(
-                      Icons.remove,
-                      () => _updateQuantity(-1),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: Text(
-                        '$_quantity',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                    _buildQuantityButton(Icons.add, () => _updateQuantity(1)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.volume_up, color: _kPrimaryPurple, size: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildQuantityButton(IconData icon, VoidCallback onPressed) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(5.0),
-      ),
-      child: InkWell(
-        onTap: onPressed,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-          child: Icon(icon, color: Colors.black, size: 18),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPriceRow(String label, String value, {bool isTotal = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10.0),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTotal ? 22 : 18,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              color: isTotal ? Colors.black : Colors.black87,
-            ),
-          ),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: isTotal ? 22 : 18,
-              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
-              color: isTotal ? Colors.black : Colors.black87,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBackgroundColor,
-
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
         child: Container(
@@ -231,15 +109,11 @@ class _OrderScreenState extends State<OrderScreen> {
           children: [
             _buildProductCard(),
             const SizedBox(height: 30.0),
-
             _buildPriceRow('Sous-total :', '$_subtotal FCFA'),
             _buildPriceRow('Livraison :', '$_deliveryFee FCFA'),
-
             const Divider(height: 20, thickness: 2, color: Colors.black),
-
             _buildPriceRow('Total', '$_total FCFA', isTotal: true),
             const Spacer(),
-
             SizedBox(
               width: double.infinity,
               height: 55,
@@ -249,9 +123,9 @@ class _OrderScreenState extends State<OrderScreen> {
                     context,
                     MaterialPageRoute(
                       builder: (context) => PaymentMethodScreen(
-                        produit: widget.produit, // produit passé à OrderScreen
-                        quantity: _quantity, // quantité choisie
-                        deliveryFee: _deliveryFee, // frais de livraison
+                        produit: widget.produit,
+                        quantity: _quantity,
+                        deliveryFee: _deliveryFee,
                       ),
                     ),
                   );
@@ -275,6 +149,150 @@ class _OrderScreenState extends State<OrderScreen> {
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
+      ),
+    );
+  }
+
+  Widget _buildProductCard() {
+    final productName = widget.produit.nom;
+    final productPriceText = '${_unitPrice.toString()} FCFA';
+
+    return Container(
+      padding: const EdgeInsets.all(12.0),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(15.0),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8.0),
+            child: _buildProductImage(),
+          ),
+          const SizedBox(width: 15.0),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  productName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                Text(
+                  'Prix : $productPriceText',
+                  style: const TextStyle(color: Colors.grey, fontSize: 14),
+                ),
+                const SizedBox(height: 8.0),
+                Row(
+                  children: [
+                    _buildQuantityButton(
+                      Icons.remove,
+                      () => _updateQuantity(-1),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                      child: Text(
+                        '$_quantity',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    _buildQuantityButton(Icons.add, () => _updateQuantity(1)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const Icon(Icons.volume_up, color: _kPrimaryPurple, size: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductImage() {
+    final img = widget.produit.image;
+    if (img != null && img.isNotEmpty) {
+      final url = img.startsWith('http')
+          ? img
+          : 'http://10.0.2.2:8080/uploads/$img';
+
+      return Image.network(
+        url,
+        width: 80,
+        height: 80,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    }
+    return _placeholder();
+  }
+
+  Widget _placeholder() {
+    return Container(
+      width: 80,
+      height: 80,
+      color: Colors.grey.shade200,
+      child: const Icon(
+        Icons.image_outlined,
+        color: Colors.grey,
+        size: 40,
+      ),
+    );
+  }
+
+  Widget _buildQuantityButton(IconData icon, VoidCallback onPressed) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: Colors.grey.shade300),
+        borderRadius: BorderRadius.circular(5.0),
+      ),
+      child: InkWell(
+        onTap: onPressed,
+        child: Padding(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+          child: Icon(icon, color: Colors.black, size: 18),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPriceRow(String label, String value, {bool isTotal = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: isTotal ? 22 : 18,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              color: isTotal ? Colors.black : Colors.black87,
+            ),
+          ),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: isTotal ? 22 : 18,
+              fontWeight: isTotal ? FontWeight.bold : FontWeight.normal,
+              color: isTotal ? Colors.black : Colors.black87,
+            ),
+          ),
+        ],
       ),
     );
   }

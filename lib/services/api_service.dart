@@ -1,18 +1,39 @@
+// lib/services/api_service.dart
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+/// Config centralisée des URLs de ton backend
+class ApiConfig {
+  /// Base du backend (pour l'émulateur Android, localhost = 10.0.2.2)
+  static const String backendBase = 'http://10.0.2.2:8080';
+
+  /// Base des endpoints REST: /api/...
+  static const String apiBase = '$backendBase/api';
+
+  /// Base spécifique pour les endpoints Femme Rurale
+  /// => http://10.0.2.2:8080/api/femmes-rurales
+  static const String femmesRuralesBase = '$apiBase/femmes-rurales';
+}
+
+/// Service générique pour l'authentification et quelques appels simples
 class ApiService {
-  // L'URL de l'API Spring Boot
-  static const String baseUrl = 'http://localhost:8080/api';
-  
+  // On utilise la base "générale" /api
+  static const String baseUrl = ApiConfig.apiBase;
+
   // En-têtes pour les requêtes JSON
   static final Map<String, String> jsonHeaders = {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   };
 
+  // ========================== AUTH ==========================
+
   // Méthode pour la connexion
-  static Future<Map<String, dynamic>?> login(String identifiant, String motDePasse) async {
+  static Future<Map<String, dynamic>?> login(
+    String identifiant,
+    String motDePasse,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/login'),
@@ -91,7 +112,9 @@ class ApiService {
   }
 
   // Méthode pour rafraîchir le token
-  static Future<Map<String, dynamic>?> refreshToken(String refreshToken) async {
+  static Future<Map<String, dynamic>?> refreshToken(
+    String refreshToken,
+  ) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/auth/refresh'),
@@ -115,7 +138,9 @@ class ApiService {
     }
   }
 
-  // Méthode pour obtenir les produits
+  // ========================== EXEMPLES PRODUITS (ANCIEN) ==========================
+
+  // Si tu ne les utilises plus, tu peux supprimer ces deux méthodes.
   static Future<List<dynamic>?> getProducts(String token) async {
     try {
       final response = await http.get(
@@ -130,7 +155,8 @@ class ApiService {
         final Map<String, dynamic> data = jsonDecode(response.body);
         return data['data'] as List;
       } else {
-        print('Erreur lors de la récupération des produits: ${response.statusCode}');
+        print(
+            'Erreur lors de la récupération des produits: ${response.statusCode}');
         print('Message: ${response.body}');
         return null;
       }
@@ -140,7 +166,6 @@ class ApiService {
     }
   }
 
-  // Méthode pour publier un produit
   static Future<Map<String, dynamic>?> publishProduct({
     required String token,
     required int femmeId,
@@ -174,7 +199,8 @@ class ApiService {
         final Map<String, dynamic> data = jsonDecode(response.body);
         return data['data'] as Map<String, dynamic>;
       } else {
-        print('Erreur lors de la publication du produit: ${response.statusCode}');
+        print(
+            'Erreur lors de la publication du produit: ${response.statusCode}');
         print('Message: ${response.body}');
         return null;
       }

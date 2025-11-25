@@ -3,7 +3,6 @@ import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
 
-// Couleurs
 const Color primaryPurple = Color(0xFF491B6D);
 const Color backgroundColor = Color(0xFFF0F0F0);
 const Color cardColor = Colors.white;
@@ -36,37 +35,46 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      // À compléter si tu veux une navigation spécifique
     });
   }
 
-  String _formatDate(DateTime date) {
+  String _formatDate(DateTime? date) {
+    if (date == null) return '-';
     final d = date.day.toString().padLeft(2, '0');
     final m = date.month.toString().padLeft(2, '0');
     final y = date.year.toString();
     return '$d/$m/$y';
   }
 
-  String _statusLabel(String rawStatus) {
+  String _statusLabel(String? rawStatus) {
+    if (rawStatus == null) return '-';
     switch (rawStatus.toUpperCase()) {
       case 'EN_COURS':
         return 'En cours';
+      case 'EN_ATTENTE':
+        return 'En attente';
       case 'LIVREE':
+      case 'LIVRE':
         return 'Livrée';
       case 'ANNULEE':
+      case 'ANNULE':
         return 'Annulée';
       default:
         return rawStatus;
     }
   }
 
-  Color _statusColor(String rawStatus) {
+  Color _statusColor(String? rawStatus) {
+    if (rawStatus == null) return Colors.grey;
     switch (rawStatus.toUpperCase()) {
       case 'EN_COURS':
+      case 'EN_ATTENTE':
         return Colors.orange;
       case 'LIVREE':
+      case 'LIVRE':
         return Colors.green;
       case 'ANNULEE':
+      case 'ANNULE':
         return Colors.red;
       default:
         return Colors.grey;
@@ -80,7 +88,7 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
       appBar: null,
       body: Stack(
         children: [
-          // Header violet arrondi
+          // Header violet
           Positioned(
             top: 0,
             left: 0,
@@ -128,7 +136,7 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
             ),
           ),
 
-          // Contenu scrollable
+          // Contenu
           Positioned.fill(
             top: 100,
             child: Padding(
@@ -159,18 +167,33 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
                     itemCount: commandes.length,
                     itemBuilder: (context, index) {
                       final commande = commandes[index];
-                      final produit = commande.produit; // Peut être null
+                      final produit = commande.produit;
+                      final produitNom = produit?.nom ?? 'Produit inconnu';
+
                       final statusLabel =
-                          _statusLabel(commande.statutCommande ?? '');
+                          _statusLabel(commande.statutCommande);
                       final statusColor =
-                          _statusColor(commande.statutCommande ?? '');
+                          _statusColor(commande.statutCommande);
+                      final dateFormatted =
+                          _formatDate(commande.dateAchat);
+
+                      // On s’appuie sur vendeuseNom de Commande
+                      final vendeur =
+                          commande.vendeuseNom ?? 'Vendeuse inconnue';
+
+                      final montant =
+                          (commande.montantTotal?.toStringAsFixed(0) ?? '-') +
+                              ' FCFA';
 
                       return CommandeCard(
-                        commande: commande,
                         produit: produit,
+                        produitNom: produitNom,
+                        vendeur: vendeur,
+                        montant: montant,
                         statusLabel: statusLabel,
                         statusColor: statusColor,
-                        dateFormatted: _formatDate(commande.dateAchat),
+                        dateFormatted: dateFormatted,
+                        quantite: commande.quantite,
                       );
                     },
                   );
@@ -180,7 +203,6 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
           ),
         ],
       ),
-
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
@@ -189,31 +211,30 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
   }
 }
 
-/// Carte de commande basée sur Commande + Produit du backend
 class CommandeCard extends StatelessWidget {
-  final Commande commande;
-  final Produit? produit;              // nullable
+  final Produit? produit;
+  final String produitNom;
+  final String vendeur;
+  final String montant;
   final String statusLabel;
   final Color statusColor;
   final String dateFormatted;
+  final int quantite;
 
   const CommandeCard({
     super.key,
-    required this.commande,
     required this.produit,
+    required this.produitNom,
+    required this.vendeur,
+    required this.montant,
     required this.statusLabel,
     required this.statusColor,
     required this.dateFormatted,
+    required this.quantite,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Fallback si produit est null
-    final productName = produit?.nom ?? 'Produit inconnu';
-    final vendeur = commande.vendeuseNom ?? 'Vendeuse inconnue';
-    final montant =
-        (commande.montantTotal?.toStringAsFixed(0) ?? '-') + ' FCFA';
-
     return Card(
       margin: const EdgeInsets.only(bottom: 16.0),
       color: cardColor,
@@ -236,7 +257,7 @@ class CommandeCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        productName,
+                        produitNom,
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -270,7 +291,7 @@ class CommandeCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4.0),
                       Text(
-                        'Quantité : ${commande.quantite}',
+                        'Quantité : $quantite',
                         style: const TextStyle(
                           fontSize: 13,
                           color: textColor,
@@ -309,7 +330,7 @@ class CommandeCard extends StatelessWidget {
                   textColor: primaryPurple,
                   isOutline: true,
                   onPressed: () {
-                    // TODO : lecture audio si tu ajoutes un audio pour la commande
+                    // TODO : lecture audio si nécessaire
                   },
                 ),
                 _buildActionButton(
@@ -318,7 +339,7 @@ class CommandeCard extends StatelessWidget {
                   color: primaryPurple,
                   textColor: Colors.white,
                   onPressed: () {
-                    // TODO : rediriger vers détail de commande si besoin
+                    // TODO : détails de la commande
                   },
                 ),
                 _buildActionButton(
@@ -327,7 +348,7 @@ class CommandeCard extends StatelessWidget {
                   color: Colors.green,
                   textColor: Colors.white,
                   onPressed: () {
-                    // TODO : ouvrir écran de contact avec la vendeuse
+                    // TODO : contact de la vendeuse
                   },
                 ),
               ],
@@ -340,34 +361,24 @@ class CommandeCard extends StatelessWidget {
 
   Widget _buildProductImage() {
     final img = produit?.image;
-    Widget child;
-
     if (img != null && img.isNotEmpty) {
-      if (img.startsWith('http://') || img.startsWith('https://')) {
-        child = Image.network(
-          img,
-          width: 80,
-          height: 80,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
-        );
-      } else {
-        final fullUrl = 'http://10.0.2.2:8080/uploads/$img';
-        child = Image.network(
-          fullUrl,
-          width: 80,
-          height: 80,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
-        );
-      }
-    } else {
-      child = _placeholder();
-    }
+      final url =
+          img.startsWith('http') ? img : 'http://10.0.2.2:8080/uploads/$img';
 
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(10.0),
+        child: Image.network(
+          url,
+          width: 80,
+          height: 80,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder(),
+        ),
+      );
+    }
     return ClipRRect(
       borderRadius: BorderRadius.circular(10.0),
-      child: child,
+      child: _placeholder(),
     );
   }
 
@@ -413,8 +424,7 @@ class CommandeCard extends StatelessWidget {
                   ? BorderSide(color: textColor, width: 1.5)
                   : BorderSide.none,
             ),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             elevation: isOutline ? 0 : 2,
           ),
         ),

@@ -1,139 +1,110 @@
+// lib/services/femme_rurale_api.dart
+
 import 'dart:convert';
 import 'dart:io';
-import 'package:flutter/material.dart';
+
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
-import 'package:musso_deme_app/models/marche_models.dart';
-import 'package:musso_deme_app/services/session_service.dart';
 
-class ApiConfig {
-  static const String baseUrl = 'http://10.0.2.2:8080/api/femmes-rurales';
-}
+import 'package:musso_deme_app/services/api_service.dart';      // ApiConfig
+import 'package:musso_deme_app/services/session_service.dart';  // SessionService
+import 'package:musso_deme_app/models/marche_models.dart';      // Produit, Commande, Paiement
 
+/// Service centralisé pour les API Femme Rurale (produits, commandes, ventes, paiements)
 class FemmeRuraleApi {
+  FemmeRuraleApi();
 
-  final http.Client _client;
+  /// Base URL pour les endpoints Femme Rurale
+  /// => http://10.0.2.2:8080/api/femmes-rurales
+  String get _baseUrl => ApiConfig.femmesRuralesBase;
 
-  FemmeRuraleApi({http.Client? client}) : _client = client ?? http.Client();
+  // =======================================================================
+  // Helpers privés : session & headers
+  // =======================================================================
 
-  Future<String?> _accessToken() async => SessionService.getAccessToken();
-
+  /// Récupère l'ID utilisateur courant depuis SessionService
   Future<int> _currentUserId() async {
     final session = await SessionService.loadSession();
-    final userId = session?['userId'] as int?;
+    final userId = session?['userId'];
     if (userId == null) {
-      throw Exception("Utilisateur non connecté");
+      throw Exception('Utilisateur non connecté (userId manquant en session)');
     }
-    return userId;
+    return userId as int;
   }
 
-  Future<Map<String, String>> _buildHeaders() async {
-    final token = await SessionService.getAccessToken();
-    return {
-      'Content-Type': 'application/json',
-      if (token != null) 'Authorization': 'Bearer $token',
-    };
-  }
+  /// Construit les headers HTTP, avec Authorization si token présent
+  Future<Map<String, String>> _buildHeaders({bool withJson = true}) async {
+    final accessToken = await SessionService.getAccessToken();
 
-
-  // ================== UPLOAD IMAGE PRODUIT ==================
-
-  /// Upload d’une image de produit vers le backend.
-  /// Retourne le nom de fichier tel que sauvegardé côté serveur (ex: "34.jpg").
-  Future<String> uploadProduitImage(File imageFile) async {
-    final femmeId = await _currentUserId();
-
-    // À adapter si ton endpoint est différent
-    final uri = Uri.parse(
-      '${ApiConfig.baseUrl}/$femmeId/produits/upload-image',
-    );
-
-    final token = await _accessToken();
-    final request = http.MultipartRequest('POST', uri);
-
-    if (token != null) {
-      request.headers['Authorization'] = 'Bearer $token';
+    final headers = <String, String>{};
+    if (withJson) {
+      headers['Content-Type'] = 'application/json';
+    }
+    if (accessToken != null) {
+      headers['Authorization'] = 'Bearer $accessToken';
     }
 
-    request.files.add(
-      await http.MultipartFile.fromPath('file', imageFile.path),
-    );
-
-    final streamed = await request.send();
-    final response = await http.Response.fromStream(streamed);
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final decoded = jsonDecode(response.body);
-      // On suppose que le backend renvoie { ..., "fileName": "34.jpg", ... }
-      final fileName = decoded['fileName'] ?? decoded['data']?['fileName'];
-      if (fileName == null) {
-        throw Exception('Réponse upload image invalide : fileName manquant');
-      }
-      return fileName;
-    } else {
-      throw Exception(
-        'Erreur upload image (${response.statusCode}) : ${response.body}',
-      );
+    if (kDebugMode) {
+      debugPrint('HTTP headers: $headers');
     }
+    return headers;
   }
 
-  // ================== PUBLIER PRODUIT ==================
+  /// Parse une liste de Produit depuis une réponse JSON
+  List<Produit> _parseProduitsResponse(String body) {
+    final decoded = jsonDecode(body);
 
- Future<Produit> publierProduit({required Produit produit}) async {
-    final femmeId = await _currentUserId();
-    final url = Uri.parse('${ApiConfig.baseUrl}/$femmeId/produits');
-
-    final headers = await _buildHeaders();
-    final body = jsonEncode(produit.toJson());
-
-    debugPrint('POST $url');
-    debugPrint('Headers: $headers');
-    debugPrint('Body: $body');
-
-    final response = await _client.post(url, headers: headers, body: body);
-
-    debugPrint('Response status: ${response.statusCode}');
-    debugPrint('Response body: ${response.body}');
-
-    if (response.statusCode == 201) {
-      final decoded = jsonDecode(response.body);
-
-      // D’après ton log backend : {"status":201,"message":"...","produit":{...},"timestamp":...}
-      final produitJson = decoded['produit'] ?? decoded['data'] ?? decoded;
-
-      return Produit.fromJson(produitJson);
-    } else {
-      throw Exception(
-        'Erreur publication produit (${response.statusCode}) : ${response.body}',
-      );
+    dynamic listJson;
+    if (decoded is List) {
+      listJson = decoded;
+    } else if (decoded is Map) {
+      listJson = decoded['data'] ?? decoded['produits'];
     }
+
+    if (listJson is! List) return [];
+
+    return listJson
+        .map((e) => Produit.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
+  /// Parse une liste de Commande depuis une réponse JSON
+  List<Commande> _parseCommandesResponse(String body) {
+    final decoded = jsonDecode(body);
 
-  // =========================================================
-  //                     PRODUITS
-  // =========================================================
+    dynamic listJson;
+    if (decoded is List) {
+      listJson = decoded;
+    } else if (decoded is Map) {
+      listJson = decoded['data'] ?? decoded['commandes'];
+    }
 
-  /// Tous les produits (toutes femmes)
-  /// GET /api/femmes-rurales/produits
+    if (listJson is! List) return [];
+
+    return listJson
+        .map((e) => Commande.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  // =======================================================================
+  // PRODUITS
+  // =======================================================================
+
+  /// Tous les produits (marché rural)
   Future<List<Produit>> getTousLesProduits() async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/produits');
-    final headers = await _buildHeaders();
+    final url = Uri.parse('$_baseUrl/produits');
+    final headers = await _buildHeaders(withJson: false);
+
+    if (kDebugMode) debugPrint('GET $url');
 
     final response = await http.get(url, headers: headers);
 
-    print('GET $url => ${response.statusCode}');
-    print('Body: ${response.body}');
+    if (kDebugMode) {
+      debugPrint('Response (${response.statusCode}): ${response.body}');
+    }
 
     if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-
-      // On accepte soit "produits": [...], soit "data": [...]
-      final List<dynamic> list =
-          (decoded['produits'] ?? decoded['data'] ?? []) as List<dynamic>;
-
-      return list
-          .map((e) => Produit.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return _parseProduitsResponse(response.body);
     } else {
       throw Exception(
         'Erreur getTousLesProduits (${response.statusCode}) : ${response.body}',
@@ -141,27 +112,22 @@ class FemmeRuraleApi {
     }
   }
 
-  /// Mes produits
-  /// GET /api/femmes-rurales/{femmeId}/mes-produits
+  /// Mes produits (publiés par la femme connectée)
   Future<List<Produit>> getMesProduits() async {
     final femmeId = await _currentUserId();
-    final url = Uri.parse('${ApiConfig.baseUrl}/$femmeId/mes-produits');
-    final headers = await _buildHeaders();
+    final url = Uri.parse('$_baseUrl/$femmeId/produits');
+    final headers = await _buildHeaders(withJson: false);
+
+    if (kDebugMode) debugPrint('GET $url');
 
     final response = await http.get(url, headers: headers);
 
-    print('GET $url => ${response.statusCode}');
-    print('Body: ${response.body}');
+    if (kDebugMode) {
+      debugPrint('Response (${response.statusCode}): ${response.body}');
+    }
 
     if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-
-      final List<dynamic> list =
-          (decoded['produits'] ?? decoded['data'] ?? []) as List<dynamic>;
-
-      return list
-          .map((e) => Produit.fromJson(e as Map<String, dynamic>))
-          .toList();
+      return _parseProduitsResponse(response.body);
     } else {
       throw Exception(
         'Erreur getMesProduits (${response.statusCode}) : ${response.body}',
@@ -169,172 +135,313 @@ class FemmeRuraleApi {
     }
   }
 
-  /// Détail produit
-  /// GET /api/femmes-rurales/produits/{produitId}
-  Future<Produit> getProduitById(int produitId) async {
-    final url = Uri.parse('${ApiConfig.baseUrl}/produits/$produitId');
-    final headers = await _buildHeaders();
-
-    final response = await http.get(url, headers: headers);
-
-    print('GET $url => ${response.statusCode}');
-    print('Body: ${response.body}');
-
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      // on accepte soit "produit": {...}, soit "data": {...}
-      final data = decoded['produit'] ?? decoded['data'];
-      return Produit.fromJson(data as Map<String, dynamic>);
-    } else {
-      throw Exception(
-        'Erreur getProduitById (${response.statusCode}) : ${response.body}',
-      );
-    }
-  }
-
-  /// Modification d'un produit
-  /// PUT /api/femmes-rurales/{femmeId}/produits/{produitId}
-  Future<Produit> modifierProduit({
-    required int produitId,
-    required Produit produit,
+  /// Publier un nouveau produit
+  Future<Produit> publierProduit({
+    required String nom,
+    required String description,
+    required double prix,
+    required int quantite,
+    required String typeProduit,    // ALIMENTAIRE, ARTISANAT, ...
+    String? image,                  // nom de fichier (ex: "34.jpg")
+    String? audioGuideUrl,
   }) async {
     final femmeId = await _currentUserId();
-    final url = Uri.parse('${ApiConfig.baseUrl}/$femmeId/produits/$produitId');
-
+    final url = Uri.parse('$_baseUrl/$femmeId/produits');
     final headers = await _buildHeaders();
 
-    final Map<String, dynamic> map = produit.toJson();
-    map['femmeRuraleId'] = femmeId;
-    map['quantite'] = map['quantite'] ?? 1;
-    map['typeProduit'] = map['typeProduit'] ?? 'ALIMENTAIRE';
+    final bodyMap = <String, dynamic>{
+      'id': null,
+      'nom': nom,
+      'description': description,
+      'prix': prix,
+      'quantite': quantite,
+      'typeProduit': typeProduit,
+      'image': image,
+      'audioGuideUrl': audioGuideUrl,
+      'femmeRuraleId': femmeId,
+    };
 
-    final bodyJson = jsonEncode(map);
+    if (kDebugMode) {
+      debugPrint('POST $url');
+      debugPrint('Headers: $headers');
+      debugPrint('Body: ${jsonEncode(bodyMap)}');
+    }
 
-    print('PUT $url');
-    print('Body: $bodyJson');
+    final response =
+        await http.post(url, headers: headers, body: jsonEncode(bodyMap));
 
-    final response = await http.put(url, headers: headers, body: bodyJson);
+    if (kDebugMode) {
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+    }
 
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
-
-    if (response.statusCode == 200) {
+    if (response.statusCode == 201 || response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
-      final data = decoded['produit'] ?? decoded['data'];
 
-      return Produit.fromJson(data as Map<String, dynamic>);
+      final prodJson =
+          decoded['produit'] ?? decoded['data'] ?? decoded as Map<String, dynamic>;
+
+      return Produit.fromJson(prodJson as Map<String, dynamic>);
     } else {
       throw Exception(
-        'Erreur modification produit (${response.statusCode}) : ${response.body}',
+        'Erreur publierProduit (${response.statusCode}) : ${response.body}',
       );
     }
   }
 
-  /// Suppression d'un produit
-  /// DELETE /api/femmes-rurales/{femmeId}/produits/{produitId}
-  Future<void> supprimerProduit(int produitId) async {
+  /// Modifier un produit existant
+  Future<Produit> modifierProduit({
+    required int produitId,
+    required String nom,
+    required String description,
+    required double prix,
+    required int quantite,
+    required String typeProduit,
+    String? image,
+    String? audioGuideUrl,
+  }) async {
     final femmeId = await _currentUserId();
-    final url = Uri.parse('${ApiConfig.baseUrl}/$femmeId/produits/$produitId');
-
+    final url = Uri.parse('$_baseUrl/$femmeId/produits/$produitId');
     final headers = await _buildHeaders();
 
-    print('DELETE $url');
+    final bodyMap = <String, dynamic>{
+      'id': produitId,
+      'nom': nom,
+      'description': description,
+      'prix': prix,
+      'quantite': quantite,
+      'typeProduit': typeProduit,
+      'image': image,
+      'audioGuideUrl': audioGuideUrl,
+      'femmeRuraleId': femmeId,
+    };
+
+    if (kDebugMode) {
+      debugPrint('PUT $url');
+      debugPrint('Headers: $headers');
+      debugPrint('Body: ${jsonEncode(bodyMap)}');
+    }
+
+    final response =
+        await http.put(url, headers: headers, body: jsonEncode(bodyMap));
+
+    if (kDebugMode) {
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+    }
+
+    if (response.statusCode == 200) {
+      final decoded = jsonDecode(response.body);
+      final prodJson =
+          decoded['produit'] ?? decoded['data'] ?? decoded as Map<String, dynamic>;
+      return Produit.fromJson(prodJson as Map<String, dynamic>);
+    } else {
+      throw Exception(
+        'Erreur modifierProduit (${response.statusCode}) : ${response.body}',
+      );
+    }
+  }
+
+  /// Supprimer un produit
+  Future<void> supprimerProduit({required int produitId}) async {
+    final femmeId = await _currentUserId();
+    final url = Uri.parse('$_baseUrl/$femmeId/produits/$produitId');
+    final headers = await _buildHeaders(withJson: false);
+
+    if (kDebugMode) debugPrint('DELETE $url');
 
     final response = await http.delete(url, headers: headers);
 
-    print('Response status: ${response.statusCode}');
-    print('Response body: ${response.body}');
+    if (kDebugMode) {
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+    }
 
-    if (response.statusCode != 204 && response.statusCode != 200) {
+    if (response.statusCode != 200 && response.statusCode != 204) {
       throw Exception(
-        'Erreur suppression produit (${response.statusCode}) : ${response.body}',
+        'Erreur supprimerProduit (${response.statusCode}) : ${response.body}',
       );
     }
   }
-  // ---------- COMMANDES ----------
 
+  // =======================================================================
+  // COMMANDES & VENTES
+  // =======================================================================
+
+  /// Mes commandes (où je suis acheteur)
+  Future<List<Commande>> getMesCommandes() async {
+    final userId = await _currentUserId();
+    final url = Uri.parse('$_baseUrl/$userId/commandes');
+    final headers = await _buildHeaders(withJson: false);
+
+    if (kDebugMode) debugPrint('GET $url');
+
+    final response = await http.get(url, headers: headers);
+
+    if (kDebugMode) {
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+    }
+
+    if (response.statusCode == 200) {
+      return _parseCommandesResponse(response.body);
+    } else {
+      throw Exception(
+        'Erreur getMesCommandes (${response.statusCode}) : ${response.body}',
+      );
+    }
+  }
+
+  /// Mes ventes (commandes où je suis vendeuse)
+  Future<List<Commande>> getMesVentes() async {
+    final femmeId = await _currentUserId();
+    final url = Uri.parse('$_baseUrl/$femmeId/ventes');
+    final headers = await _buildHeaders(withJson: false);
+
+    if (kDebugMode) debugPrint('GET $url');
+
+    final response = await http.get(url, headers: headers);
+
+    if (kDebugMode) {
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+    }
+
+    if (response.statusCode == 200) {
+      return _parseCommandesResponse(response.body);
+    } else {
+      throw Exception(
+        'Erreur getMesVentes (${response.statusCode}) : ${response.body}',
+      );
+    }
+  }
+
+  /// Passer une commande pour un produit
   Future<Commande> passerCommande({
     required int produitId,
     required int quantite,
   }) async {
-    final femmeId = await _currentUserId();
-    final url = Uri.parse('${ApiConfig.baseUrl}/$femmeId/commandes').replace(
-      queryParameters: {
-        'produitId': produitId.toString(),
-        'quantite': quantite.toString(),
-      },
+    final acheteurId = await _currentUserId();
+
+    final url = Uri.parse(
+      '$_baseUrl/$acheteurId/produits/$produitId/commandes',
+    ).replace(
+      queryParameters: {'quantite': quantite.toString()},
     );
 
-    final headers = await _buildHeaders();
+    final headers = await _buildHeaders(withJson: false);
+
+    if (kDebugMode) {
+      debugPrint('POST $url');
+      debugPrint('Headers: $headers');
+    }
+
     final response = await http.post(url, headers: headers);
 
-    if (response.statusCode == 201) {
+    if (kDebugMode) {
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+    }
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
-      return Commande.fromJson(decoded['data']);
+      final cmdJson =
+          decoded['commande'] ?? decoded['data'] ?? decoded as Map<String, dynamic>;
+      return Commande.fromJson(cmdJson as Map<String, dynamic>);
     } else {
-      throw Exception('Erreur passage commande (${response.statusCode})');
+      throw Exception(
+        'Erreur passerCommande (${response.statusCode}) : ${response.body}',
+      );
     }
   }
 
-  Future<List<Commande>> getMesCommandes() async {
-    final femmeId = await _currentUserId();
-    final url = Uri.parse('${ApiConfig.baseUrl}/$femmeId/mes-commandes');
-    final headers = await _buildHeaders();
-    final response = await http.get(url, headers: headers);
-
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      final List<dynamic> data = decoded['data'] ?? [];
-      return data.map((e) => Commande.fromJson(e)).toList();
-    } else {
-      throw Exception('Erreur récupération commandes (${response.statusCode})');
-    }
-  }
-
-  // ---------- PAIEMENTS ----------
-
+  /// Payer une commande
   Future<Paiement> payerCommande({
     required int commandeId,
     required double montant,
-    required String modePaiement, // ORANGE_MONEY / MOOV_MONEY / ESPECE ...
+    required String modePaiement, // ORANGE_MONEY / MOOV_MONEY / ESPECE...
   }) async {
     final femmeId = await _currentUserId();
-    final url =
-        Uri.parse(
-          '${ApiConfig.baseUrl}/$femmeId/commandes/$commandeId/payer',
-        ).replace(
-          queryParameters: {
-            'montant': montant.toString(),
-            'modePaiement': modePaiement,
-          },
-        );
 
-    final headers = await _buildHeaders();
+    final url = Uri.parse(
+      '$_baseUrl/$femmeId/commandes/$commandeId/payer',
+    ).replace(
+      queryParameters: {
+        'montant': montant.toString(),
+        'modePaiement': modePaiement,
+      },
+    );
+
+    final headers = await _buildHeaders(withJson: false);
+
+    if (kDebugMode) {
+      debugPrint('POST $url');
+      debugPrint('Headers: $headers');
+    }
+
     final response = await http.post(url, headers: headers);
 
-    if (response.statusCode == 201) {
+    if (kDebugMode) {
+      debugPrint('Response status: ${response.statusCode}');
+      debugPrint('Response body: ${response.body}');
+    }
+
+    if (response.statusCode == 201 || response.statusCode == 200) {
       final decoded = jsonDecode(response.body);
-      return Paiement.fromJson(decoded['data']);
+      final payJson =
+          decoded['data'] ?? decoded['paiement'] ?? decoded as Map<String, dynamic>;
+      return Paiement.fromJson(payJson as Map<String, dynamic>);
     } else {
-      throw Exception('Erreur paiement commande (${response.statusCode})');
+      throw Exception(
+        'Erreur paiement commande (${response.statusCode}) : ${response.body}',
+      );
     }
   }
 
-  // ---------- VENTES (vendeuse) ----------
+  // =======================================================================
+  // Upload d'image produit (multipart)
+  // =======================================================================
 
-  /// Nécessite côté backend : GET /api/femmes-rurales/{femmeId}/mes-ventes
-  Future<List<Commande>> getMesVentes() async {
+  /// Upload d'image pour un produit.
+  /// Endpoint backend attendu :
+  /// POST /api/femmes-rurales/{femmeId}/produits/upload-image
+  /// → renvoie { fileName: "34.jpg" } ou { image: "34.jpg" }
+  Future<String> uploadProduitImage(File imageFile) async {
     final femmeId = await _currentUserId();
-    final url = Uri.parse('${ApiConfig.baseUrl}/$femmeId/mes-ventes');
-    final headers = await _buildHeaders();
-    final response = await http.get(url, headers: headers);
+    final url = Uri.parse('$_baseUrl/$femmeId/produits/upload-image');
 
-    if (response.statusCode == 200) {
+    final accessToken = await SessionService.getAccessToken();
+    final request = http.MultipartRequest('POST', url);
+
+    if (accessToken != null) {
+      request.headers['Authorization'] = 'Bearer $accessToken';
+    }
+
+    request.files.add(
+      await http.MultipartFile.fromPath('file', imageFile.path),
+    );
+
+    if (kDebugMode) debugPrint('UPLOAD $url');
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (kDebugMode) {
+      debugPrint('Upload status: ${response.statusCode}');
+      debugPrint('Upload body: ${response.body}');
+    }
+
+    if (response.statusCode == 200 || response.statusCode == 201) {
       final decoded = jsonDecode(response.body);
-      final List<dynamic> data = decoded['data'] ?? [];
-      return data.map((e) => Commande.fromJson(e)).toList();
+      final fileName = decoded['fileName'] ?? decoded['image'];
+      if (fileName is String) {
+        return fileName;
+      }
+      throw Exception('Réponse upload invalide: ${response.body}');
     } else {
-      throw Exception('Erreur récupération ventes (${response.statusCode})');
+      throw Exception(
+        'Erreur upload image (${response.statusCode}) : ${response.body}',
+      );
     }
   }
 }

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/widgets/RoundedPurpleContainer.dart';
 
-import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
+import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/pages/product_publish_screen.dart';
 
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
@@ -23,7 +23,7 @@ class ProductsScreen extends StatefulWidget {
 class _ProductsScreenState extends State<ProductsScreen> {
   int _selectedIndex = 0;
   final FemmeRuraleApi _api = FemmeRuraleApi();
-  late Future<List<Produit>> _futureMesProduits;
+  late Future<List<Produit>> _futureProduits;
 
   @override
   void initState() {
@@ -32,35 +32,24 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 
   void _loadMesProduits() {
-    _futureMesProduits = _api.getMesProduits();
+    _futureProduits = _api.getMesProduits();
   }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
     });
+    // Navigation éventuelle (accueil, formations, profil) si souhaité
   }
 
-  Future<void> _editProduct(Produit produit) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ProductPublishScreen(existingProduct: produit),
-      ),
-    );
+  Future<void> _supprimerProduit(Produit produit) async {
+    if (produit.id == null) return;
 
-    if (result != null) {
-      setState(_loadMesProduits);
-    }
-  }
-
-  Future<void> _deleteProduct(Produit produit) async {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         title: const Text('Supprimer le produit'),
-        content:
-            Text('Voulez-vous vraiment supprimer "${produit.nom}" ?'),
+        content: Text('Voulez-vous vraiment supprimer "${produit.nom}" ?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -68,10 +57,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Supprimer',
-              style: TextStyle(color: Colors.red),
-            ),
+            child: const Text('Supprimer'),
           ),
         ],
       ),
@@ -80,8 +66,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
     if (confirm != true) return;
 
     try {
-      await _api.supprimerProduit(produit.id!);
-
+      await _api.supprimerProduit(produitId: produit.id!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Produit supprimé avec succès')),
@@ -95,11 +80,22 @@ class _ProductsScreenState extends State<ProductsScreen> {
     }
   }
 
+  Future<void> _modifierProduit(Produit produit) async {
+    final result = await Navigator.push<Produit?>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ProductPublishScreen(existingProduct: produit),
+      ),
+    );
+    if (result != null && mounted) {
+      setState(_loadMesProduits);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBackgroundColor,
-
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
         child: AppBar(
@@ -113,11 +109,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 IconButton(
-                  icon:
-                      const Icon(Icons.arrow_back_ios, color: Colors.white),
-                  onPressed: () {
-                    Navigator.pop(context);
-                  },
+                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
                 const Text(
                   'Mes produits',
@@ -137,29 +130,26 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ),
         ),
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: FutureBuilder<List<Produit>>(
-          future: _futureMesProduits,
+          future: _futureProduits,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-
             if (snapshot.hasError) {
               return Center(
                 child: Text(
-                  'Erreur chargement de mes produits : ${snapshot.error}',
+                  'Erreur chargement produits : ${snapshot.error}',
                   style: const TextStyle(color: Colors.red),
                 ),
               );
             }
-
             final produits = snapshot.data ?? [];
             if (produits.isEmpty) {
               return const Center(
-                child: Text('Vous n’avez encore publié aucun produit.'),
+                child: Text('Vous n’avez pas encore publié de produits.'),
               );
             }
 
@@ -169,15 +159,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 final product = produits[index];
                 return ProductCard(
                   product: product,
-                  onEdit: () => _editProduct(product),
-                  onDelete: () => _deleteProduct(product),
+                  onEdit: () => _modifierProduit(product),
+                  onDelete: () => _supprimerProduit(product),
                 );
               },
             );
           },
         ),
       ),
-
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
@@ -214,15 +203,46 @@ class ProductCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildProductImage(),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10.0),
+                  child: _buildProductImage(),
+                ),
                 const SizedBox(width: 16.0),
                 Expanded(
-                  child: _buildProductInfo(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        product.nom,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: _kTextColor,
+                        ),
+                      ),
+                      const SizedBox(height: 8.0),
+                      Text(
+                        'Prix : ${product.prix?.toStringAsFixed(0) ?? '-'} FCFA',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          color: _kTextColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 4.0),
+                      Text(
+                        'Stock : ${product.quantite ?? 0}',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
-            const Divider(
-                height: 24.0, thickness: 1.0, color: Colors.grey),
+            const Divider(height: 24.0, thickness: 1.0, color: Colors.grey),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -233,7 +253,7 @@ class ProductCard extends StatelessWidget {
                   textColor: _kPrimaryPurple,
                   isOutline: true,
                   onPressed: () {
-                    // Lecture audio si tu implémentes audioGuideUrl
+                    // TODO : lecture audio du guide si disponible
                   },
                 ),
                 _buildActionButton(
@@ -260,35 +280,20 @@ class ProductCard extends StatelessWidget {
 
   Widget _buildProductImage() {
     final img = product.image;
-    Widget child;
-
     if (img != null && img.isNotEmpty) {
-      if (img.startsWith('http://') || img.startsWith('https://')) {
-        child = Image.network(
-          img,
-          width: 90,
-          height: 90,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
-        );
-      } else {
-        final fullUrl = 'http://10.0.2.2:8080/uploads/$img';
-        child = Image.network(
-          fullUrl,
-          width: 90,
-          height: 90,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
-        );
-      }
-    } else {
-      child = _placeholder();
-    }
+      final url = img.startsWith('http')
+          ? img
+          : 'http://10.0.2.2:8080/uploads/$img';
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(10.0),
-      child: child,
-    );
+      return Image.network(
+        url,
+        width: 90,
+        height: 90,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    }
+    return _placeholder();
   }
 
   Widget _placeholder() {
@@ -299,45 +304,8 @@ class ProductCard extends StatelessWidget {
       child: const Icon(
         Icons.image_outlined,
         color: Colors.grey,
-        size: 32,
+        size: 40,
       ),
-    );
-  }
-
-  Widget _buildProductInfo() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          product.nom,
-          style: const TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: _kTextColor,
-          ),
-        ),
-        const SizedBox(height: 8.0),
-        Text(
-          'Prix : ${product.prix?.toStringAsFixed(0) ?? '-'} FCFA',
-          style: const TextStyle(
-            fontSize: 16,
-            color: _kTextColor,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 8.0),
-        if (product.description != null &&
-            product.description!.isNotEmpty)
-          Text(
-            product.description!,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.grey,
-            ),
-          ),
-      ],
     );
   }
 

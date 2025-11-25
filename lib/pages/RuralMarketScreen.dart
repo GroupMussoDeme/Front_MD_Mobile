@@ -7,21 +7,17 @@ import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/ProductDetailsScreen.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:musso_deme_app/pages/ProfileScreen.dart';
 
-// === IMPORTS API / MODELS ===
 import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
 
-// Couleurs principales
 const Color primaryPurple = Color(0xFF5A1489);
 const Color cardBackground = Colors.white;
 const Color textColor = Colors.black;
 
-// Couleurs partagées
 const Color primaryViolet = Color(0xFF491B6D);
 const Color neutralWhite = Colors.white;
-const Color lightGrey = Color(0xFFF0F0F0);
-const Color darkGrey = Color(0xFF707070);
 
 class RuralMarketScreen extends StatefulWidget {
   const RuralMarketScreen({super.key});
@@ -57,8 +53,12 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
           context,
           MaterialPageRoute(builder: (context) => const FormationVideosPage()),
         );
+      } else if (index == 2) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
       }
-      // index 2 = profil (géré ailleurs)
     });
   }
 
@@ -68,7 +68,7 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
       appBar: null,
       body: Stack(
         children: [
-          // Header violet
+          // Header violet arrondi
           Positioned(
             top: 0,
             left: 0,
@@ -116,7 +116,7 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
             ),
           ),
 
-          // Contenu scrollable
+          // Contenu
           Positioned.fill(
             top: 100,
             child: SingleChildScrollView(
@@ -141,7 +141,6 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
                   ),
                   const SizedBox(height: 15),
 
-                  // Produits dynamiques depuis l’API
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 15.0),
                     child: FutureBuilder<List<Produit>>(
@@ -196,6 +195,7 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
                       },
                     ),
                   ),
+
                   const SizedBox(height: 30),
                 ],
               ),
@@ -203,15 +203,12 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
           ),
         ],
       ),
-
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
       ),
     );
   }
-
-  // =================== SECTIONS UI ===================
 
   Widget _buildMarketHeader() {
     return Container(
@@ -271,7 +268,7 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
                   builder: (context) => const ProductPublishScreen(),
                 ),
               );
-              setState(_loadProduits); // rechargement après publication
+              setState(_loadProduits);
             },
           ),
           _ActionButton(
@@ -303,8 +300,6 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
     );
   }
 }
-
-// =================== WIDGETS RÉUTILISABLES ===================
 
 class _ActionButton extends StatelessWidget {
   final IconData icon;
@@ -346,7 +341,7 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-/// Carte produit pour le marché : utilise l’image uploadée par l’utilisatrice
+/// Carte produit pour le marché
 class MarketProductCard extends StatelessWidget {
   final Produit produit;
   final VoidCallback onTap;
@@ -360,7 +355,6 @@ class MarketProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double cardWidth = (MediaQuery.of(context).size.width - 45) / 2;
-
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -442,48 +436,30 @@ class MarketProductCard extends StatelessWidget {
     );
   }
 
-  /// Image produit : utilise produit.image, sinon placeholder neutre
   Widget _buildProductImage(double width) {
     final img = produit.image;
-    Widget child;
-
     if (img != null && img.isNotEmpty) {
-      if (img.startsWith('http://') || img.startsWith('https://')) {
-        child = Image.network(
-          img,
-          width: width,
-          height: 120,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(width),
-        );
-      } else {
-        // Chemin relatif → adapter la base URL à ton backend si besoin
-        final fullUrl = 'http://10.0.2.2:8080/uploads/$img';
-        child = Image.network(
-          fullUrl,
-          width: width,
-          height: 120,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(width),
-        );
-      }
-    } else {
-      child = _placeholder(width);
-    }
+      final url = img.startsWith('http')
+          ? img
+          : 'http://10.0.2.2:8080/uploads/$img';
 
-    return child;
+      return Image.network(
+        url,
+        height: 120,
+        width: width,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(width),
+      );
+    }
+    return _placeholder(width);
   }
 
   Widget _placeholder(double width) {
     return Container(
-      width: width,
       height: 120,
+      width: width,
       color: Colors.grey.shade200,
-      child: const Icon(
-        Icons.image_outlined,
-        color: Colors.grey,
-        size: 40,
-      ),
+      child: const Icon(Icons.image_outlined, size: 40, color: Colors.grey),
     );
   }
 }

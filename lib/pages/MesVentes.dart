@@ -2,11 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/widgets/RoundedPurpleContainer.dart';
 
-// API / modèles
 import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
 
-// Couleurs
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Color(0xFFF0F0F0);
 const Color _kCardColor = Colors.white;
@@ -39,19 +37,17 @@ class _MySalesScreenState extends State<MySalesScreen> {
     setState(() {
       _selectedIndex = index;
     });
-    // Éventuellement navigation si tu veux
+    // Navigation éventuelle si nécessaire
   }
 
   String _buildQuantiteLabel(Commande commande) {
-    // Tu pourras spécialiser par type produit (Kg, M, etc.) si nécessaire
-    return '${commande.quantite} vendu(s)';
+    return '${commande.quantite} vendu';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBackgroundColor,
-
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
         child: AppBar(
@@ -87,7 +83,6 @@ class _MySalesScreenState extends State<MySalesScreen> {
           ),
         ),
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: FutureBuilder<List<Commande>>(
@@ -113,7 +108,8 @@ class _MySalesScreenState extends State<MySalesScreen> {
             }
 
             return GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate:
+                  const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: 16.0,
                 mainAxisSpacing: 16.0,
@@ -122,7 +118,7 @@ class _MySalesScreenState extends State<MySalesScreen> {
               itemCount: ventes.length,
               itemBuilder: (context, index) {
                 final commande = ventes[index];
-                final produit = commande.produit; // peut être null
+                final produit = commande.produit;
                 final quantiteLabel = _buildQuantiteLabel(commande);
 
                 return SalesItemCard(
@@ -134,7 +130,6 @@ class _MySalesScreenState extends State<MySalesScreen> {
           },
         ),
       ),
-
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
@@ -144,7 +139,7 @@ class _MySalesScreenState extends State<MySalesScreen> {
 }
 
 class SalesItemCard extends StatelessWidget {
-  final Produit? produit;        // nullable
+  final Produit? produit;
   final String quantiteLabel;
 
   const SalesItemCard({
@@ -155,7 +150,7 @@ class SalesItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final productName = produit?.nom ?? 'Produit inconnu';
+    final nom = produit?.nom ?? 'Produit inconnu';
 
     return Card(
       color: _kCardColor,
@@ -176,7 +171,7 @@ class SalesItemCard extends StatelessWidget {
             ),
             const SizedBox(height: 8.0),
             Text(
-              productName,
+              nom,
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -212,28 +207,18 @@ class SalesItemCard extends StatelessWidget {
 
   Widget _buildProductImage() {
     final img = produit?.image;
-    Widget child;
-
     if (img != null && img.isNotEmpty) {
-      if (img.startsWith('http://') || img.startsWith('https://')) {
-        child = Image.network(
-          img,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
-        );
-      } else {
-        final fullUrl = 'http://10.0.2.2:8080/uploads/$img';
-        child = Image.network(
-          fullUrl,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _placeholder(),
-        );
-      }
-    } else {
-      child = _placeholder();
-    }
+      final url = img.startsWith('http')
+          ? img
+          : 'http://10.0.2.2:8080/uploads/$img';
 
-    return child;
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _placeholder(),
+      );
+    }
+    return _placeholder();
   }
 
   Widget _placeholder() {

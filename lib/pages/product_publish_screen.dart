@@ -37,8 +37,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
       final p = widget.existingProduct!;
       _productNameController.text = p.nom;
       _descriptionController.text = p.description ?? '';
-      _priceController.text =
-          p.prix != null ? p.prix!.toStringAsFixed(0) : '';
+      _priceController.text = p.prix != null ? p.prix!.toStringAsFixed(0) : '';
       _hasProductImage = p.image != null && p.image!.isNotEmpty;
     } else {
       // MODE CRÉATION : champs vides, pas d’image
@@ -73,45 +72,89 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
   Future<void> _submitProduct() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // L’image est obligatoire côté backend (NotBlank sur "image")
+    final existingImageName = widget.existingProduct?.image;
+    final hasExistingImage =
+        existingImageName != null && existingImageName.isNotEmpty;
+
+    if (_imageFile == null && !hasExistingImage) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez ajouter une photo du produit.'),
+        ),
+      );
+      return;
+    }
+
     setState(() => _isSubmitting = true);
 
     try {
-      final double? prix =
-          double.tryParse(_priceController.text.replaceAll(',', '.'));
-
-      final produit = Produit(
-        id: widget.existingProduct?.id,
-        nom: _productNameController.text,
-        description: _descriptionController.text,
-        prix: prix,
-        quantite: widget.existingProduct?.quantite ?? 1,
-        typeProduit:
-            widget.existingProduct?.typeProduit ?? 'ALIMENTAIRE',
-        image: widget.existingProduct?.image,
-        // NOTE : toujours pas d’upload fichier → l’URL/nom d’image est géré côté backend
-        femmeRuraleId: widget.existingProduct?.femmeRuraleId,
+      final double? prix = double.tryParse(
+        _priceController.text.replaceAll(',', '.'),
       );
 
-      late Produit saved;
+      if (prix == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Prix invalide.')),
+        );
+        setState(() => _isSubmitting = false);
+        return;
+      }
 
-      if (widget.existingProduct == null) {
-        // création
-        saved = await _api.publierProduit(produit: produit);
+      // 1) Gérer le nom de fichier de l’image
+      String? imageName = existingImageName;
+
+      // Si une nouvelle image est choisie, on l’upload
+      if (_imageFile != null) {
+        imageName = await _api.uploadProduitImage(_imageFile!);
+      }
+
+      // 2) Appel API : création ou édition
+      final String nom = _productNameController.text.trim();
+      final String description = _descriptionController.text.trim();
+
+      late Produit saved;
+      final bool isEdit = widget.existingProduct != null;
+
+      if (!isEdit) {
+        // CREATION
+        saved = await _api.publierProduit(
+          nom: nom,
+          description: description,
+          prix: prix,
+          quantite: 1, // par défaut, 1 (tu pourras ajouter un champ quantité plus tard)
+          typeProduit: 'ALIMENTAIRE', // valeur par défaut
+          image: imageName,
+          audioGuideUrl: null,
+        );
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Produit publié avec succès')),
         );
       } else {
-        // édition
+        // EDITION
+        final existing = widget.existingProduct!;
+
         saved = await _api.modifierProduit(
-          produitId: widget.existingProduct!.id!,
-          produit: produit,
+          produitId: existing.id!,
+          nom: nom,
+          description: description,
+          prix: prix,
+          quantite: existing.quantite ?? 1,
+          typeProduit: existing.typeProduit ?? 'ALIMENTAIRE',
+          image: imageName,
+          audioGuideUrl: null,
         );
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Produit modifié avec succès')),
         );
       }
 
-      Navigator.pop(context, saved);
+      // On retourne le produit sauvegardé à l’écran précédent
+      if (mounted) {
+        Navigator.pop(context, saved);
+      }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Erreur : $e')),
@@ -151,20 +194,16 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
               ),
               child: SafeArea(
                 child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 15.0),
+                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back,
-                            color: neutralWhite),
+                        icon: const Icon(Icons.arrow_back, color: neutralWhite),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
                       Expanded(
                         child: Text(
-                          isEdit
-                              ? 'Modifier produit'
-                              : 'Publier produit',
+                          isEdit ? 'Modifier produit' : 'Publier produit',
                           textAlign: TextAlign.center,
                           style: const TextStyle(
                             color: neutralWhite,
@@ -174,8 +213,10 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.notifications_none,
-                            color: neutralWhite),
+                        icon: const Icon(
+                          Icons.notifications_none,
+                          color: neutralWhite,
+                        ),
                         onPressed: () {},
                       ),
                     ],
@@ -193,8 +234,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                 child: Form(
                   key: _formKey,
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: <Widget>[
                       _buildImageSection(primaryColor),
                       const SizedBox(height: 30),
@@ -204,8 +244,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                         controller: _productNameController,
                         labelText: 'Nom du produit',
                         icon: Icons.volume_up,
-                        validator: (value) => value == null ||
-                                value.isEmpty
+                        validator: (value) => value == null || value.isEmpty
                             ? 'Veuillez entrer le nom du produit'
                             : null,
                       ),
@@ -217,8 +256,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                         labelText: 'Description',
                         maxLines: 3,
                         icon: Icons.volume_up,
-                        validator: (value) => value == null ||
-                                value.isEmpty
+                        validator: (value) => value == null || value.isEmpty
                             ? 'Veuillez entrer une description'
                             : null,
                       ),
@@ -230,8 +268,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                         labelText: 'Prix',
                         keyboardType: TextInputType.number,
                         icon: Icons.volume_up,
-                        validator: (value) => value == null ||
-                                value.isEmpty
+                        validator: (value) => value == null || value.isEmpty
                             ? 'Veuillez entrer le prix'
                             : null,
                       ),
@@ -272,13 +309,16 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
           height: 180,
         ),
       );
-    } else if (existingImageUrl != null &&
-        existingImageUrl.isNotEmpty) {
+    } else if (existingImageUrl != null && existingImageUrl.isNotEmpty) {
       // image déjà connue du produit (en édition)
+      final url = existingImageUrl.startsWith('http')
+          ? existingImageUrl
+          : 'http://10.0.2.2:8080/uploads/$existingImageUrl';
+
       content = ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Image.network(
-          existingImageUrl,
+          url,
           fit: BoxFit.cover,
           width: double.infinity,
           height: 180,
@@ -292,7 +332,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
         ),
       );
     } else {
-      // état initial : bloc d’upload
+      // état initial : bloc d’upload (pas d’image par défaut)
       content = Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -317,15 +357,13 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment:
-              MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
-              'Ajouter la photo du produits',
+              'Ajouter la photo du produit',
               style: TextStyle(fontSize: 16),
             ),
-            Icon(Icons.volume_up,
-                color: primaryColor, size: 20),
+            Icon(Icons.volume_up, color: primaryColor, size: 20),
           ],
         ),
         const SizedBox(height: 8),
@@ -337,8 +375,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
             decoration: BoxDecoration(
               color: primaryColor.withOpacity(0.05),
               borderRadius: BorderRadius.circular(8),
-              border:
-                  Border.all(color: primaryColor, width: 1.5),
+              border: Border.all(color: primaryColor, width: 1.5),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8),
@@ -370,8 +407,8 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
             validator: validator,
             decoration: InputDecoration(
               labelText: labelText,
-              contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 10, vertical: 15),
+              contentPadding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -416,12 +453,13 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
   }
 
   Widget _buildVoiceRecordButton(Color primaryColor) {
+    // Placeholder pour l’enregistrement vocal
     return ElevatedButton(
       onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content:
-                  Text('Enregistrement vocal démarré...')),
+            content: Text('Enregistrement vocal démarré...'),
+          ),
         );
       },
       style: ElevatedButton.styleFrom(
