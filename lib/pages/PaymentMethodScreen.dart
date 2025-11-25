@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
+import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/pages/OrderValidationScreen.dart';
 
+// Couleurs
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Colors.white;
 
@@ -13,7 +15,16 @@ enum PaymentOption {
 }
 
 class PaymentMethodScreen extends StatefulWidget {
-  const PaymentMethodScreen({super.key});
+  final Produit produit;
+  final int quantity;
+  final int deliveryFee;
+
+  const PaymentMethodScreen({
+    super.key,
+    required this.produit,
+    required this.quantity,
+    required this.deliveryFee,
+  });
 
   @override
   State<PaymentMethodScreen> createState() => _PaymentMethodScreenState();
@@ -21,16 +32,18 @@ class PaymentMethodScreen extends StatefulWidget {
 
 class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   PaymentOption? _selectedOption = PaymentOption.orangeMoney;
-  final int _subtotal = 1000;
-  final int _deliveryFee = 1000;
-  final int _total = 2000;
-  int _selectedIndex = 0; // Index par défaut (Accueil)
+  int _selectedIndex = 0;
+
+  // Calculs basés sur les paramètres reçus
+  int get _price => widget.produit.prix?.toInt() ?? 0;
+  int get _subtotal => _price * widget.quantity;
+  int get _deliveryFee => widget.deliveryFee;
+  int get _total => _subtotal + _deliveryFee;
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
   }
 
-  // Helper pour construire les lignes de prix
   Widget _buildPriceRow(String label, String value, {bool isTotal = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
@@ -58,13 +71,11 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     );
   }
 
-  // Helper pour le conteneur de chaque méthode de paiement
   Widget _buildPaymentTile({
     required Widget leading,
     required String title,
     required PaymentOption option,
   }) {
-    // Style de la bordure si l'option est sélectionnée
     final isSelected = _selectedOption == option;
     final borderColor = isSelected ? _kPrimaryPurple : Colors.black12;
 
@@ -89,10 +100,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             Expanded(
               child: Text(
                 title,
-                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
               ),
             ),
-            // Bouton radio personnalisé
             Container(
               width: 20,
               height: 20,
@@ -119,7 +130,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     return Scaffold(
       backgroundColor: _kBackgroundColor,
 
-      // En-tête (Widget Réutilisable)
+      // En-tête
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
         child: Container(
@@ -152,7 +163,8 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.notifications_none, color: Colors.white),
+                    icon:
+                        const Icon(Icons.notifications_none, color: Colors.white),
                     onPressed: () {},
                   ),
                 ],
@@ -167,15 +179,18 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // --- Titre de la section de paiement ---
+            // Titre section paiement
             Row(
               children: [
                 Text(
                   'Methode de paiement',
-                  style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+                  style: Theme.of(context)
+                      .textTheme
+                      .headlineMedium!
+                      .copyWith(
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                 ),
                 const SizedBox(width: 8),
                 const Icon(Icons.volume_up, color: _kPrimaryPurple, size: 28),
@@ -183,10 +198,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             ),
             const SizedBox(height: 20.0),
 
-            // --- Options de paiement ---
+            // Options de paiement
             _buildPaymentTile(
               leading: Image.asset(
-                'assets/images/Orange_logo.svg 2.png', // Placeholder Orange Money
+                'assets/images/Orange_logo.svg 2.png',
                 width: 40,
                 height: 40,
               ),
@@ -195,7 +210,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             ),
             _buildPaymentTile(
               leading: Image.asset(
-                'assets/images/payment-methods-moov-money.f34903fd 1.png', // Placeholder Moov Money
+                'assets/images/payment-methods-moov-money.f34903fd 1.png',
                 width: 40,
                 height: 40,
               ),
@@ -203,40 +218,42 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               option: PaymentOption.moovMoney,
             ),
             _buildPaymentTile(
-              leading: const SizedBox(width: 40, height: 40), // Espace pour l'alignement
+              leading: const SizedBox(width: 40, height: 40),
               title: 'Paiement après livraison',
               option: PaymentOption.cashOnDelivery,
             ),
-            
+
             const SizedBox(height: 30.0),
 
-            // --- Section Localisation ---
+            // Localisation
             Row(
-              children: [
-                const Text(
+              children: const [
+                Text(
                   'Localisation',
                   style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
-                const SizedBox(width: 8),
-                const Icon(Icons.volume_up, color: _kPrimaryPurple, size: 24),
+                SizedBox(width: 8),
+                Icon(Icons.volume_up, color: _kPrimaryPurple, size: 24),
               ],
             ),
             const SizedBox(height: 10.0),
             TextField(
               decoration: InputDecoration(
                 hintText: 'Votre adresse de livraison',
-                prefixIcon: const Icon(Icons.location_on_outlined, color: Colors.black),
+                prefixIcon: const Icon(Icons.location_on_outlined,
+                    color: Colors.black),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
                   borderSide: const BorderSide(color: Colors.black54),
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 15.0, horizontal: 10.0),
+                contentPadding: const EdgeInsets.symmetric(
+                    vertical: 15.0, horizontal: 10.0),
               ),
             ),
-            
+
             const SizedBox(height: 30.0),
 
-            // --- Confirmation de commande ---
+            // Confirmation de commande
             Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
@@ -259,15 +276,16 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 ],
               ),
             ),
-            
+
             const SizedBox(height: 30.0),
 
-            // --- Bouton Confirmer ---
+            // Bouton Confirmer
             SizedBox(
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
                 onPressed: () {
+                  // Ici tu pourras appeler ton backend pour créer la commande + paiement
                   Navigator.push(
                     context,
                     MaterialPageRoute(

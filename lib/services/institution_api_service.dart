@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'institution.dart';
+import '../models/institution.dart';
 
 class InstitutionApiService {
   // Pour Android Emulator : 10.0.2.2:8080

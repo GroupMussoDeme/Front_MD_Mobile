@@ -8,7 +8,7 @@ import 'package:musso_deme_app/pages/ProfileScreen.dart';
 import 'DetailsSurMicroCredit.dart';
 import 'appel_screen.dart';
 
-import 'package:musso_deme_app/services/institution.dart';
+import 'package:musso_deme_app/models/institution.dart';
 import 'package:musso_deme_app/services/institution_api_service.dart';
 
 // --- Couleurs charte ---

@@ -1,36 +1,52 @@
-import 'package:flutter/material.dart';
 import 'dart:io' show File;
+import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
+import 'package:musso_deme_app/models/marche_models.dart';
+import 'package:musso_deme_app/services/femme_rurale_api.dart';
+
 class ProductPublishScreen extends StatefulWidget {
-  const ProductPublishScreen({super.key});
+  final Produit? existingProduct;
+
+  const ProductPublishScreen({super.key, this.existingProduct});
 
   @override
   _ProductPublishScreenState createState() => _ProductPublishScreenState();
 }
 
 class _ProductPublishScreenState extends State<ProductPublishScreen> {
-  // Clé pour gérer l'état du formulaire et la validation
-  final _formKey = GlobalKey<FormState>(); 
-  // État pour simuler la présence ou l'absence d'une image
-  bool _hasProductImage = false;
-  // Variable pour stocker le fichier image sélectionné
-  File? _imageFile; 
+  final _formKey = GlobalKey<FormState>();
 
-  // Contrôleurs de texte
+  bool _hasProductImage = false;
+  File? _imageFile;
+
+  // contrôleurs
   final _productNameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
 
+  final FemmeRuraleApi _api = FemmeRuraleApi();
+  bool _isSubmitting = false;
+
   @override
   void initState() {
     super.initState();
-    // Simulation des données pré-remplies du 2ème design
-    _productNameController.text = 'Beurre de Karité';
-    _descriptionController.text = 
-        'Le beurre de karité est une matière grasse naturelle extraite des noix de l\'arbre de karité, originaire d\'Afrique de l\'Ouest.';
-    _priceController.text = '1000 FCFA';
-    _hasProductImage = true; // L'image est présente
+
+    if (widget.existingProduct != null) {
+      // MODE ÉDITION : pré-remplir avec les vraies valeurs
+      final p = widget.existingProduct!;
+      _productNameController.text = p.nom;
+      _descriptionController.text = p.description ?? '';
+      _priceController.text =
+          p.prix != null ? p.prix!.toStringAsFixed(0) : '';
+      _hasProductImage = p.image != null && p.image!.isNotEmpty;
+    } else {
+      // MODE CRÉATION : champs vides, pas d’image
+      _productNameController.text = '';
+      _descriptionController.text = '';
+      _priceController.text = '';
+      _hasProductImage = false;
+    }
   }
 
   @override
@@ -41,11 +57,11 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
     super.dispose();
   }
 
-  // Fonction pour sélectionner une image
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
-    final XFile? pickedImage = await picker.pickImage(source: ImageSource.gallery);
-    
+    final XFile? pickedImage =
+        await picker.pickImage(source: ImageSource.gallery);
+
     if (pickedImage != null) {
       setState(() {
         _imageFile = File(pickedImage.path);
@@ -54,21 +70,65 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
     }
   }
 
-  // Fonction de soumission (à implémenter)
-  void _submitProduct() {
-    if (_formKey.currentState!.validate()) {
-      // Les champs sont valides, procéder à la publication
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Produit publié avec succès !')),
+  Future<void> _submitProduct() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final double? prix =
+          double.tryParse(_priceController.text.replaceAll(',', '.'));
+
+      final produit = Produit(
+        id: widget.existingProduct?.id,
+        nom: _productNameController.text,
+        description: _descriptionController.text,
+        prix: prix,
+        quantite: widget.existingProduct?.quantite ?? 1,
+        typeProduit:
+            widget.existingProduct?.typeProduit ?? 'ALIMENTAIRE',
+        image: widget.existingProduct?.image,
+        // NOTE : toujours pas d’upload fichier → l’URL/nom d’image est géré côté backend
+        femmeRuraleId: widget.existingProduct?.femmeRuraleId,
       );
+
+      late Produit saved;
+
+      if (widget.existingProduct == null) {
+        // création
+        saved = await _api.publierProduit(produit: produit);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Produit publié avec succès')),
+        );
+      } else {
+        // édition
+        saved = await _api.modifierProduit(
+          produitId: widget.existingProduct!.id!,
+          produit: produit,
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Produit modifié avec succès')),
+        );
+      }
+
+      Navigator.pop(context, saved);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur : $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // La couleur primaire violette des designs
-    final Color primaryColor = Color(0xFF491B6D);
     const Color neutralWhite = Colors.white;
+    const Color primaryColor = Color(0xFF491B6D);
+
+    final isEdit = widget.existingProduct != null;
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -91,18 +151,22 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
               ),
               child: SafeArea(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 15.0),
                   child: Row(
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: neutralWhite),
+                        icon: const Icon(Icons.arrow_back,
+                            color: neutralWhite),
                         onPressed: () => Navigator.of(context).pop(),
                       ),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Publier produit',
+                          isEdit
+                              ? 'Modifier produit'
+                              : 'Publier produit',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
+                          style: const TextStyle(
                             color: neutralWhite,
                             fontWeight: FontWeight.bold,
                             fontSize: 20,
@@ -110,7 +174,8 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.notifications_none, color: neutralWhite),
+                        icon: const Icon(Icons.notifications_none,
+                            color: neutralWhite),
                         onPressed: () {},
                       ),
                     ],
@@ -119,7 +184,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
               ),
             ),
           ),
-          // Contenu scrollable
+          // Contenu
           Positioned.fill(
             top: 100,
             child: SingleChildScrollView(
@@ -128,49 +193,54 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                 child: Form(
                   key: _formKey,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: <Widget>[
-                      // --- Section d'ajout de photo de produit ---
                       _buildImageSection(primaryColor),
                       const SizedBox(height: 30),
 
-                      // --- Champ Nom du produit ---
                       _buildInputField(
                         context,
                         controller: _productNameController,
                         labelText: 'Nom du produit',
-                        icon: Icons.volume_up, // Icône de son pour l'accessibilité
-                        validator: (value) => value!.isEmpty ? 'Veuillez entrer le nom du produit' : null,
+                        icon: Icons.volume_up,
+                        validator: (value) => value == null ||
+                                value.isEmpty
+                            ? 'Veuillez entrer le nom du produit'
+                            : null,
                       ),
                       const SizedBox(height: 20),
 
-                      // --- Champ Description ---
                       _buildInputField(
                         context,
                         controller: _descriptionController,
                         labelText: 'Description',
                         maxLines: 3,
                         icon: Icons.volume_up,
-                        validator: (value) => value!.isEmpty ? 'Veuillez entrer une description' : null,
+                        validator: (value) => value == null ||
+                                value.isEmpty
+                            ? 'Veuillez entrer une description'
+                            : null,
                       ),
                       const SizedBox(height: 20),
 
-                      // --- Champ Prix ---
                       _buildInputField(
                         context,
                         controller: _priceController,
                         labelText: 'Prix',
-                        keyboardType: TextInputType.number, // Clavier numérique
+                        keyboardType: TextInputType.number,
                         icon: Icons.volume_up,
-                        validator: (value) => value!.isEmpty ? 'Veuillez entrer le prix' : null,
+                        validator: (value) => value == null ||
+                                value.isEmpty
+                            ? 'Veuillez entrer le prix'
+                            : null,
                       ),
                       const SizedBox(height: 40),
 
-                      // --- Section du bouton de validation ou d'enregistrement vocal ---
                       Center(
                         child: _hasProductImage
-                            ? _buildPublishButton(primaryColor) // 2ème design (rempli)
-                            : _buildVoiceRecordButton(primaryColor), // 1er design (vide)
+                            ? _buildPublishButton(primaryColor)
+                            : _buildVoiceRecordButton(primaryColor),
                       ),
                       const SizedBox(height: 20),
                     ],
@@ -184,49 +254,95 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
     );
   }
 
-  // Widget pour la section Image
+  // ================== WIDGETS PRIVÉS ==================
+
   Widget _buildImageSection(Color primaryColor) {
+    final existingImageUrl = widget.existingProduct?.image;
+
+    Widget content;
+
+    if (_imageFile != null) {
+      // image choisie pendant cette session
+      content = ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.file(
+          _imageFile!,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: 180,
+        ),
+      );
+    } else if (existingImageUrl != null &&
+        existingImageUrl.isNotEmpty) {
+      // image déjà connue du produit (en édition)
+      content = ClipRRect(
+        borderRadius: BorderRadius.circular(8),
+        child: Image.network(
+          existingImageUrl,
+          fit: BoxFit.cover,
+          width: double.infinity,
+          height: 180,
+          errorBuilder: (_, __, ___) => Center(
+            child: Icon(
+              Icons.broken_image,
+              color: primaryColor,
+              size: 60,
+            ),
+          ),
+        ),
+      );
+    } else {
+      // état initial : bloc d’upload
+      content = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.cloud_upload_outlined,
+            size: 80,
+            color: primaryColor,
+          ),
+          const SizedBox(height: 10),
+          const Text(
+            'Cliquez pour uploader une image',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment:
+              MainAxisAlignment.spaceBetween,
           children: [
-            Text('Ajouter la photo du produits', style: TextStyle(fontSize: 16)),
-            Icon(Icons.volume_up, color: primaryColor, size: 20),
+            const Text(
+              'Ajouter la photo du produits',
+              style: TextStyle(fontSize: 16),
+            ),
+            Icon(Icons.volume_up,
+                color: primaryColor, size: 20),
           ],
         ),
         const SizedBox(height: 8),
-        // Conteneur pour l'image (simulé)
         GestureDetector(
           onTap: _pickImage,
           child: Container(
             height: 180,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: primaryColor.withOpacity(0.1),
+              color: primaryColor.withOpacity(0.05),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: primaryColor, width: 1.5),
+              border:
+                  Border.all(color: primaryColor, width: 1.5),
             ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.cloud_upload_outlined,
-                    size: 80,
-                    color: primaryColor,
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Cliquez pour uploader une image',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
-              ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: content,
             ),
           ),
         ),
@@ -234,7 +350,6 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
     );
   }
 
-  // Widget réutilisable pour les champs de saisie
   Widget _buildInputField(
     BuildContext context, {
     required TextEditingController controller,
@@ -244,7 +359,6 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
-    // Utilisation d'un Row pour placer l'Input en face de l'icône de son
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -256,7 +370,8 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
             validator: validator,
             decoration: InputDecoration(
               labelText: labelText,
-              contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 15),
+              contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 15),
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
@@ -268,40 +383,50 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
         const SizedBox(width: 10),
         Padding(
           padding: const EdgeInsets.only(top: 15.0),
-          child: Icon(icon, color: Theme.of(context).primaryColor, size: 20),
+          child: Icon(icon,
+              color: Theme.of(context).primaryColor, size: 20),
         ),
       ],
     );
   }
 
-  // Bouton de publication (visible lorsque le formulaire est rempli - 2ème design)
   Widget _buildPublishButton(Color primaryColor) {
     return ElevatedButton(
-      onPressed: _submitProduct,
+      onPressed: _isSubmitting ? null : _submitProduct,
       style: ElevatedButton.styleFrom(
-        shape: CircleBorder(),
-        padding: EdgeInsets.all(30),
+        shape: const CircleBorder(),
+        padding: const EdgeInsets.all(30),
         backgroundColor: primaryColor,
       ),
-      child: Icon(
-        Icons.check,
-        color: Colors.white,
-        size: 50,
-      ),
+      child: _isSubmitting
+          ? const SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
+            )
+          : const Icon(
+              Icons.check,
+              color: Colors.white,
+              size: 50,
+            ),
     );
   }
 
-  // Bouton d'enregistrement vocal (visible lorsque le formulaire est vide - 1er design)
   Widget _buildVoiceRecordButton(Color primaryColor) {
     return ElevatedButton(
       onPressed: () {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Enregistrement vocal démarré...')),
+          const SnackBar(
+              content:
+                  Text('Enregistrement vocal démarré...')),
         );
       },
       style: ElevatedButton.styleFrom(
-        shape: CircleBorder(),
-        padding: EdgeInsets.all(30),
+        shape: const CircleBorder(),
+        padding: const EdgeInsets.all(30),
         backgroundColor: primaryColor.withOpacity(0.1),
       ),
       child: Icon(

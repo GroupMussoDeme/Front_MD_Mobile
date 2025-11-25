@@ -4,14 +4,15 @@ import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/PaymentMethodScreen.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
 import 'package:musso_deme_app/pages/ProfileScreen.dart';
-// import 'package:votre_app/widgets/rounded_purple_container.dart';
-// import 'package:votre_app/widgets/bottom_nav_bar.dart'; 
+import 'package:musso_deme_app/models/marche_models.dart';
 
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Colors.white;
 
 class OrderScreen extends StatefulWidget {
-  const OrderScreen({super.key});
+  final Produit produit;
+
+  const OrderScreen({super.key, required this.produit});
 
   @override
   State<OrderScreen> createState() => _OrderScreenState();
@@ -19,30 +20,21 @@ class OrderScreen extends StatefulWidget {
 
 class _OrderScreenState extends State<OrderScreen> {
   int _quantity = 1;
-  final int _price = 1000;
   final int _deliveryFee = 1000;
   int _selectedIndex = 0;
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      
-      // Si l'utilisateur clique sur l'icône Home (index 0)
+
       if (index == 0) {
-        // Retourner à la page d'accueil
         navigateToHome(context);
-      }
-      // Si l'utilisateur clique sur l'icône centrale (index 1) - Formations
-      else if (index == 1) {
-        // Naviguer vers la page Formations
+      } else if (index == 1) {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const FormationVideosPage()),
         );
-      }
-      // Si l'utilisateur clique sur l'icône de profil (index 2)
-      else if (index == 2) {
-        // Naviguer vers l'écran de profil
+      } else if (index == 2) {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const ProfileScreen()),
@@ -53,15 +45,22 @@ class _OrderScreenState extends State<OrderScreen> {
 
   void _updateQuantity(int delta) {
     setState(() {
-      _quantity = (_quantity + delta).clamp(1, 99); // Limiter la quantité entre 1 et 99
+      _quantity = (_quantity + delta).clamp(1, 99);
     });
   }
 
-  int get _subtotal => _price * _quantity;
+  // Prix unitaire à partir du produit, sinon 1000 par défaut
+  int get _unitPrice => widget.produit?.prix?.round() ?? 1000;
+
+  int get _subtotal => _unitPrice * _quantity;
   int get _total => _subtotal + _deliveryFee;
 
   // Widget pour la carte du produit et le compteur
   Widget _buildProductCard() {
+    final produit = widget.produit;
+    final productName = produit?.nom ?? 'Beurre de karité';
+    final productPriceText = '${_unitPrice.toString()} FCFA';
+
     return Container(
       padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
@@ -81,7 +80,7 @@ class _OrderScreenState extends State<OrderScreen> {
           ClipRRect(
             borderRadius: BorderRadius.circular(8.0),
             child: Image.asset(
-              'assets/images/beurredecarrite.png',
+              'assets/images/beurredecarrite.png', // image par défaut
               width: 80,
               height: 80,
               fit: BoxFit.cover,
@@ -92,22 +91,33 @@ class _OrderScreenState extends State<OrderScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'Beurre de karité',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                Text(
+                  productName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
                 ),
                 Text(
-                  'Prix : $_price FCFA',
+                  'Prix : $productPriceText',
                   style: const TextStyle(color: Colors.grey, fontSize: 14),
                 ),
                 const SizedBox(height: 8.0),
-                // Compteur de quantité
                 Row(
                   children: [
-                    _buildQuantityButton(Icons.remove, () => _updateQuantity(-1)),
+                    _buildQuantityButton(
+                      Icons.remove,
+                      () => _updateQuantity(-1),
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
-                      child: Text('$_quantity', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: Text(
+                        '$_quantity',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                     _buildQuantityButton(Icons.add, () => _updateQuantity(1)),
                   ],
@@ -121,7 +131,6 @@ class _OrderScreenState extends State<OrderScreen> {
     );
   }
 
-  // Helper pour les boutons de quantité
   Widget _buildQuantityButton(IconData icon, VoidCallback onPressed) {
     return Container(
       decoration: BoxDecoration(
@@ -138,7 +147,6 @@ class _OrderScreenState extends State<OrderScreen> {
     );
   }
 
-  // Helper pour les lignes de prix
   Widget _buildPriceRow(String label, String value, {bool isTotal = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
@@ -170,8 +178,7 @@ class _OrderScreenState extends State<OrderScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBackgroundColor,
-      
-      // En-tête
+
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
         child: Container(
@@ -204,7 +211,10 @@ class _OrderScreenState extends State<OrderScreen> {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.notifications_none, color: Colors.white),
+                    icon: const Icon(
+                      Icons.notifications_none,
+                      color: Colors.white,
+                    ),
                     onPressed: () {},
                   ),
                 ],
@@ -224,13 +234,12 @@ class _OrderScreenState extends State<OrderScreen> {
 
             _buildPriceRow('Sous-total :', '$_subtotal FCFA'),
             _buildPriceRow('Livraison :', '$_deliveryFee FCFA'),
-            
+
             const Divider(height: 20, thickness: 2, color: Colors.black),
-            
+
             _buildPriceRow('Total', '$_total FCFA', isTotal: true),
             const Spacer(),
 
-            // Bouton "Procéder au paiement"
             SizedBox(
               width: double.infinity,
               height: 55,
@@ -238,7 +247,13 @@ class _OrderScreenState extends State<OrderScreen> {
                 onPressed: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (context) => const PaymentMethodScreen()),
+                    MaterialPageRoute(
+                      builder: (context) => PaymentMethodScreen(
+                        produit: widget.produit, // produit passé à OrderScreen
+                        quantity: _quantity, // quantité choisie
+                        deliveryFee: _deliveryFee, // frais de livraison
+                      ),
+                    ),
                   );
                 },
                 style: ElevatedButton.styleFrom(
@@ -247,7 +262,10 @@ class _OrderScreenState extends State<OrderScreen> {
                     borderRadius: BorderRadius.circular(15.0),
                   ),
                 ),
-                child: const Text('Procéder au paiement', style: TextStyle(fontSize: 18)),
+                child: const Text(
+                  'Procéder au paiement',
+                  style: TextStyle(fontSize: 18),
+                ),
               ),
             ),
           ],

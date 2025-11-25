@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:musso_deme_app/modeles/user_model.dart';
+import 'package:musso_deme_app/models/user_model.dart';
 import 'api_service.dart';
 
 class UserService {

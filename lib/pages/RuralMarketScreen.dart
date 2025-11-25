@@ -8,12 +8,16 @@ import 'package:musso_deme_app/pages/ProductDetailsScreen.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
 
-// Définissez vos couleurs principales pour la réutilisation
-const Color primaryPurple = Color(0xFF5A1489); // Couleur violette dominante (conserve les couleurs existantes)
-const Color cardBackground = Colors.white; // Couleur de fond des cartes
+// === IMPORTS API / MODELS ===
+import 'package:musso_deme_app/models/marche_models.dart';
+import 'package:musso_deme_app/services/femme_rurale_api.dart';
+
+// Couleurs principales
+const Color primaryPurple = Color(0xFF5A1489);
+const Color cardBackground = Colors.white;
 const Color textColor = Colors.black;
 
-// Couleurs partagées (utilisées par FinancialAidScreen style)
+// Couleurs partagées
 const Color primaryViolet = Color(0xFF491B6D);
 const Color neutralWhite = Colors.white;
 const Color lightGrey = Color(0xFFF0F0F0);
@@ -29,23 +33,32 @@ class RuralMarketScreen extends StatefulWidget {
 class _RuralMarketScreenState extends State<RuralMarketScreen> {
   int _selectedIndex = 0;
 
+  final FemmeRuraleApi _api = FemmeRuraleApi();
+  late Future<List<Produit>> _futureProduits;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProduits();
+  }
+
+  void _loadProduits() {
+    _futureProduits = _api.getTousLesProduits();
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      
-      // Gestion de la navigation selon l'index
+
       if (index == 0) {
-        // Navigation vers la page d'accueil
         navigateToHome(context);
       } else if (index == 1) {
-        // Navigation vers la page Formations
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const FormationVideosPage()),
         );
       }
-      // Pour l'index 2 (icône de profil), on reste sur la même page
-      // car cette page est déjà une page de marché
+      // index 2 = profil (géré ailleurs)
     });
   }
 
@@ -55,7 +68,7 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
       appBar: null,
       body: Stack(
         children: [
-          // Conteneur violet arrondi en haut
+          // Header violet
           Positioned(
             top: 0,
             left: 0,
@@ -90,7 +103,10 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.notifications_none, color: neutralWhite),
+                        icon: const Icon(
+                          Icons.notifications_none,
+                          color: neutralWhite,
+                        ),
                         onPressed: () {},
                       ),
                     ],
@@ -99,6 +115,7 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
               ),
             ),
           ),
+
           // Contenu scrollable
           Positioned.fill(
             top: 100,
@@ -106,13 +123,11 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  // Espace pour la photo du marché
                   _buildMarketHeader(),
                   const SizedBox(height: 20),
-                  // Les boutons d'action
                   _buildActionButtons(context),
                   const SizedBox(height: 30),
-                  // Titre "Produits disponibles"
+
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 15.0),
                     child: Text(
@@ -125,8 +140,62 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
                     ),
                   ),
                   const SizedBox(height: 15),
-                  // Liste des produits (utilisez un GridView.builder ou un Row/Wrap)
-                  _buildProductGrid(context),
+
+                  // Produits dynamiques depuis l’API
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 15.0),
+                    child: FutureBuilder<List<Produit>>(
+                      future: _futureProduits,
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Padding(
+                            padding: EdgeInsets.all(20.0),
+                            child: Center(child: CircularProgressIndicator()),
+                          );
+                        }
+
+                        if (snapshot.hasError) {
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Text(
+                              'Erreur chargement produits : ${snapshot.error}',
+                              style: const TextStyle(color: Colors.red),
+                            ),
+                          );
+                        }
+
+                        final produits = snapshot.data ?? [];
+                        if (produits.isEmpty) {
+                          return const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Text('Aucun produit disponible pour le moment'),
+                          );
+                        }
+
+                        return Wrap(
+                          spacing: 15.0,
+                          runSpacing: 15.0,
+                          children: produits
+                              .map(
+                                (p) => MarketProductCard(
+                                  produit: p,
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            ProductDetailsScreen(produit: p),
+                                      ),
+                                    );
+                                  },
+                                ),
+                              )
+                              .toList(),
+                        );
+                      },
+                    ),
+                  ),
                   const SizedBox(height: 30),
                 ],
               ),
@@ -134,101 +203,108 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
           ),
         ],
       ),
-      // Utilisation du widget BottomNavBar
+
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: _onItemTapped,
       ),
     );
   }
-  // ... (définition des autres fonctions helper ci-dessous)
-}
 
-// Dans la classe RuralMarketScreen...
+  // =================== SECTIONS UI ===================
 
-Widget _buildMarketHeader() {
-  // Cette section est le conteneur de l'image du marché rural
-  return Container(
-    padding: const EdgeInsets.all(15.0),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Marché rurale',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: textColor,
-          ),
-        ),
-        const SizedBox(height: 10),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(10.0),
-          child: AspectRatio(
-            aspectRatio: 16 / 9, // Format d'image typique
-            child: Image.asset(
-              // REMPLACER par le chemin de votre image
-              'assets/images/rural_market_header.png',
-              fit: BoxFit.cover,
+  Widget _buildMarketHeader() {
+    return Container(
+      padding: const EdgeInsets.all(15.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Marché rural',
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: textColor,
             ),
           ),
-        ),
-      ],
-    ),
-  );
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10.0),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Image.asset(
+                'assets/images/rural_market_header.png',
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButtons(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: <Widget>[
+          _ActionButton(
+            icon: Icons.shopping_bag_outlined,
+            label: 'Produits',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProductsScreen(),
+                ),
+              );
+            },
+          ),
+          _ActionButton(
+            icon: Icons.mic_none,
+            label: 'Publier',
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProductPublishScreen(),
+                ),
+              );
+              setState(_loadProduits); // rechargement après publication
+            },
+          ),
+          _ActionButton(
+            icon: Icons.shopping_cart_outlined,
+            label: 'Mes commandes',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MesCommandesScreen(),
+                ),
+              );
+            },
+          ),
+          _ActionButton(
+            icon: Icons.shopping_bag_outlined,
+            label: 'Mes ventes',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MySalesScreen(),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-Widget _buildActionButtons(BuildContext context) {
-  // Crée la ligne de quatre boutons sous l'image
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 10.0),
-    child: Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: <Widget>[
-        _ActionButton(
-          icon: Icons.shopping_bag_outlined,
-          label: 'Produits',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProductsScreen()),
-            );
-          },
-        ),
-        _ActionButton(
-          icon: Icons.mic_none,
-          label: 'Publier',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const ProductPublishScreen()),
-            );
-          },
-        ),
-        _ActionButton(
-          icon: Icons.shopping_cart_outlined,
-          label: 'Mes commandes',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MesCommandesScreen()),
-            );
-          },
-        ),
-        _ActionButton(
-          icon: Icons.shopping_bag_outlined,
-          label: 'Mes ventes',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const MySalesScreen()),
-            );
-          },
-        ),
-      ],
-    ),
-  );
-}
+// =================== WIDGETS RÉUTILISABLES ===================
 
 class _ActionButton extends StatelessWidget {
   final IconData icon;
@@ -244,10 +320,10 @@ class _ActionButton extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 80, // Largeur fixe pour les boutons
-            height: 50, // Hauteur fixe pour les boutons
+            width: 80,
+            height: 50,
             decoration: BoxDecoration(
-              color: Colors.grey.shade200, // Couleur de fond légèrement grise
+              color: Colors.grey.shade200,
               borderRadius: BorderRadius.circular(10.0),
             ),
             child: Icon(
@@ -270,57 +346,23 @@ class _ActionButton extends StatelessWidget {
   }
 }
 
-// Dans la classe RuralMarketScreen...
+/// Carte produit pour le marché : utilise l’image uploadée par l’utilisatrice
+class MarketProductCard extends StatelessWidget {
+  final Produit produit;
+  final VoidCallback onTap;
 
-Widget _buildProductGrid(BuildContext context) {
-  // Utilisez un Wrap ou un GridView pour les cartes de produits
-  return Padding(
-    padding: const EdgeInsets.symmetric(horizontal: 15.0),
-    child: Wrap(
-      spacing: 15.0, // Espace horizontal entre les cartes
-      runSpacing: 15.0, // Espace vertical entre les lignes
-      children: <Widget>[
-        // Exemple de carte de produit 1
-        ProductCard(
-          imagePath: 'assets/images/beurredecarrite.png', // REMPLACER par le chemin de votre image
-          name: 'Beurre de karite',
-          price: '1000 FCFA',
-        ),
-        // Exemple de carte de produit 2
-        ProductCard(
-          imagePath: 'assets/images/pagne.png', // REMPLACER par le chemin de votre image
-          name: 'Pagne tissé',
-          price: '6000 FCFA',
-        ),
-        // Ajoutez d'autres ProductCard si nécessaire
-      ],
-    ),
-  );
-}
-
-class ProductCard extends StatelessWidget {
-  final String imagePath;
-  final String name;
-  final String price;
-
-  const ProductCard({super.key, 
-    required this.imagePath,
-    required this.name,
-    required this.price,
+  const MarketProductCard({
+    super.key,
+    required this.produit,
+    required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    // La taille du widget est approximée pour afficher deux cartes par ligne.
     final double cardWidth = (MediaQuery.of(context).size.width - 45) / 2;
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ProductDetailsScreen()),
-        );
-      },
+      onTap: onTap,
       child: Container(
         width: cardWidth,
         decoration: BoxDecoration(
@@ -338,23 +380,18 @@ class ProductCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            // Image du produit
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-              child: Image.asset(
-                imagePath,
-                height: 120,
-                width: cardWidth,
-                fit: BoxFit.cover,
-              ),
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(10)),
+              child: _buildProductImage(cardWidth),
             ),
-            // Bouton "Acheter"
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 8.0),
               decoration: const BoxDecoration(
                 color: primaryPurple,
-                borderRadius: BorderRadius.vertical(bottom: Radius.circular(10)),
+                borderRadius:
+                    BorderRadius.vertical(bottom: Radius.circular(10)),
               ),
               alignment: Alignment.center,
               child: const Text(
@@ -365,24 +402,25 @@ class ProductCard extends StatelessWidget {
                 ),
               ),
             ),
-            // Nom et prix du produit
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    name,
+                    produit.nom,
                     style: const TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Prix : $price',
+                        'Prix : ${produit.prix?.toStringAsFixed(0) ?? '-'} FCFA',
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,
@@ -403,7 +441,49 @@ class ProductCard extends StatelessWidget {
       ),
     );
   }
-}
 
-// (Bottom navigation and helper widgets removed because RuralMarketScreen now
-// uses the FinancialAidScreen-style AppBar and bottom navigation directly.)
+  /// Image produit : utilise produit.image, sinon placeholder neutre
+  Widget _buildProductImage(double width) {
+    final img = produit.image;
+    Widget child;
+
+    if (img != null && img.isNotEmpty) {
+      if (img.startsWith('http://') || img.startsWith('https://')) {
+        child = Image.network(
+          img,
+          width: width,
+          height: 120,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder(width),
+        );
+      } else {
+        // Chemin relatif → adapter la base URL à ton backend si besoin
+        final fullUrl = 'http://10.0.2.2:8080/uploads/$img';
+        child = Image.network(
+          fullUrl,
+          width: width,
+          height: 120,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _placeholder(width),
+        );
+      }
+    } else {
+      child = _placeholder(width);
+    }
+
+    return child;
+  }
+
+  Widget _placeholder(double width) {
+    return Container(
+      width: width,
+      height: 120,
+      color: Colors.grey.shade200,
+      child: const Icon(
+        Icons.image_outlined,
+        color: Colors.grey,
+        size: 40,
+      ),
+    );
+  }
+}

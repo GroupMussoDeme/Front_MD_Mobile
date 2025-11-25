@@ -1,49 +1,8 @@
 import 'package:flutter/material.dart';
 
-// Constantes de couleur (assumant que vous avez défini ces couleurs dans un fichier séparé)
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Colors.white;
 
-// --- Widget En-tête (AppBar) réutilisable ---
-// Cette classe doit être définie ou importée
-class PurpleAppBar extends StatelessWidget implements PreferredSizeWidget {
-  final String title;
-  final bool showNotifications;
-
-  const PurpleAppBar({
-    super.key,
-    required this.title,
-    this.showNotifications = true,
-  });
-
-  @override
-  Size get preferredSize => const Size.fromHeight(60.0);
-
-  @override
-  Widget build(BuildContext context) {
-    return AppBar(
-      backgroundColor: _kPrimaryPurple,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.white),
-        onPressed: () => Navigator.pop(context),
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-      ),
-      actions: [
-        if (showNotifications)
-          IconButton(
-            icon: const Icon(Icons.notifications_none, color: Colors.white),
-            onPressed: () {},
-          ),
-      ],
-    );
-  }
-}
-
-// --- Écran : Validation de Commande (ValidationCommande.png) ---
 class OrderValidationScreen extends StatelessWidget {
   const OrderValidationScreen({super.key});
 
@@ -51,7 +10,6 @@ class OrderValidationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: _kBackgroundColor,
-      // Remplacement de l'appBar par un conteneur violet personnalisé avec flèche de retour et titre
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
         child: Container(
@@ -84,7 +42,8 @@ class OrderValidationScreen extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.notifications_none, color: Colors.white),
+                    icon: const Icon(Icons.notifications_none,
+                        color: Colors.white),
                     onPressed: () {},
                   ),
                 ],
@@ -93,7 +52,6 @@ class OrderValidationScreen extends StatelessWidget {
           ),
         ),
       ),
-      
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -107,8 +65,6 @@ class OrderValidationScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 80),
-            
-            // Cercle avec le checkmark
             Container(
               width: 150,
               height: 150,
