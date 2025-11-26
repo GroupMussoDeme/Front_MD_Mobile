@@ -4,6 +4,8 @@ import 'package:musso_deme_app/widgets/RoundedPurpleContainer.dart';
 
 import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
+import 'package:musso_deme_app/services/auth_service.dart';
+import 'package:musso_deme_app/services/session_service.dart';
 
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Color(0xFFF0F0F0);
@@ -20,17 +22,45 @@ class MySalesScreen extends StatefulWidget {
 class _MySalesScreenState extends State<MySalesScreen> {
   int _selectedIndex = 1;
 
-  final FemmeRuraleApi _api = FemmeRuraleApi();
   late Future<List<Commande>> _futureVentes;
 
   @override
   void initState() {
     super.initState();
-    _loadVentes();
+    _futureVentes = _loadVentes();
   }
 
-  void _loadVentes() {
-    _futureVentes = _api.getMesVentes();
+  Future<FemmeRuraleApi> _buildApi() async {
+    final token = await SessionService.getAccessToken();
+    final userId = await SessionService.getUserId();
+
+    if (token == null || token.isEmpty || userId == null) {
+      throw Exception('Session expirée ou utilisateur non connecté');
+    }
+
+    return FemmeRuraleApi(
+      baseUrl: AuthService.baseUrl,
+      token: token,
+      femmeId: userId,
+    );
+  }
+
+  Future<List<Commande>> _loadVentes() async {
+    final api = await _buildApi();
+    final userId = await SessionService.getUserId();
+
+    // Si tu ajoutes un endpoint dédié côté backend :
+    // return api.getMesVentes();
+
+    // Fallback : on récupère les commandes et on filtre localement
+    final toutesCommandes = await api.getMesCommandes();
+
+    if (userId == null) return [];
+
+    // On considère "vente" = commande dont le produit appartient à la femme
+    return toutesCommandes
+        .where((c) => c.produit?.femmeRuraleId == userId)
+        .toList();
   }
 
   void _onItemTapped(int index) {
@@ -208,9 +238,8 @@ class SalesItemCard extends StatelessWidget {
   Widget _buildProductImage() {
     final img = produit?.image;
     if (img != null && img.isNotEmpty) {
-      final url = img.startsWith('http')
-          ? img
-          : 'http://10.0.2.2:8080/uploads/$img';
+      final url =
+          img.startsWith('http') ? img : 'http://10.0.2.2:8080/uploads/$img';
 
       return Image.network(
         url,

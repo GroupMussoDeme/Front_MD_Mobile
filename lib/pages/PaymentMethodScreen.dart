@@ -3,16 +3,16 @@ import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/pages/OrderValidationScreen.dart';
 
+import 'package:musso_deme_app/services/femme_rurale_api.dart';
+import 'package:musso_deme_app/services/auth_service.dart';
+import 'package:musso_deme_app/services/session_service.dart';
+
 // Couleurs
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Colors.white;
 
 // Modèle de données pour les options de paiement
-enum PaymentOption {
-  orangeMoney,
-  moovMoney,
-  cashOnDelivery,
-}
+enum PaymentOption { orangeMoney, moovMoney, cashOnDelivery }
 
 class PaymentMethodScreen extends StatefulWidget {
   final Produit produit;
@@ -33,6 +33,7 @@ class PaymentMethodScreen extends StatefulWidget {
 class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   PaymentOption? _selectedOption = PaymentOption.orangeMoney;
   int _selectedIndex = 0;
+  bool _isLoading = false;
 
   // Calculs basés sur les paramètres reçus
   int get _price => widget.produit.prix?.toInt() ?? 0;
@@ -42,6 +43,106 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
+  }
+
+  String _mapPaymentOptionToBackend(PaymentOption option) {
+    switch (option) {
+      case PaymentOption.orangeMoney:
+        return 'ORANGE_MONEY';
+      case PaymentOption.moovMoney:
+        return 'MOOV_MONEY';
+      case PaymentOption.cashOnDelivery:
+        return 'ESPECE'; // paiement en espèces à la livraison
+    }
+  }
+
+  Future<void> _confirmOrder() async {
+    final stock = widget.produit.quantite ?? 999999;
+    if (widget.quantity > stock) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Stock insuffisant. Disponible : $stock, demandé : ${widget.quantity}',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (widget.produit.id == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Produit invalide (id manquant).')),
+      );
+      return;
+    }
+
+    final selected = _selectedOption;
+    if (selected == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez choisir un mode de paiement.')),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1) Récupérer token + userId de la session
+      final token = await SessionService.getAccessToken();
+      final userId = await SessionService.getUserId();
+
+      if (token == null || userId == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Session expirée. Veuillez vous reconnecter.'),
+          ),
+        );
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      // 2) Instancier l’API femme rurale
+      final api = FemmeRuraleApi(
+        baseUrl: AuthService.baseUrl,
+        token: token,
+        femmeId: userId,
+      );
+
+      // 3) Créer la commande
+      final commande = await api.passerCommande(
+        produitId: widget.produit.id!,
+        quantite: widget.quantity,
+      );
+
+      // 4) Créer le paiement (sauf si tu veux faire un flux différent
+      //    pour "Paiement après livraison")
+      final modeString = _mapPaymentOptionToBackend(selected);
+
+      final paiement = await api.payerCommande(
+        commandeId: commande.id!,
+        montant: _total.toDouble(),
+        modePaiement: modeString,
+      );
+
+      // 5) Aller sur l’écran de validation avec les vraies données
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) =>
+              OrderValidationScreen(commande: commande, paiement: paiement),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur lors de la commande : $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   Widget _buildPriceRow(String label, String value, {bool isTotal = false}) {
@@ -100,8 +201,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             Expanded(
               child: Text(
                 title,
-                style:
-                    const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                ),
               ),
             ),
             Container(
@@ -163,8 +266,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                     ),
                   ),
                   IconButton(
-                    icon:
-                        const Icon(Icons.notifications_none, color: Colors.white),
+                    icon: const Icon(
+                      Icons.notifications_none,
+                      color: Colors.white,
+                    ),
                     onPressed: () {},
                   ),
                 ],
@@ -184,13 +289,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               children: [
                 Text(
                   'Methode de paiement',
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineMedium!
-                      .copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
-                      ),
+                  style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 const Icon(Icons.volume_up, color: _kPrimaryPurple, size: 28),
@@ -240,14 +342,18 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             TextField(
               decoration: InputDecoration(
                 hintText: 'Votre adresse de livraison',
-                prefixIcon: const Icon(Icons.location_on_outlined,
-                    color: Colors.black),
+                prefixIcon: const Icon(
+                  Icons.location_on_outlined,
+                  color: Colors.black,
+                ),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(10.0),
                   borderSide: const BorderSide(color: Colors.black54),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
-                    vertical: 15.0, horizontal: 10.0),
+                  vertical: 15.0,
+                  horizontal: 10.0,
+                ),
               ),
             ),
 
@@ -284,22 +390,23 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () {
-                  // Ici tu pourras appeler ton backend pour créer la commande + paiement
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const OrderValidationScreen(),
-                    ),
-                  );
-                },
+                onPressed: _isLoading ? null : _confirmOrder,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _kPrimaryPurple,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(15.0),
                   ),
                 ),
-                child: const Text('Confirmer', style: TextStyle(fontSize: 18)),
+                child: _isLoading
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : const Text('Confirmer', style: TextStyle(fontSize: 18)),
               ),
             ),
           ],

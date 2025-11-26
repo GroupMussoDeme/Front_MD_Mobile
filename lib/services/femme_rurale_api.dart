@@ -3,154 +3,99 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:musso_deme_app/models/marche_models.dart';
 
-import 'package:musso_deme_app/services/api_service.dart';      // ApiConfig
-import 'package:musso_deme_app/services/session_service.dart';  // SessionService
-import 'package:musso_deme_app/models/marche_models.dart';      // Produit, Commande, Paiement
-
-/// Service centralisé pour les API Femme Rurale (produits, commandes, ventes, paiements)
+/// Client HTTP pour consommer les endpoints /api/femmes-rurales/... du backend.
 class FemmeRuraleApi {
-  FemmeRuraleApi();
+  /// Exemple : 'http://10.0.2.2:8080/api'
+  final String baseUrl;
 
-  /// Base URL pour les endpoints Femme Rurale
-  /// => http://10.0.2.2:8080/api/femmes-rurales
-  String get _baseUrl => ApiConfig.femmesRuralesBase;
+  /// Token JWT
+  final String token;
 
-  // =======================================================================
-  // Helpers privés : session & headers
-  // =======================================================================
+  /// ID de la femme rurale connectée
+  final int femmeId;
 
-  /// Récupère l'ID utilisateur courant depuis SessionService
-  Future<int> _currentUserId() async {
-    final session = await SessionService.loadSession();
-    final userId = session?['userId'];
-    if (userId == null) {
-      throw Exception('Utilisateur non connecté (userId manquant en session)');
-    }
-    return userId as int;
+  FemmeRuraleApi({
+    this.baseUrl = 'http://10.0.2.2:8080/api',
+    required this.token,
+    required this.femmeId,
+  });
+
+  Map<String, String> _authHeaders({Map<String, String>? extra}) {
+    return {'Authorization': 'Bearer $token', ...?extra};
   }
 
-  /// Construit les headers HTTP, avec Authorization si token présent
-  Future<Map<String, String>> _buildHeaders({bool withJson = true}) async {
-    final accessToken = await SessionService.getAccessToken();
+  // =========================================================
+  //                      PRODUITS
+  // =========================================================
 
-    final headers = <String, String>{};
-    if (withJson) {
-      headers['Content-Type'] = 'application/json';
-    }
-    if (accessToken != null) {
-      headers['Authorization'] = 'Bearer $accessToken';
-    }
+  /// Upload d'une image produit (Multipart, champ "image")
+  /// --> POST /api/femmes-rurales/{femmeId}/produits/upload-image
+  ///
+  /// Retourne le nom du fichier (ex.: "prod_1_123456.jpg")
+  Future<String> uploadProduitImage(File imageFile) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeId/produits/upload-image',
+    );
 
-    if (kDebugMode) {
-      debugPrint('HTTP headers: $headers');
-    }
-    return headers;
-  }
+    final request = http.MultipartRequest('POST', uri);
 
-  /// Parse une liste de Produit depuis une réponse JSON
-  List<Produit> _parseProduitsResponse(String body) {
-    final decoded = jsonDecode(body);
+    request.headers.addAll({
+      'Authorization': 'Bearer $token',
+      // ne PAS mettre Content-Type ici
+    });
 
-    dynamic listJson;
-    if (decoded is List) {
-      listJson = decoded;
-    } else if (decoded is Map) {
-      listJson = decoded['data'] ?? decoded['produits'];
-    }
+    request.files.add(
+      await http.MultipartFile.fromPath(
+        'image', // doit matcher @RequestParam("image")
+        imageFile.path,
+        filename: imageFile.path.split('/').last,
+      ),
+    );
 
-    if (listJson is! List) return [];
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
 
-    return listJson
-        .map((e) => Produit.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  /// Parse une liste de Commande depuis une réponse JSON
-  List<Commande> _parseCommandesResponse(String body) {
-    final decoded = jsonDecode(body);
-
-    dynamic listJson;
-    if (decoded is List) {
-      listJson = decoded;
-    } else if (decoded is Map) {
-      listJson = decoded['data'] ?? decoded['commandes'];
-    }
-
-    if (listJson is! List) return [];
-
-    return listJson
-        .map((e) => Commande.fromJson(e as Map<String, dynamic>))
-        .toList();
-  }
-
-  // =======================================================================
-  // PRODUITS
-  // =======================================================================
-
-  /// Tous les produits (marché rural)
-  Future<List<Produit>> getTousLesProduits() async {
-    final url = Uri.parse('$_baseUrl/produits');
-    final headers = await _buildHeaders(withJson: false);
-
-    if (kDebugMode) debugPrint('GET $url');
-
-    final response = await http.get(url, headers: headers);
-
-    if (kDebugMode) {
-      debugPrint('Response (${response.statusCode}): ${response.body}');
-    }
-
-    if (response.statusCode == 200) {
-      return _parseProduitsResponse(response.body);
-    } else {
+    if (response.statusCode != 200) {
       throw Exception(
-        'Erreur getTousLesProduits (${response.statusCode}) : ${response.body}',
+        'Erreur upload image (${response.statusCode}) : ${response.body}',
       );
     }
-  }
 
-  /// Mes produits (publiés par la femme connectée)
-  Future<List<Produit>> getMesProduits() async {
-    final femmeId = await _currentUserId();
-    final url = Uri.parse('$_baseUrl/$femmeId/produits');
-    final headers = await _buildHeaders(withJson: false);
+    // Pour vérifier ce que renvoie le backend
+    // print('UPLOAD RESPONSE BODY = ${response.body}');
 
-    if (kDebugMode) debugPrint('GET $url');
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
 
-    final response = await http.get(url, headers: headers);
+    // ✅ maintenant le backend renvoie bien un champ "data"
+    final data = jsonBody['data'] as Map<String, dynamic>?;
+    final fileName = data?['fileName'] as String?;
 
-    if (kDebugMode) {
-      debugPrint('Response (${response.statusCode}): ${response.body}');
-    }
-
-    if (response.statusCode == 200) {
-      return _parseProduitsResponse(response.body);
-    } else {
+    if (fileName == null || fileName.isEmpty) {
       throw Exception(
-        'Erreur getMesProduits (${response.statusCode}) : ${response.body}',
+        'Réponse backend invalide : "fileName" manquant (body = ${response.body})',
       );
     }
+
+    return fileName;
   }
 
-  /// Publier un nouveau produit
+  /// Publier un produit
+  /// --> POST /api/femmes-rurales/{femmeId}/produits
   Future<Produit> publierProduit({
     required String nom,
     required String description,
     required double prix,
     required int quantite,
-    required String typeProduit,    // ALIMENTAIRE, ARTISANAT, ...
-    String? image,                  // nom de fichier (ex: "34.jpg")
+    required String typeProduit, // "ALIMENTAIRE" / "AGRICOLE" / "ARTISANAT"
+    required String? image, // nom du fichier image
     String? audioGuideUrl,
   }) async {
-    final femmeId = await _currentUserId();
-    final url = Uri.parse('$_baseUrl/$femmeId/produits');
-    final headers = await _buildHeaders();
+    final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/produits');
 
-    final bodyMap = <String, dynamic>{
-      'id': null,
+    final body = {
       'nom': nom,
       'description': description,
       'prix': prix,
@@ -158,38 +103,29 @@ class FemmeRuraleApi {
       'typeProduit': typeProduit,
       'image': image,
       'audioGuideUrl': audioGuideUrl,
-      'femmeRuraleId': femmeId,
     };
 
-    if (kDebugMode) {
-      debugPrint('POST $url');
-      debugPrint('Headers: $headers');
-      debugPrint('Body: ${jsonEncode(bodyMap)}');
-    }
+    final response = await http.post(
+      uri,
+      headers: _authHeaders(extra: {'Content-Type': 'application/json'}),
+      body: jsonEncode(body),
+    );
 
-    final response =
-        await http.post(url, headers: headers, body: jsonEncode(bodyMap));
-
-    if (kDebugMode) {
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-    }
-
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-
-      final prodJson =
-          decoded['produit'] ?? decoded['data'] ?? decoded as Map<String, dynamic>;
-
-      return Produit.fromJson(prodJson as Map<String, dynamic>);
-    } else {
+    if (response.statusCode != 201) {
       throw Exception(
-        'Erreur publierProduit (${response.statusCode}) : ${response.body}',
+        'Erreur publication produit (${response.statusCode}) : ${response.body}',
       );
     }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> produitJson =
+        (jsonBody['data'] as Map<String, dynamic>);
+
+    return Produit.fromJson(produitJson);
   }
 
-  /// Modifier un produit existant
+  /// Modifier un produit
+  /// --> PUT /api/femmes-rurales/{femmeId}/produits/{produitId}
   Future<Produit> modifierProduit({
     required int produitId,
     required String nom,
@@ -197,14 +133,14 @@ class FemmeRuraleApi {
     required double prix,
     required int quantite,
     required String typeProduit,
-    String? image,
+    required String? image,
     String? audioGuideUrl,
   }) async {
-    final femmeId = await _currentUserId();
-    final url = Uri.parse('$_baseUrl/$femmeId/produits/$produitId');
-    final headers = await _buildHeaders();
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeId/produits/$produitId',
+    );
 
-    final bodyMap = <String, dynamic>{
+    final body = {
       'id': produitId,
       'nom': nom,
       'description': description,
@@ -213,235 +149,303 @@ class FemmeRuraleApi {
       'typeProduit': typeProduit,
       'image': image,
       'audioGuideUrl': audioGuideUrl,
-      'femmeRuraleId': femmeId,
     };
 
-    if (kDebugMode) {
-      debugPrint('PUT $url');
-      debugPrint('Headers: $headers');
-      debugPrint('Body: ${jsonEncode(bodyMap)}');
-    }
+    final response = await http.put(
+      uri,
+      headers: _authHeaders(extra: {'Content-Type': 'application/json'}),
+      body: jsonEncode(body),
+    );
 
-    final response =
-        await http.put(url, headers: headers, body: jsonEncode(bodyMap));
-
-    if (kDebugMode) {
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-    }
-
-    if (response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      final prodJson =
-          decoded['produit'] ?? decoded['data'] ?? decoded as Map<String, dynamic>;
-      return Produit.fromJson(prodJson as Map<String, dynamic>);
-    } else {
+    if (response.statusCode != 200) {
       throw Exception(
-        'Erreur modifierProduit (${response.statusCode}) : ${response.body}',
+        'Erreur modification produit (${response.statusCode}) : ${response.body}',
       );
     }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> produitJson =
+        (jsonBody['data'] as Map<String, dynamic>);
+
+    return Produit.fromJson(produitJson);
   }
 
   /// Supprimer un produit
+  /// --> DELETE /api/femmes-rurales/{femmeId}/produits/{produitId}
   Future<void> supprimerProduit({required int produitId}) async {
-    final femmeId = await _currentUserId();
-    final url = Uri.parse('$_baseUrl/$femmeId/produits/$produitId');
-    final headers = await _buildHeaders(withJson: false);
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeId/produits/$produitId',
+    );
 
-    if (kDebugMode) debugPrint('DELETE $url');
+    final response = await http.delete(uri, headers: _authHeaders());
 
-    final response = await http.delete(url, headers: headers);
-
-    if (kDebugMode) {
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-    }
-
-    if (response.statusCode != 200 && response.statusCode != 204) {
+    if (response.statusCode != 200) {
       throw Exception(
-        'Erreur supprimerProduit (${response.statusCode}) : ${response.body}',
+        'Erreur suppression produit (${response.statusCode}) : ${response.body}',
       );
     }
   }
 
-  // =======================================================================
-  // COMMANDES & VENTES
-  // =======================================================================
+  /// Récupérer les produits de la femme connectée
+  /// --> GET /api/femmes-rurales/{femmeId}/mes-produits
+  Future<List<Produit>> getMesProduits() async {
+    final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/mes-produits');
 
-  /// Mes commandes (où je suis acheteur)
-  Future<List<Commande>> getMesCommandes() async {
-    final userId = await _currentUserId();
-    final url = Uri.parse('$_baseUrl/$userId/commandes');
-    final headers = await _buildHeaders(withJson: false);
+    final response = await http.get(uri, headers: _authHeaders());
 
-    if (kDebugMode) debugPrint('GET $url');
-
-    final response = await http.get(url, headers: headers);
-
-    if (kDebugMode) {
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-    }
-
-    if (response.statusCode == 200) {
-      return _parseCommandesResponse(response.body);
-    } else {
+    if (response.statusCode != 200) {
       throw Exception(
-        'Erreur getMesCommandes (${response.statusCode}) : ${response.body}',
+        'Erreur récupération mes produits (${response.statusCode}) : ${response.body}',
       );
     }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
+
+    return dataList
+        .map((e) => Produit.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
-  /// Mes ventes (commandes où je suis vendeuse)
-  Future<List<Commande>> getMesVentes() async {
-    final femmeId = await _currentUserId();
-    final url = Uri.parse('$_baseUrl/$femmeId/ventes');
-    final headers = await _buildHeaders(withJson: false);
+    Future<List<Produit>> getTousLesProduits() async {
+    final uri = Uri.parse('$baseUrl/femmes-rurales/produits');
 
-    if (kDebugMode) debugPrint('GET $url');
+    final response = await http.get(uri, headers: _authHeaders());
 
-    final response = await http.get(url, headers: headers);
-
-    if (kDebugMode) {
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-    }
-
-    if (response.statusCode == 200) {
-      return _parseCommandesResponse(response.body);
-    } else {
+    if (response.statusCode != 200) {
       throw Exception(
-        'Erreur getMesVentes (${response.statusCode}) : ${response.body}',
+        'Erreur récupération produits (${response.statusCode}) : ${response.body}',
       );
     }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
+
+    // On parse les produits
+    final produits = dataList
+        .map((e) => Produit.fromJson(e as Map<String, dynamic>))
+        .toList();
+
+    // 🆕 On retire les produits de la femme connectée
+    return produits
+        .where((p) => p.femmeRuraleId == null || p.femmeRuraleId != femmeId)
+        .toList();
   }
 
-  /// Passer une commande pour un produit
-  Future<Commande> passerCommande({
+
+  /// Récupérer un produit par son id (avec éventuellement audio guide)
+  /// --> GET /api/femmes-rurales/produits/{produitId}
+  Future<Produit> getProduit(int produitId) async {
+    final uri = Uri.parse('$baseUrl/femmes-rurales/produits/$produitId');
+
+    final response = await http.get(uri, headers: _authHeaders());
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Erreur récupération produit (${response.statusCode}) : ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> produitJson =
+        (jsonBody['data'] as Map<String, dynamic>);
+
+    return Produit.fromJson(produitJson);
+  }
+
+  /// Recherche de produits par type
+  /// --> GET /api/femmes-rurales/produits/recherche/type/{typeProduit}
+  Future<List<Produit>> rechercherProduitsParType(String typeProduit) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/produits/recherche/type/$typeProduit',
+    );
+
+    final response = await http.get(uri, headers: _authHeaders());
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Erreur recherche produits par type (${response.statusCode}) : ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
+
+    return dataList
+        .map((e) => Produit.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Recherche de produits disponibles par type (quantité > 0)
+  /// --> GET /api/femmes-rurales/produits/recherche/disponibles/type/{typeProduit}
+  Future<List<Produit>> rechercherProduitsDisponiblesParType(
+    String typeProduit,
+  ) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/produits/recherche/disponibles/type/$typeProduit',
+    );
+
+    final response = await http.get(uri, headers: _authHeaders());
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Erreur recherche produits disponibles par type (${response.statusCode}) : ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
+
+    return dataList
+        .map((e) => Produit.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Recherche de produits par nom (contient, ignore case)
+  /// --> GET /api/femmes-rurales/produits/recherche/nom/{nom}
+  Future<List<Produit>> rechercherProduitsParNom(String nom) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/produits/recherche/nom/$nom',
+    );
+
+    final response = await http.get(uri, headers: _authHeaders());
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Erreur recherche produits par nom (${response.statusCode}) : ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
+
+    return dataList
+        .map((e) => Produit.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  // =========================================================
+  //                      COMMANDES
+  // =========================================================
+
+  /// Passer une commande sur un produit donné
+  /// --> POST /api/femmes-rurales/{femmeId}/commandes
+  /// @RequestParam Long produitId, @RequestParam Integer quantite
+    Future<Commande> passerCommande({
     required int produitId,
     required int quantite,
   }) async {
-    final acheteurId = await _currentUserId();
+    final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/commandes');
 
-    final url = Uri.parse(
-      '$_baseUrl/$acheteurId/produits/$produitId/commandes',
-    ).replace(
-      queryParameters: {'quantite': quantite.toString()},
+    final response = await http.post(
+      uri,
+      headers: _authHeaders(
+        extra: {'Content-Type': 'application/x-www-form-urlencoded'},
+      ),
+      body: {
+        'produitId': produitId.toString(),
+        'quantite': quantite.toString(),
+      },
     );
 
-    final headers = await _buildHeaders(withJson: false);
-
-    if (kDebugMode) {
-      debugPrint('POST $url');
-      debugPrint('Headers: $headers');
+    if (response.statusCode != 201) {
+      // 🆕 utilise le helper pour récupérer le message fonctionnel
+      throw _buildApiException('Erreur passage commande', response);
     }
 
-    final response = await http.post(url, headers: headers);
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> commandeJson =
+        (jsonBody['data'] as Map<String, dynamic>);
 
-    if (kDebugMode) {
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-    }
-
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      final cmdJson =
-          decoded['commande'] ?? decoded['data'] ?? decoded as Map<String, dynamic>;
-      return Commande.fromJson(cmdJson as Map<String, dynamic>);
-    } else {
-      throw Exception(
-        'Erreur passerCommande (${response.statusCode}) : ${response.body}',
-      );
-    }
+    return Commande.fromJson(commandeJson);
   }
 
+
   /// Payer une commande
-  Future<Paiement> payerCommande({
+  /// --> POST /api/femmes-rurales/{femmeId}/commandes/{commandeId}/payer
+  /// @RequestParam Double montant, @RequestParam ModePaiement modePaiement
+  ///
+  /// modePaiement doit être une valeur string de l'enum backend :
+  /// "ORANGE_MONEY", "MOOV_MONEY", "ESPECE", etc.
+    Future<Paiement> payerCommande({
     required int commandeId,
     required double montant,
-    required String modePaiement, // ORANGE_MONEY / MOOV_MONEY / ESPECE...
+    required String modePaiement,
   }) async {
-    final femmeId = await _currentUserId();
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeId/commandes/$commandeId/payer',
+    );
 
-    final url = Uri.parse(
-      '$_baseUrl/$femmeId/commandes/$commandeId/payer',
-    ).replace(
-      queryParameters: {
+    final response = await http.post(
+      uri,
+      headers: _authHeaders(
+        extra: {'Content-Type': 'application/x-www-form-urlencoded'},
+      ),
+      body: {
         'montant': montant.toString(),
         'modePaiement': modePaiement,
       },
     );
 
-    final headers = await _buildHeaders(withJson: false);
-
-    if (kDebugMode) {
-      debugPrint('POST $url');
-      debugPrint('Headers: $headers');
+    if (response.statusCode != 201) {
+      // 🆕 remonte le message métier (montant incorrect, commande déjà payée, etc.)
+      throw _buildApiException('Erreur paiement commande', response);
     }
 
-    final response = await http.post(url, headers: headers);
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> paiementJson =
+        (jsonBody['data'] as Map<String, dynamic>);
 
-    if (kDebugMode) {
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-    }
-
-    if (response.statusCode == 201 || response.statusCode == 200) {
-      final decoded = jsonDecode(response.body);
-      final payJson =
-          decoded['data'] ?? decoded['paiement'] ?? decoded as Map<String, dynamic>;
-      return Paiement.fromJson(payJson as Map<String, dynamic>);
-    } else {
-      throw Exception(
-        'Erreur paiement commande (${response.statusCode}) : ${response.body}',
-      );
-    }
+    return Paiement.fromJson(paiementJson);
   }
 
-  // =======================================================================
-  // Upload d'image produit (multipart)
-  // =======================================================================
 
-  /// Upload d'image pour un produit.
-  /// Endpoint backend attendu :
-  /// POST /api/femmes-rurales/{femmeId}/produits/upload-image
-  /// → renvoie { fileName: "34.jpg" } ou { image: "34.jpg" }
-  Future<String> uploadProduitImage(File imageFile) async {
-    final femmeId = await _currentUserId();
-    final url = Uri.parse('$_baseUrl/$femmeId/produits/upload-image');
+  /// Récupérer toutes mes commandes (en tant qu'acheteuse + vendeuse)
+  /// --> GET /api/femmes-rurales/{femmeId}/mes-commandes
+  Future<List<Commande>> getMesCommandes() async {
+    final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/mes-commandes');
 
-    final accessToken = await SessionService.getAccessToken();
-    final request = http.MultipartRequest('POST', url);
+    final response = await http.get(uri, headers: _authHeaders());
 
-    if (accessToken != null) {
-      request.headers['Authorization'] = 'Bearer $accessToken';
-    }
-
-    request.files.add(
-      await http.MultipartFile.fromPath('file', imageFile.path),
-    );
-
-    if (kDebugMode) debugPrint('UPLOAD $url');
-
-    final streamedResponse = await request.send();
-    final response = await http.Response.fromStream(streamedResponse);
-
-    if (kDebugMode) {
-      debugPrint('Upload status: ${response.statusCode}');
-      debugPrint('Upload body: ${response.body}');
-    }
-
-    if (response.statusCode == 200 || response.statusCode == 201) {
-      final decoded = jsonDecode(response.body);
-      final fileName = decoded['fileName'] ?? decoded['image'];
-      if (fileName is String) {
-        return fileName;
-      }
-      throw Exception('Réponse upload invalide: ${response.body}');
-    } else {
+    if (response.statusCode != 200) {
       throw Exception(
-        'Erreur upload image (${response.statusCode}) : ${response.body}',
+        'Erreur récupération mes commandes (${response.statusCode}) : ${response.body}',
       );
     }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
+
+    return dataList
+        .map((e) => Commande.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
+
+  // =========================================================
+  //                      PAIEMENTS (lecture)
+  // =========================================================
+  //
+  // Pour l'instant, ton controller ne publie pas d'endpoint
+  // GET /paiements pour la femme. Si tu en ajoutes un côté backend,
+  // on pourra compléter ici une méthode getMesPaiements().
 }
+
+  // =========================================================
+  //                  UTILITAIRE ERREUR API
+  // =========================================================
+
+  Exception _buildApiException(String prefix, http.Response response) {
+    try {
+      final Map<String, dynamic> body = jsonDecode(response.body);
+      final message = body['message'] as String?;
+      if (message != null && message.isNotEmpty) {
+        // On renvoie uniquement le message fonctionnel
+        return Exception(message);
+      }
+    } catch (_) {
+      // si le body n'est pas du JSON ou n'a pas 'message'
+    }
+
+    // Fallback : message générique
+    return Exception('$prefix (${response.statusCode}) : ${response.body}');
+  }

@@ -4,6 +4,8 @@ import 'package:image_picker/image_picker.dart';
 
 import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
+import 'package:musso_deme_app/services/auth_service.dart';
+import 'package:musso_deme_app/services/session_service.dart';
 
 class ProductPublishScreen extends StatefulWidget {
   final Produit? existingProduct;
@@ -24,28 +26,60 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
   final _productNameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
+  final _quantityController = TextEditingController(); // <-- NOUVEAU
 
-  final FemmeRuraleApi _api = FemmeRuraleApi();
+  FemmeRuraleApi? _api;
   bool _isSubmitting = false;
+  bool _apiReady = false;
 
   @override
   void initState() {
     super.initState();
+    _initApi();
 
     if (widget.existingProduct != null) {
       // MODE ÉDITION : pré-remplir avec les vraies valeurs
       final p = widget.existingProduct!;
       _productNameController.text = p.nom;
       _descriptionController.text = p.description ?? '';
-      _priceController.text = p.prix != null ? p.prix!.toStringAsFixed(0) : '';
+      _priceController.text =
+          p.prix != null ? p.prix!.toStringAsFixed(0) : '';
+      _quantityController.text =
+          p.quantite != null ? p.quantite!.toString() : ''; // <-- NOUVEAU
       _hasProductImage = p.image != null && p.image!.isNotEmpty;
     } else {
       // MODE CRÉATION : champs vides, pas d’image
       _productNameController.text = '';
       _descriptionController.text = '';
       _priceController.text = '';
+      _quantityController.text = ''; // <-- NOUVEAU
       _hasProductImage = false;
     }
+  }
+
+  Future<void> _initApi() async {
+    final token = await SessionService.getAccessToken();
+    final userId = await SessionService.getUserId();
+
+    if (!mounted) return;
+
+    if (token == null || token.isEmpty || userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session expirée. Veuillez vous reconnecter.'),
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _api = FemmeRuraleApi(
+        baseUrl: AuthService.baseUrl,
+        token: token,
+        femmeId: userId,
+      );
+      _apiReady = true;
+    });
   }
 
   @override
@@ -53,6 +87,8 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
     _productNameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
+    _quantityController
+        .dispose(); // <-- NOUVEAU : ne pas oublier de le libérer
     super.dispose();
   }
 
@@ -70,6 +106,15 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
   }
 
   Future<void> _submitProduct() async {
+    if (!_apiReady || _api == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Service non prêt. Réessayez dans un instant.'),
+        ),
+      );
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
     // L’image est obligatoire côté backend (NotBlank sur "image")
@@ -89,6 +134,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
     setState(() => _isSubmitting = true);
 
     try {
+      // Prix
       final double? prix = double.tryParse(
         _priceController.text.replaceAll(',', '.'),
       );
@@ -101,12 +147,24 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
         return;
       }
 
+      // Quantité
+      final int? quantite = int.tryParse(_quantityController.text.trim());
+      if (quantite == null || quantite <= 0) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content:
+                  Text('Quantité invalide. Veuillez saisir un entier > 0.')),
+        );
+        setState(() => _isSubmitting = false);
+        return;
+      }
+
       // 1) Gérer le nom de fichier de l’image
       String? imageName = existingImageName;
 
       // Si une nouvelle image est choisie, on l’upload
       if (_imageFile != null) {
-        imageName = await _api.uploadProduitImage(_imageFile!);
+        imageName = await _api!.uploadProduitImage(_imageFile!);
       }
 
       // 2) Appel API : création ou édition
@@ -117,12 +175,12 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
       final bool isEdit = widget.existingProduct != null;
 
       if (!isEdit) {
-        // CREATION
-        saved = await _api.publierProduit(
+        // CRÉATION
+        saved = await _api!.publierProduit(
           nom: nom,
           description: description,
           prix: prix,
-          quantite: 1, // par défaut, 1 (tu pourras ajouter un champ quantité plus tard)
+          quantite: quantite, // <-- on envoie la vraie quantité
           typeProduit: 'ALIMENTAIRE', // valeur par défaut
           image: imageName,
           audioGuideUrl: null,
@@ -132,15 +190,15 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
           const SnackBar(content: Text('Produit publié avec succès')),
         );
       } else {
-        // EDITION
+        // ÉDITION
         final existing = widget.existingProduct!;
 
-        saved = await _api.modifierProduit(
+        saved = await _api!.modifierProduit(
           produitId: existing.id!,
           nom: nom,
           description: description,
           prix: prix,
-          quantite: existing.quantite ?? 1,
+          quantite: quantite, // <-- met à jour le stock avec la valeur saisie
           typeProduit: existing.typeProduit ?? 'ALIMENTAIRE',
           image: imageName,
           audioGuideUrl: null,
@@ -239,6 +297,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                       _buildImageSection(primaryColor),
                       const SizedBox(height: 30),
 
+                      // Nom produit
                       _buildInputField(
                         context,
                         controller: _productNameController,
@@ -250,6 +309,7 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                       ),
                       const SizedBox(height: 20),
 
+                      // Description
                       _buildInputField(
                         context,
                         controller: _descriptionController,
@@ -262,10 +322,31 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                       ),
                       const SizedBox(height: 20),
 
+                      // Quantité en stock
+                      _buildInputField(
+                        context,
+                        controller: _quantityController,
+                        labelText: 'Quantité en stock',
+                        keyboardType: TextInputType.number,
+                        icon: Icons.inventory_2,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Veuillez entrer la quantité';
+                          }
+                          final q = int.tryParse(value);
+                          if (q == null || q <= 0) {
+                            return 'La quantité doit être un entier > 0';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Prix
                       _buildInputField(
                         context,
                         controller: _priceController,
-                        labelText: 'Prix',
+                        labelText: 'Prix (FCFA)',
                         keyboardType: TextInputType.number,
                         icon: Icons.volume_up,
                         validator: (value) => value == null || value.isEmpty
@@ -420,8 +501,11 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
         const SizedBox(width: 10),
         Padding(
           padding: const EdgeInsets.only(top: 15.0),
-          child: Icon(icon,
-              color: Theme.of(context).primaryColor, size: 20),
+          child: Icon(
+            icon,
+            color: Theme.of(context).primaryColor,
+            size: 20,
+          ),
         ),
       ],
     );

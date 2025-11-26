@@ -23,6 +23,31 @@ class _OrderScreenState extends State<OrderScreen> {
   final int _deliveryFee = 1000;
   int _selectedIndex = 0;
 
+  /// Stock maximum disponible pour ce produit.
+  /// On considère que si quantite <= 0 ou null -> pas de stock.
+  int get _maxQuantity {
+    final q = widget.produit.quantite;
+    if (q == null || q <= 0) return 0;
+    return q;
+  }
+
+  bool get _inStock => _maxQuantity > 0;
+
+  @override
+  void initState() {
+    super.initState();
+    // Si pas de stock, quantité = 0, sinon on démarre à 1.
+    _quantity = _inStock ? 1 : 0;
+  }
+
+  void _updateQuantity(int delta) {
+    if (!_inStock) return;
+
+    setState(() {
+      _quantity = (_quantity + delta).clamp(1, _maxQuantity);
+    });
+  }
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -40,12 +65,6 @@ class _OrderScreenState extends State<OrderScreen> {
           MaterialPageRoute(builder: (context) => const ProfileScreen()),
         );
       }
-    });
-  }
-
-  void _updateQuantity(int delta) {
-    setState(() {
-      _quantity = (_quantity + delta).clamp(1, 99);
     });
   }
 
@@ -108,7 +127,16 @@ class _OrderScreenState extends State<OrderScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildProductCard(),
-            const SizedBox(height: 30.0),
+            const SizedBox(height: 10.0),
+
+            // Message si rupture de stock
+            if (!_inStock)
+              const Text(
+                'Ce produit est en rupture de stock. Impossible de passer une commande.',
+                style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+
+            const SizedBox(height: 20.0),
             _buildPriceRow('Sous-total :', '$_subtotal FCFA'),
             _buildPriceRow('Livraison :', '$_deliveryFee FCFA'),
             const Divider(height: 20, thickness: 2, color: Colors.black),
@@ -118,18 +146,20 @@ class _OrderScreenState extends State<OrderScreen> {
               width: double.infinity,
               height: 55,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => PaymentMethodScreen(
-                        produit: widget.produit,
-                        quantity: _quantity,
-                        deliveryFee: _deliveryFee,
-                      ),
-                    ),
-                  );
-                },
+                onPressed: !_inStock
+                    ? null
+                    : () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PaymentMethodScreen(
+                              produit: widget.produit,
+                              quantity: _quantity,
+                              deliveryFee: _deliveryFee,
+                            ),
+                          ),
+                        );
+                      },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _kPrimaryPurple,
                   shape: RoundedRectangleBorder(
@@ -156,6 +186,8 @@ class _OrderScreenState extends State<OrderScreen> {
   Widget _buildProductCard() {
     final productName = widget.produit.nom;
     final productPriceText = '${_unitPrice.toString()} FCFA';
+
+    final stock = widget.produit.quantite ?? 0;
 
     return Container(
       padding: const EdgeInsets.all(12.0),
@@ -193,12 +225,24 @@ class _OrderScreenState extends State<OrderScreen> {
                   'Prix : $productPriceText',
                   style: const TextStyle(color: Colors.grey, fontSize: 14),
                 ),
+                const SizedBox(height: 4.0),
+                Text(
+                  _inStock
+                      ? 'Stock disponible : $stock'
+                      : 'Stock épuisé',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: _inStock ? Colors.green : Colors.red,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 const SizedBox(height: 8.0),
                 Row(
                   children: [
                     _buildQuantityButton(
                       Icons.remove,
                       () => _updateQuantity(-1),
+                      enabled: _inStock && _quantity > 1,
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12.0),
@@ -210,7 +254,11 @@ class _OrderScreenState extends State<OrderScreen> {
                         ),
                       ),
                     ),
-                    _buildQuantityButton(Icons.add, () => _updateQuantity(1)),
+                    _buildQuantityButton(
+                      Icons.add,
+                      () => _updateQuantity(1),
+                      enabled: _inStock && _quantity < _maxQuantity,
+                    ),
                   ],
                 ),
               ],
@@ -245,26 +293,34 @@ class _OrderScreenState extends State<OrderScreen> {
       width: 80,
       height: 80,
       color: Colors.grey.shade200,
-      child: const Icon(
-        Icons.image_outlined,
-        color: Colors.grey,
-        size: 40,
-      ),
+      child: const Icon(Icons.image_outlined, color: Colors.grey, size: 40),
     );
   }
 
-  Widget _buildQuantityButton(IconData icon, VoidCallback onPressed) {
-    return Container(
-      decoration: BoxDecoration(
-        border: Border.all(color: Colors.grey.shade300),
-        borderRadius: BorderRadius.circular(5.0),
-      ),
-      child: InkWell(
-        onTap: onPressed,
-        child: Padding(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-          child: Icon(icon, color: Colors.black, size: 18),
+  Widget _buildQuantityButton(
+    IconData icon,
+    VoidCallback onPressed, {
+    bool enabled = true,
+  }) {
+    return Opacity(
+      opacity: enabled ? 1.0 : 0.4,
+      child: IgnorePointer(
+        ignoring: !enabled,
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey.shade300),
+            borderRadius: BorderRadius.circular(5.0),
+          ),
+          child: InkWell(
+            onTap: onPressed,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8.0,
+                vertical: 4.0,
+              ),
+              child: Icon(icon, color: Colors.black, size: 18),
+            ),
+          ),
         ),
       ),
     );

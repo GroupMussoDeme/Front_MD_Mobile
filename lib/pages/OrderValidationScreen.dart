@@ -1,84 +1,51 @@
 import 'package:flutter/material.dart';
-
-const Color _kPrimaryPurple = Color(0xFF5E2B97);
-const Color _kBackgroundColor = Colors.white;
+import 'package:musso_deme_app/models/marche_models.dart';
 
 class OrderValidationScreen extends StatelessWidget {
-  const OrderValidationScreen({super.key});
+  final Commande commande;
+  final Paiement paiement;
+
+  const OrderValidationScreen({
+    super.key,
+    required this.commande,
+    required this.paiement,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final produitNom = commande.produit?.nom ?? 'Produit';
+    final montant = paiement.montant?.toStringAsFixed(0) ?? '-';
+    final mode = paiement.modePaiement ?? '';
+
     return Scaffold(
-      backgroundColor: _kBackgroundColor,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(100.0),
-        child: Container(
-          height: 100,
-          decoration: const BoxDecoration(
-            color: _kPrimaryPurple,
-            borderRadius: BorderRadius.only(
-              bottomLeft: Radius.circular(25.0),
-              bottomRight: Radius.circular(25.0),
-            ),
-          ),
-          child: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 15.0),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Validation',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.notifications_none,
-                        color: Colors.white),
-                    onPressed: () {},
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+      appBar: AppBar(
+        title: const Text('Commande validée'),
       ),
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Text(
-              'Votre commande est\nbien réservée',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.check_circle, color: Colors.green, size: 80),
+              const SizedBox(height: 20),
+              Text(
+                'Votre commande de $produitNom a bien été enregistrée.',
+                textAlign: TextAlign.center,
               ),
-            ),
-            const SizedBox(height: 80),
-            Container(
-              width: 150,
-              height: 150,
-              decoration: const BoxDecoration(
-                color: _kPrimaryPurple,
-                shape: BoxShape.circle,
+              const SizedBox(height: 10),
+              Text('Montant : $montant FCFA'),
+              Text('Mode de paiement : $mode'),
+              const SizedBox(height: 30),
+              ElevatedButton(
+                onPressed: () => Navigator.popUntil(
+                  context,
+                  (route) => route.isFirst,
+                ),
+                child: const Text('Retour à l\'accueil'),
               ),
-              child: const Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 80,
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

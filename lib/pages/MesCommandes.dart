@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
+import 'package:musso_deme_app/services/auth_service.dart';
+import 'package:musso_deme_app/services/session_service.dart';
 
 const Color primaryPurple = Color(0xFF491B6D);
 const Color backgroundColor = Color(0xFFF0F0F0);
@@ -19,17 +21,32 @@ class MesCommandesScreen extends StatefulWidget {
 class _MesCommandesScreenState extends State<MesCommandesScreen> {
   int _selectedIndex = 0;
 
-  final FemmeRuraleApi _api = FemmeRuraleApi();
   late Future<List<Commande>> _futureCommandes;
 
   @override
   void initState() {
     super.initState();
-    _loadCommandes();
+    _futureCommandes = _loadCommandes();
   }
 
-  void _loadCommandes() {
-    _futureCommandes = _api.getMesCommandes();
+  Future<FemmeRuraleApi> _buildApi() async {
+    final token = await SessionService.getAccessToken();
+    final userId = await SessionService.getUserId();
+
+    if (token == null || token.isEmpty || userId == null) {
+      throw Exception('Session expirée ou utilisateur non connecté');
+    }
+
+    return FemmeRuraleApi(
+      baseUrl: AuthService.baseUrl,
+      token: token,
+      femmeId: userId,
+    );
+  }
+
+  Future<List<Commande>> _loadCommandes() async {
+    final api = await _buildApi();
+    return api.getMesCommandes();
   }
 
   void _onItemTapped(int index) {
@@ -174,8 +191,7 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
                           _statusLabel(commande.statutCommande);
                       final statusColor =
                           _statusColor(commande.statutCommande);
-                      final dateFormatted =
-                          _formatDate(commande.dateAchat);
+                      final dateFormatted = _formatDate(commande.dateAchat);
 
                       // On s’appuie sur vendeuseNom de Commande
                       final vendeur =
@@ -424,7 +440,8 @@ class CommandeCard extends StatelessWidget {
                   ? BorderSide(color: textColor, width: 1.5)
                   : BorderSide.none,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding:
+                const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             elevation: isOutline ? 0 : 2,
           ),
         ),

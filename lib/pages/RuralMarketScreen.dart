@@ -11,6 +11,8 @@ import 'package:musso_deme_app/pages/ProfileScreen.dart';
 
 import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
+import 'package:musso_deme_app/services/auth_service.dart';
+import 'package:musso_deme_app/services/session_service.dart';
 
 const Color primaryPurple = Color(0xFF5A1489);
 const Color cardBackground = Colors.white;
@@ -29,17 +31,38 @@ class RuralMarketScreen extends StatefulWidget {
 class _RuralMarketScreenState extends State<RuralMarketScreen> {
   int _selectedIndex = 0;
 
-  final FemmeRuraleApi _api = FemmeRuraleApi();
   late Future<List<Produit>> _futureProduits;
 
   @override
   void initState() {
     super.initState();
-    _loadProduits();
+    _futureProduits = _loadProduits();
   }
 
-  void _loadProduits() {
-    _futureProduits = _api.getTousLesProduits();
+  Future<FemmeRuraleApi> _buildApi() async {
+    final token = await SessionService.getAccessToken();
+    final userId = await SessionService.getUserId();
+
+    if (token == null || token.isEmpty || userId == null) {
+      throw Exception('Session expirée ou utilisateur non connecté');
+    }
+
+    return FemmeRuraleApi(
+      baseUrl: AuthService.baseUrl,
+      token: token,
+      femmeId: userId,
+    );
+  }
+
+  Future<List<Produit>> _loadProduits() async {
+    final api = await _buildApi();
+    return api.getTousLesProduits();
+  }
+
+  void _refreshProduits() {
+    setState(() {
+      _futureProduits = _loadProduits();
+    });
   }
 
   void _onItemTapped(int index) {
@@ -168,7 +191,8 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
                         if (produits.isEmpty) {
                           return const Padding(
                             padding: EdgeInsets.all(8.0),
-                            child: Text('Aucun produit disponible pour le moment'),
+                            child: Text(
+                                'Aucun produit disponible pour le moment'),
                           );
                         }
 
@@ -268,7 +292,7 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
                   builder: (context) => const ProductPublishScreen(),
                 ),
               );
-              setState(_loadProduits);
+              _refreshProduits();
             },
           ),
           _ActionButton(
@@ -439,9 +463,8 @@ class MarketProductCard extends StatelessWidget {
   Widget _buildProductImage(double width) {
     final img = produit.image;
     if (img != null && img.isNotEmpty) {
-      final url = img.startsWith('http')
-          ? img
-          : 'http://10.0.2.2:8080/uploads/$img';
+      final url =
+          img.startsWith('http') ? img : 'http://10.0.2.2:8080/uploads/$img';
 
       return Image.network(
         url,

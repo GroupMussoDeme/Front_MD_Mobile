@@ -2,12 +2,13 @@ class Produit {
   final int? id;
   final String nom;
   final String? description;
-  final String? image;        // nom du fichier ou URL
+  final String? image;
   final int? quantite;
   final double? prix;
-  final String? typeProduit;  // ALIMENTAIRE, ARTISANAT, ...
+  final String? typeProduit;
+  final String? audioGuideUrl;
 
-  // Optionnel : id de la femme rurale
+  // 🆕 ajoute ça :
   final int? femmeRuraleId;
 
   Produit({
@@ -18,18 +19,21 @@ class Produit {
     this.quantite,
     this.prix,
     this.typeProduit,
-    this.femmeRuraleId,
+    this.audioGuideUrl,
+    this.femmeRuraleId, // 🆕
   });
 
   factory Produit.fromJson(Map<String, dynamic> json) {
     return Produit(
       id: json['id'] as int?,
-      nom: json['nom'] ?? '',
+      nom: json['nom'] as String? ?? '',
       description: json['description'] as String?,
       image: json['image'] as String?,
       quantite: json['quantite'] as int?,
       prix: (json['prix'] as num?)?.toDouble(),
       typeProduit: json['typeProduit'] as String?,
+      audioGuideUrl: json['audioGuideUrl'] as String?,
+      // 🆕 doit matcher ProduitDTO.getFemmeRuraleId()
       femmeRuraleId: json['femmeRuraleId'] as int?,
     );
   }
@@ -43,59 +47,69 @@ class Produit {
       'quantite': quantite,
       'prix': prix,
       'typeProduit': typeProduit,
-      'femmeRuraleId': femmeRuraleId,
+      'audioGuideUrl': audioGuideUrl,
+      'femmeRuraleId': femmeRuraleId, // 🆕
     };
   }
 }
 
-
 class Commande {
-  final int id;
+  final int? id;
   final int quantite;
-  final String? statutCommande;    // EN_COURS, LIVREE, ANNULEE...
-  final DateTime dateAchat;
-  final int acheteurId;
-  final int produitId;
-  final int? paiementId;
-  final double? montantTotal;
-
-  // >>> NOUVEAU : produit complet renvoyé par le backend
+  /// Statut : "EN_ATTENTE", "EN_COURS", "LIVRE", "ANNULE"
+  final String? statutCommande;
+  final DateTime? dateAchat;
   final Produit? produit;
 
-  // optionnel : nom de la vendeuse si tu l’ajoutes côté backend
+  /// Infos vendeuse (femme rurale qui a publié le produit)
+  final int? vendeuseId;
   final String? vendeuseNom;
 
+  /// Montant total = prix * quantite
+  final double? montantTotal;
+
   Commande({
-    required this.id,
+    this.id,
     required this.quantite,
     this.statutCommande,
-    required this.dateAchat,
-    required this.acheteurId,
-    required this.produitId,
-    this.paiementId,
-    this.montantTotal,
+    this.dateAchat,
     this.produit,
+    this.vendeuseId,
     this.vendeuseNom,
+    this.montantTotal,
   });
 
   factory Commande.fromJson(Map<String, dynamic> json) {
+    final produitJson = json['produit'] as Map<String, dynamic>?;
+    final produit = produitJson != null ? Produit.fromJson(produitJson) : null;
+
+    // nom de la vendeuse (backend : vendeuseNom)
+    final vendeuseNom =
+        json['vendeuseNom'] as String? ?? json['vendeurNom'] as String?;
+
+    // id vendeuse si présent
+    final vendeuseId = json['vendeuseId'] as int?;
+
+    double? montant =
+        (json['montantTotal'] as num?)?.toDouble(); // si déjà calculé par backend
+
+    // Si montantTotal non fourni, calcule localement
+    if (montant == null && produit != null && produit.prix != null) {
+      final qte = json['quantite'] as int? ?? 0;
+      montant = produit.prix! * qte;
+    }
+
     return Commande(
-      id: json['id'] as int,
-      quantite: json['quantite'] as int,
+      id: json['id'] as int?,
+      quantite: json['quantite'] as int? ?? 0,
       statutCommande: json['statutCommande'] as String?,
-      dateAchat: DateTime.parse(json['dateAchat'] as String),
-      acheteurId: json['acheteurId'] as int,
-      produitId: json['produitId'] as int,
-      paiementId: json['paiementId'] as int?,
-      montantTotal: (json['montantTotal'] as num?)?.toDouble(),
-
-      // ici on parse l’objet produit si le backend l’envoie
-      produit: json['produit'] != null
-          ? Produit.fromJson(json['produit'] as Map<String, dynamic>)
+      dateAchat: json['dateAchat'] != null
+          ? DateTime.tryParse(json['dateAchat'] as String)
           : null,
-
-      // si tu ajoutes ce champ dans ton DTO / JSON
-      vendeuseNom: json['vendeuseNom'] as String?,
+      produit: produit,
+      vendeuseId: vendeuseId,
+      vendeuseNom: vendeuseNom,
+      montantTotal: montant,
     );
   }
 
@@ -104,21 +118,23 @@ class Commande {
       'id': id,
       'quantite': quantite,
       'statutCommande': statutCommande,
-      'dateAchat': dateAchat.toIso8601String(),
-      'acheteurId': acheteurId,
-      'produitId': produitId,
-      'paiementId': paiementId,
-      'montantTotal': montantTotal,
+      'dateAchat': dateAchat?.toIso8601String(),
       'produit': produit?.toJson(),
+      'vendeuseId': vendeuseId,
       'vendeuseNom': vendeuseNom,
+      'montantTotal': montantTotal,
     };
   }
 }
 
+
+
+/// Représente un paiement d’une commande
 class Paiement {
   final int? id;
   final DateTime? datePaiement;
-  final String? modePaiement; // ORANGE_MONEY / MOOV_MONEY / ESPECE ...
+  /// Mode de paiement : "ORANGE_MONEY", "MOOV_MONEY", "ESPECE", etc.
+  final String? modePaiement;
   final double? montant;
   final int? acheteurId;
 
@@ -134,7 +150,7 @@ class Paiement {
     return Paiement(
       id: json['id'] as int?,
       datePaiement: json['datePaiement'] != null
-          ? DateTime.parse(json['datePaiement'] as String)
+          ? DateTime.tryParse(json['datePaiement'] as String)
           : null,
       modePaiement: json['modePaiement'] as String?,
       montant: json['montant'] != null

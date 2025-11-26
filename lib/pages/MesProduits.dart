@@ -5,6 +5,8 @@ import 'package:musso_deme_app/widgets/RoundedPurpleContainer.dart';
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
 import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/pages/product_publish_screen.dart';
+import 'package:musso_deme_app/services/auth_service.dart';
+import 'package:musso_deme_app/services/session_service.dart';
 
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Color(0xFFF0F0F0);
@@ -22,17 +24,38 @@ class ProductsScreen extends StatefulWidget {
 
 class _ProductsScreenState extends State<ProductsScreen> {
   int _selectedIndex = 0;
-  final FemmeRuraleApi _api = FemmeRuraleApi();
   late Future<List<Produit>> _futureProduits;
 
   @override
   void initState() {
     super.initState();
-    _loadMesProduits();
+    _futureProduits = _loadMesProduits();
   }
 
-  void _loadMesProduits() {
-    _futureProduits = _api.getMesProduits();
+  Future<FemmeRuraleApi> _buildApi() async {
+    final token = await SessionService.getAccessToken();
+    final userId = await SessionService.getUserId();
+
+    if (token == null || token.isEmpty || userId == null) {
+      throw Exception('Session expirée ou utilisateur non connecté');
+    }
+
+    return FemmeRuraleApi(
+      baseUrl: AuthService.baseUrl,
+      token: token,
+      femmeId: userId,
+    );
+  }
+
+  Future<List<Produit>> _loadMesProduits() async {
+    final api = await _buildApi();
+    return api.getMesProduits();
+  }
+
+  void _refresh() {
+    setState(() {
+      _futureProduits = _loadMesProduits();
+    });
   }
 
   void _onItemTapped(int index) {
@@ -43,6 +66,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
   }
 
   Future<void> _supprimerProduit(Produit produit) async {
+    final api = await _buildApi();
+
     if (produit.id == null) return;
 
     final confirm = await showDialog<bool>(
@@ -66,12 +91,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
     if (confirm != true) return;
 
     try {
-      await _api.supprimerProduit(produitId: produit.id!);
+      await api.supprimerProduit(produitId: produit.id!);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Produit supprimé avec succès')),
       );
-      setState(_loadMesProduits);
+      _refresh();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -88,7 +113,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
       ),
     );
     if (result != null && mounted) {
-      setState(_loadMesProduits);
+      _refresh();
     }
   }
 
@@ -281,9 +306,8 @@ class ProductCard extends StatelessWidget {
   Widget _buildProductImage() {
     final img = product.image;
     if (img != null && img.isNotEmpty) {
-      final url = img.startsWith('http')
-          ? img
-          : 'http://10.0.2.2:8080/uploads/$img';
+      final url =
+          img.startsWith('http') ? img : 'http://10.0.2.2:8080/uploads/$img';
 
       return Image.network(
         url,
