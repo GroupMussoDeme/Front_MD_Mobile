@@ -7,9 +7,10 @@ class Produit {
   final double? prix;
   final String? typeProduit;
   final String? audioGuideUrl;
-
-  // 🆕 ajoute ça :
   final int? femmeRuraleId;
+
+  /// ✅ nouvelle propriété
+  final String? unite; // ex. "kg", "L", "sachet"
 
   Produit({
     this.id,
@@ -20,7 +21,8 @@ class Produit {
     this.prix,
     this.typeProduit,
     this.audioGuideUrl,
-    this.femmeRuraleId, // 🆕
+    this.femmeRuraleId,
+    this.unite, // ✅
   });
 
   factory Produit.fromJson(Map<String, dynamic> json) {
@@ -33,8 +35,8 @@ class Produit {
       prix: (json['prix'] as num?)?.toDouble(),
       typeProduit: json['typeProduit'] as String?,
       audioGuideUrl: json['audioGuideUrl'] as String?,
-      // 🆕 doit matcher ProduitDTO.getFemmeRuraleId()
       femmeRuraleId: json['femmeRuraleId'] as int?,
+      unite: json['unite'] as String?, // ✅ doit matcher ProduitDTO.unite
     );
   }
 
@@ -48,10 +50,12 @@ class Produit {
       'prix': prix,
       'typeProduit': typeProduit,
       'audioGuideUrl': audioGuideUrl,
-      'femmeRuraleId': femmeRuraleId, // 🆕
+      'femmeRuraleId': femmeRuraleId,
+      'unite': unite, // ✅
     };
   }
 }
+
 
 class Commande {
   final int? id;
@@ -170,3 +174,120 @@ class Paiement {
     };
   }
 }
+
+class Cooperative {
+  final int? id;
+  final String nom;
+  final String? description;
+  final int nbrMembres;
+  final List<Appartenance>? appartenances;
+
+  Cooperative({
+    this.id,
+    required this.nom,
+    this.description,
+    required this.nbrMembres,
+    this.appartenances,
+  });
+
+  factory Cooperative.fromJson(Map<String, dynamic> json) {
+    final List<Appartenance>? appartenances;
+    if (json['appartenances'] != null) {
+      final list = json['appartenances'] as List<dynamic>;
+      appartenances = list
+          .map((e) => Appartenance.fromJson(e as Map<String, dynamic>))
+          .toList();
+    } else {
+      appartenances = null;
+    }
+
+    return Cooperative(
+      id: json['id'] as int?,
+      nom: json['nom'] as String? ?? '',
+      description: json['description'] as String?,
+      nbrMembres: json['nbrMembres'] as int? ?? 0,
+      appartenances: appartenances,
+    );
+  }
+}
+
+class Appartenance {
+  final int? id;
+  final String? dateIntegration; // on garde String, tu peux parser en DateTime ensuite si besoin
+  final int? coperativeId;
+  final int? femmeRuraleId;
+
+  Appartenance({
+    this.id,
+    this.dateIntegration,
+    this.coperativeId,
+    this.femmeRuraleId,
+  });
+
+  factory Appartenance.fromJson(Map<String, dynamic> json) {
+    return Appartenance(
+      id: json['id'] as int?,
+      dateIntegration: json['dateIntegration'] as String?,
+      coperativeId: json['coperativeId'] as int?,     // même orthographe que le DTO Java
+      femmeRuraleId: json['femmeRuraleId'] as int?,
+    );
+  }
+}
+
+class ChatVocal {
+  final int? id;
+  final String audioUrl;
+  final String? duree;
+
+  final int? expediteurId;
+  final String? expediteurNom;
+  final String? expediteurPrenom;
+
+  final int? destinataireId;
+  final String? destinataireNom;
+  final String? destinatairePrenom;
+
+  final int? cooperativeId;
+  final String? cooperativeNom;
+
+  final String? dateEnvoi;
+  final bool lu;
+  final String? dateLecture;
+
+  ChatVocal({
+    this.id,
+    required this.audioUrl,
+    this.duree,
+    this.expediteurId,
+    this.expediteurNom,
+    this.expediteurPrenom,
+    this.destinataireId,
+    this.destinataireNom,
+    this.destinatairePrenom,
+    this.cooperativeId,
+    this.cooperativeNom,
+    this.dateEnvoi,
+    required this.lu,
+    this.dateLecture,
+  });
+
+  factory ChatVocal.fromJson(Map<String, dynamic> json) {
+    return ChatVocal(
+      id: json['id'] as int?,
+      audioUrl: json['audioUrl'] as String? ?? '',
+      duree: json['duree'] as String?,
+      expediteurId: json['expediteurId'] as int?,
+      expediteurNom: json['expediteurNom'] as String?,
+      expediteurPrenom: json['expediteurPrenom'] as String?,
+      destinataireId: json['destinataireId'] as int?,
+      destinataireNom: json['destinataireNom'] as String?,
+      destinatairePrenom: json['destinatairePrenom'] as String?,
+      cooperativeId: json['cooperativeId'] as int?,
+      cooperativeNom: json['cooperativeNom'] as String?,
+      dateEnvoi: json['dateEnvoi'] as String?,
+      lu: json['lu'] as bool? ?? false,
+      dateLecture: json['dateLecture'] as String?,
+    );
+  }
+}
+

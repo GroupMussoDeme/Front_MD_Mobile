@@ -26,7 +26,8 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
   final _productNameController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _priceController = TextEditingController();
-  final _quantityController = TextEditingController(); // <-- NOUVEAU
+  final _quantityController = TextEditingController();
+  final _unitController = TextEditingController(); // ✅ NOUVEAU
 
   FemmeRuraleApi? _api;
   bool _isSubmitting = false;
@@ -42,17 +43,18 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
       final p = widget.existingProduct!;
       _productNameController.text = p.nom;
       _descriptionController.text = p.description ?? '';
-      _priceController.text =
-          p.prix != null ? p.prix!.toStringAsFixed(0) : '';
+      _priceController.text = p.prix != null ? p.prix!.toStringAsFixed(0) : '';
       _quantityController.text =
-          p.quantite != null ? p.quantite!.toString() : ''; // <-- NOUVEAU
+          p.quantite != null ? p.quantite!.toString() : '';
+      _unitController.text = p.unite ?? ''; // ✅ pré-remplissage unité
       _hasProductImage = p.image != null && p.image!.isNotEmpty;
     } else {
       // MODE CRÉATION : champs vides, pas d’image
       _productNameController.text = '';
       _descriptionController.text = '';
       _priceController.text = '';
-      _quantityController.text = ''; // <-- NOUVEAU
+      _quantityController.text = '';
+      _unitController.text = ''; // ✅
       _hasProductImage = false;
     }
   }
@@ -87,8 +89,8 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
     _productNameController.dispose();
     _descriptionController.dispose();
     _priceController.dispose();
-    _quantityController
-        .dispose(); // <-- NOUVEAU : ne pas oublier de le libérer
+    _quantityController.dispose();
+    _unitController.dispose(); // ✅ libération
     super.dispose();
   }
 
@@ -152,12 +154,18 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
       if (quantite == null || quantite <= 0) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content:
-                  Text('Quantité invalide. Veuillez saisir un entier > 0.')),
+            content:
+                Text('Quantité invalide. Veuillez saisir un entier > 0.'),
+          ),
         );
         setState(() => _isSubmitting = false);
         return;
       }
+
+      // Unité (optionnelle, mais nettoyée)
+      final String uniteText = _unitController.text.trim();
+      final String? unite =
+          uniteText.isEmpty ? null : uniteText; // ✅ on envoie null si vide
 
       // 1) Gérer le nom de fichier de l’image
       String? imageName = existingImageName;
@@ -180,10 +188,11 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
           nom: nom,
           description: description,
           prix: prix,
-          quantite: quantite, // <-- on envoie la vraie quantité
+          quantite: quantite,
           typeProduit: 'ALIMENTAIRE', // valeur par défaut
           image: imageName,
           audioGuideUrl: null,
+          unite: unite, // ✅ ENVOI DE L’UNITÉ
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -198,10 +207,11 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
           nom: nom,
           description: description,
           prix: prix,
-          quantite: quantite, // <-- met à jour le stock avec la valeur saisie
+          quantite: quantite,
           typeProduit: existing.typeProduit ?? 'ALIMENTAIRE',
           image: imageName,
           audioGuideUrl: null,
+          unite: unite, // ✅ ENVOI DE L’UNITÉ
         );
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -339,6 +349,17 @@ class _ProductPublishScreenState extends State<ProductPublishScreen> {
                           }
                           return null;
                         },
+                      ),
+                      const SizedBox(height: 20),
+
+                      // ✅ Unité (champ texte libre)
+                      _buildInputField(
+                        context,
+                        controller: _unitController,
+                        labelText: 'Unité (kg, litre, sachet…)',
+                        keyboardType: TextInputType.text,
+                        icon: Icons.scale, // ou autres
+                        // validator: (value) => null, // optionnel (non obligatoire)
                       ),
                       const SizedBox(height: 20),
 

@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
+
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
+import 'package:musso_deme_app/utils/navigation_utils.dart';
+import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:musso_deme_app/pages/ProfileScreen.dart';
+
 import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/pages/OrderValidationScreen.dart';
 
@@ -43,6 +48,23 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
   void _onItemTapped(int index) {
     setState(() => _selectedIndex = index);
+
+    if (index == 0) {
+      // Accueil
+      navigateToHome(context);
+    } else if (index == 1) {
+      // Formations
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+      );
+    } else if (index == 2) {
+      // Profil
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      );
+    }
   }
 
   String _mapPaymentOptionToBackend(PaymentOption option) {
@@ -57,6 +79,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   }
 
   Future<void> _confirmOrder() async {
+    // Vérif de stock local (par sécurité côté front)
     final stock = widget.produit.quantite ?? 999999;
     if (widget.quantity > stock) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -108,14 +131,13 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         femmeId: userId,
       );
 
-      // 3) Créer la commande
+      // 3) Créer la commande (acheteuse = femmeId courant)
       final commande = await api.passerCommande(
         produitId: widget.produit.id!,
         quantite: widget.quantity,
       );
 
-      // 4) Créer le paiement (sauf si tu veux faire un flux différent
-      //    pour "Paiement après livraison")
+      // 4) Créer le paiement
       final modeString = _mapPaymentOptionToBackend(selected);
 
       final paiement = await api.payerCommande(
@@ -233,7 +255,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
     return Scaffold(
       backgroundColor: _kBackgroundColor,
 
-      // En-tête
+      // ===== En-tête violet arrondi =====
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
         child: Container(
@@ -279,6 +301,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         ),
       ),
 
+      // ===== Contenu =====
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -290,9 +313,9 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
                 Text(
                   'Methode de paiement',
                   style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
                 ),
                 const SizedBox(width: 8),
                 const Icon(Icons.volume_up, color: _kPrimaryPurple, size: 28),

@@ -5,18 +5,21 @@ import 'package:musso_deme_app/pages/NewCooperativeScreen.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
 
-// NOTE: J'ai retiré l'import de 'HomeScreen.dart' et 'video_player' 
-// car ils ne sont pas nécessaires pour la CooperativePage elle-même.
-// J'ai renommé la couleur pour la clarté.
+import 'package:musso_deme_app/models/marche_models.dart';
+import 'package:musso_deme_app/services/femme_rurale_api.dart';
+import 'package:musso_deme_app/services/auth_service.dart';
+import 'package:musso_deme_app/services/session_service.dart';
+
 const Color primaryPurple = Color(0xFF4A0072);
 const Color neutralWhite = Colors.white;
 
-// --- Widget de chaque ligne de discussion (modifié pour la redirection) ----
+// --- Widget de chaque ligne de discussion ----
 class CooperativeTile extends StatelessWidget {
   final String imagePath;
   final String title;
   final String subtitle;
   final String date;
+  final VoidCallback? onTap;
 
   const CooperativeTile({
     super.key,
@@ -24,6 +27,7 @@ class CooperativeTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.date,
+    this.onTap,
   });
 
   @override
@@ -31,8 +35,7 @@ class CooperativeTile extends StatelessWidget {
     return ListTile(
       leading: CircleAvatar(
         radius: 26,
-        // Assurez-vous que l'asset 'assets/images/cooperative.png' existe et est déclaré dans pubspec.yaml
-        backgroundImage: AssetImage(imagePath), 
+        backgroundImage: AssetImage(imagePath),
       ),
       title: Text(
         title,
@@ -43,21 +46,13 @@ class CooperativeTile extends StatelessWidget {
         date,
         style: const TextStyle(color: Colors.black54, fontSize: 13),
       ),
-      onTap: () {
-        // Redirection vers GroupChatScreen lors du clic sur une coopérative
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const GroupChatScreen(),
-          ),
-        );
-      },
+      onTap: onTap,
     );
   }
 }
 
 // *****************************************************************
-// Page Principale (mise à jour avec l'en-tête et le footer de FormationVideosPage)
+// Page Principale : CooperativePage
 // *****************************************************************
 class CooperativePage extends StatefulWidget {
   const CooperativePage({super.key});
@@ -67,16 +62,43 @@ class CooperativePage extends StatefulWidget {
 }
 
 class _CooperativePageState extends State<CooperativePage> {
-  // L'index sélectionné (simulé ici, à connecter à un contrôleur de navigation si besoin)
-  int _selectedIndex = 0; 
-  
+  int _selectedIndex = 0;
+
+  late Future<List<Cooperative>> _futureCooperatives;
+
+  @override
+  void initState() {
+    super.initState();
+    _futureCooperatives = _loadCooperatives();
+  }
+
+  Future<FemmeRuraleApi> _buildApi() async {
+    final token = await SessionService.getAccessToken();
+    final userId = await SessionService.getUserId();
+
+    if (token == null || token.isEmpty || userId == null) {
+      throw Exception('Session expirée ou utilisateur non connecté');
+    }
+
+    return FemmeRuraleApi(
+      baseUrl: AuthService.baseUrl,
+      token: token,
+      femmeId: userId,
+    );
+  }
+
+  Future<List<Cooperative>> _loadCooperatives() async {
+    final api = await _buildApi();
+    return api.getMesCooperatives();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: neutralWhite,
       body: Column(
         children: [
-          // 1. HEADER (Remplacement du Padding et Row précédents)
+          // 1. HEADER
           Container(
             decoration: const BoxDecoration(
               color: primaryPurple,
@@ -92,7 +114,7 @@ class _CooperativePageState extends State<CooperativePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Icône de retour (flèche)
+                      // Icône de retour
                       IconButton(
                         icon: const Icon(
                           Icons.arrow_back,
@@ -100,37 +122,35 @@ class _CooperativePageState extends State<CooperativePage> {
                           size: 26,
                         ),
                         onPressed: () {
-                          Navigator.of(context).pop(); 
+                          Navigator.of(context).pop();
                         },
                       ),
-                      // Titre de la page (Coopérative)
                       const Text(
-                        "Coopératives", // Changé de "Vidéos de formations"
+                        "Coopératives",
                         style: TextStyle(
                           color: neutralWhite,
                           fontWeight: FontWeight.bold,
                           fontSize: 22,
                         ),
                       ),
-                      // Bouton d'ajout (Icône +)
+                      // Bouton d'ajout (+)
                       Container(
                         decoration: const BoxDecoration(
-                          color: primaryPurple, // Déjà dans le conteneur principal, mais peut être utile
+                          color: primaryPurple,
                           shape: BoxShape.circle,
                         ),
                         child: IconButton(
-                          // Remplacement de l'icône volume_up par l'icône add
-                          icon: const Icon(Icons.add, color: neutralWhite, size: 26),
+                          icon: const Icon(Icons.add,
+                              color: neutralWhite, size: 26),
                           onPressed: () {
-                            // Action pour ajouter une coopérative
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => NewCooperativeScreenRevised(),
+                                builder: (context) =>
+                                    NewCooperativeScreen(),
                               ),
                             );
                           },
-
                         ),
                       ),
                     ],
@@ -139,100 +159,90 @@ class _CooperativePageState extends State<CooperativePage> {
               ),
             ),
           ),
-          
-          // 2. CORPS DE LA PAGE (Liste des messages)
+
+          // 2. Corps : Liste des coopératives (FutureBuilder)
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.symmetric(horizontal: 0), // Enlève le padding du ListView si ListTile en a
-              children: const [
-                CooperativeTile(
-                  imagePath: 'assets/images/cooperative.png',
-                  title: 'MussoDèmè',
-                  subtitle: 'Aïssa : Bonjour',
-                  date: '26/10/2025',
-                ),
-                CooperativeTile(
-                  imagePath: 'assets/images/cooperative.png',
-                  title: 'MussoSutura',
-                  subtitle: 'Aïssa : 🎙️1:07',
-                  date: '26/10/2025',
-                ),
-                CooperativeTile(
-                  imagePath: 'assets/images/cooperative.png',
-                  title: 'ANMUSOW',
-                  subtitle: 'Aïssa : 📹 Appel vidéo',
-                  date: '26/10/2025',
-                ),
-                CooperativeTile(
-                  imagePath: 'assets/images/cooperative.png',
-                  title: 'Mussow',
-                  subtitle: 'Aïssa : 📞 Appel vical',
-                  date: '26/10/2025',
-                ),
-                // Ajoutez plus de CooperativeTile ici si nécessaire
-              ],
+            child: FutureBuilder<List<Cooperative>>(
+              future: _futureCooperatives,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Erreur chargement coopératives : ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final cooperatives = snapshot.data ?? [];
+                if (cooperatives.isEmpty) {
+                  return const Center(
+                    child: Text('Vous n’avez pas encore de coopératives.'),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: EdgeInsets.zero,
+                  itemCount: cooperatives.length,
+                  itemBuilder: (context, index) {
+                    final coop = cooperatives[index];
+
+                    final title = coop.nom.isNotEmpty
+                        ? coop.nom
+                        : 'Coopérative sans nom';
+
+                    final subtitle = 'Membres : ${coop.nbrMembres}';
+
+                    const date = ''; // pas de date dans le DTO pour l’instant
+
+                    return CooperativeTile(
+                      imagePath: 'assets/images/cooperative.png',
+                      title: title,
+                      subtitle: subtitle,
+                      date: date,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => GroupChatScreen(
+                              cooperativeId: coop.id,
+                              cooperativeNom: coop.nom,
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                );
+              },
             ),
           ),
         ],
       ),
 
-      // 3. FOOTER NAVIGATION (Remplacement de BottomNavigationBar)
+      // 3. FOOTER NAVIGATION
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
         onItemTapped: (index) {
           setState(() {
             _selectedIndex = index;
-            
-            // Gestion de la navigation selon l'index
+
             if (index == 0) {
-              // Navigation vers la page d'accueil
               navigateToHome(context);
             } else if (index == 1) {
-              // Navigation vers la page Formations
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+                MaterialPageRoute(
+                  builder: (context) => const FormationVideosPage(),
+                ),
               );
             }
-            // Pour l'index 2 (icône de profil), on reste sur la même page
-            // car cette page est déjà une page de coopérative
+            // index 2 : profil, à gérer selon ta logique
           });
         },
-      ),
-    );
-  }
-
-  // Fonction pour construire les éléments de la navigation inférieure (adaptée de _FormationVideosPageState)
-  Widget _buildNavItem(
-    IconData icon,
-    String label,
-    int index,
-  ) {
-    bool active = (_selectedIndex == index);
-    
-    // NOTE: Pour que cet état soit fonctionnel, vous devez implémenter la navigation réelle.
-    // Pour l'instant, seul l'état visuel est géré par setState.
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedIndex = index;
-        });
-        // Ici, vous ajouteriez la logique de navigation vers l'écran correspondant (Accueil, Formation, Profil)
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 32, color: active ? neutralWhite : neutralWhite.withOpacity(0.7)),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: active ? neutralWhite : neutralWhite.withOpacity(0.7),
-              fontWeight: active ? FontWeight.bold : FontWeight.normal,
-              fontSize: 12,
-            ),
-          ),
-        ],
       ),
     );
   }

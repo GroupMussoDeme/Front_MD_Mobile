@@ -5,6 +5,11 @@ import 'package:musso_deme_app/services/femme_rurale_api.dart';
 import 'package:musso_deme_app/services/auth_service.dart';
 import 'package:musso_deme_app/services/session_service.dart';
 
+// Pour la navigation bottom bar (même logique que les autres écrans)
+import 'package:musso_deme_app/utils/navigation_utils.dart';
+import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:musso_deme_app/pages/ProfileScreen.dart';
+
 const Color primaryPurple = Color(0xFF491B6D);
 const Color backgroundColor = Color(0xFFF0F0F0);
 const Color cardColor = Colors.white;
@@ -52,6 +57,23 @@ class _MesCommandesScreenState extends State<MesCommandesScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+
+      if (index == 0) {
+        // Accueil / Home
+        navigateToHome(context);
+      } else if (index == 1) {
+        // Formations
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+        );
+      } else if (index == 2) {
+        // Profil
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
+      }
     });
   }
 
@@ -440,8 +462,7 @@ class CommandeCard extends StatelessWidget {
                   ? BorderSide(color: textColor, width: 1.5)
                   : BorderSide.none,
             ),
-            padding:
-                const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
             elevation: isOutline ? 0 : 2,
           ),
         ),

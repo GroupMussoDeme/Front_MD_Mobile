@@ -1,157 +1,234 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/widgets/RoundedPurpleContainer.dart';
-import 'package:musso_deme_app/pages/AddMembersScreen.dart';
-import 'package:musso_deme_app/pages/Notifications.dart';
+import 'package:musso_deme_app/services/femme_rurale_api.dart';
+import 'package:musso_deme_app/services/auth_service.dart';
+import 'package:musso_deme_app/services/session_service.dart';
 
-// Defined colors for consistency
-const Color primaryColor = Color(0xFF6A1B9A); // Deep purple
-const Color lightPurple = Color(0xFFE1BEE7); // Light purple
+const Color _kPrimaryPurple = Color(0xFF5E2B97);
+const Color _kBackgroundColor = Colors.white;
 
-class NewCooperativeScreenRevised extends StatelessWidget {
-  // Controllers to manage the text input
-  final TextEditingController _nameController = TextEditingController();
+class NewCooperativeScreen extends StatefulWidget {
+  const NewCooperativeScreen({super.key});
+
+  @override
+  State<NewCooperativeScreen> createState() => _NewCooperativeScreenState();
+}
+
+class _NewCooperativeScreenState extends State<NewCooperativeScreen> {
+  final _formKey = GlobalKey<FormState>();
+  final TextEditingController _nomController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
 
-  NewCooperativeScreenRevised({super.key});
+  bool _isLoading = false;
+
+  @override
+  void dispose() {
+    _nomController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
+
+  Future<FemmeRuraleApi> _buildApi() async {
+    final token = await SessionService.getAccessToken();
+    final userId = await SessionService.getUserId();
+
+    if (token == null || token.isEmpty || userId == null) {
+      throw Exception('Session expirée ou utilisateur non connecté');
+    }
+
+    return FemmeRuraleApi(
+      baseUrl: AuthService.baseUrl,
+      token: token,
+      femmeId: userId,
+    );
+  }
+
+  Future<void> _submitCooperative() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final api = await _buildApi();
+
+      await api.creerCooperative(
+        nom: _nomController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+      );
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Coopérative créée avec succès')),
+      );
+
+      // On revient à la liste en signalant qu’il faut recharger
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur création coopérative : $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _cancelCreation() {
+    Navigator.pop(context, false);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // --- AppBar (Top Bar) remplacée par RoundedPurpleContainer ---
+      backgroundColor: _kBackgroundColor,
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
-        child: Stack(
-          children: [
-            const RoundedPurpleContainer(height: 100.0),
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 15.0),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                    const Spacer(),
-                    const Text(
-                      'Nouvelle Coopérative',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const Spacer(),
-                    IconButton(
-                      icon: const Icon(Icons.notifications_none, color: Colors.white),
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => NotificationsScreen(),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+        child: AppBar(
+          automaticallyImplyLeading: false,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: const RoundedPurpleContainer(height: 100.0),
+          title: Padding(
+            padding: const EdgeInsets.only(top: 10.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
-              ),
+                const Text(
+                  'Nouvelle coopérative',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  icon:
+                      const Icon(Icons.notifications_none, color: Colors.white),
+                  onPressed: () {},
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
-      // --- Body (Main Content) ---
       body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 30),
-              // --- Group Icon with Camera Button ---
-              Center(
-                child: Stack(
-                  children: [
-                    // Large Group Icon
-                    Container(
-                      padding: const EdgeInsets.all(20),
+              // Avatar coopérative (placeholder)
+              Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 70,
+                    backgroundColor: _kPrimaryPurple.withOpacity(0.1),
+                    child: const Icon(
+                      Icons.people_alt,
+                      color: _kPrimaryPurple,
+                      size: 80,
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(5),
                       decoration: const BoxDecoration(
-                        color: lightPurple,
+                        color: _kPrimaryPurple,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.people, // Group icon
-                        size: 80,
-                        color: primaryColor,
-                      ),
+                      child: const Icon(Icons.camera_alt,
+                          color: Colors.white, size: 20),
                     ),
-                    // Camera Button Overlay
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: const BoxDecoration(
-                          color: lightPurple,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 20,
-                          color: primaryColor,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 40.0),
 
-              // --- Form Fields using TextFormField ---
-              // 1. Nom du coopérative (Name)
-              _buildFormInput(
-                icon: Icons.group,
-                hintText: 'Nom du coopérative',
-                controller: _nameController,
-              ),
-              const SizedBox(height: 20),
-              
-              // 2. Description
-              _buildFormInput(
-                icon: Icons.edit,
-                hintText: 'Description',
-                controller: _descriptionController,
-              ),
-              const SizedBox(height: 20),
-              
-              // 3. Ajouter des membres (Button, no input field)
-              _buildFormButton(
-                icon: Icons.person_add,
-                text: 'Ajouter des membres',
-                onTap: () {
-                  // Redirection vers AddMembersScreen
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => AddMembersScreen(),
-                    ),
-                  );
+              // Nom
+              _buildField(
+                leadingIcon: Icons.drive_file_rename_outline,
+                controller: _nomController,
+                label: 'Nom de la coopérative',
+                validator: (value) {
+                  if (value == null || value.trim().isEmpty) {
+                    return 'Le nom est requis';
+                  }
+                  return null;
                 },
               ),
-              const SizedBox(height: 80),
 
-              // --- Action Buttons (X and Check) ---
+              // Description
+              _buildField(
+                leadingIcon: Icons.edit_note,
+                controller: _descriptionController,
+                label: 'Description',
+                maxLines: 3,
+              ),
+
+              const SizedBox(height: 50.0),
+
+              // Boutons Annuler / Valider
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildActionButton(Icons.close, primaryColor, () {
-                    // Action for Cancel (X)
-                  }),
-                  _buildActionButton(Icons.check, primaryColor, () {
-                    // Action for Submit (Check)
-                    print('Cooperative Name: ${_nameController.text}');
-                    print('Description: ${_descriptionController.text}');
-                  }),
+                  GestureDetector(
+                    onTap: _cancelCreation,
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: _kPrimaryPurple,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child:
+                          const Icon(Icons.close, color: Colors.white, size: 40),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _isLoading ? null : _submitCooperative,
+                    child: Container(
+                      width: 70,
+                      height: 70,
+                      decoration: BoxDecoration(
+                        color: _kPrimaryPurple,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.3),
+                            blurRadius: 10,
+                          ),
+                        ],
+                      ),
+                      child: _isLoading
+                          ? const Padding(
+                              padding: EdgeInsets.all(15.0),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 3,
+                              ),
+                            )
+                          : const Icon(Icons.check,
+                              color: Colors.white, size: 40),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -161,140 +238,47 @@ class NewCooperativeScreenRevised extends StatelessWidget {
     );
   }
 
-  // ------------------------------------------------------------------
-  // --- Widget helper for text input (TextField / TextFormField) ---
-  // ------------------------------------------------------------------
-  Widget _buildFormInput({
-    required IconData icon,
-    required String hintText,
+  Widget _buildField({
+    required IconData leadingIcon,
     required TextEditingController controller,
+    required String label,
+    int maxLines = 1,
+    String? Function(String?)? validator,
   }) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // Left Icon (Input Decorator)
-        Padding(
-          padding: const EdgeInsets.only(right: 15.0),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200, 
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: primaryColor, size: 24),
-          ),
-        ),
-
-        // TextFormField (The main difference)
-        Expanded(
-          child: TextFormField(
-            controller: controller,
-            decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: TextStyle(color: Colors.grey.shade600),
-              // To achieve the desired rounded/colored background look
-              filled: true,
-              fillColor: Colors.grey.shade100, // Light background for text area
-              contentPadding: const EdgeInsets.symmetric(horizontal: 15.0, vertical: 12.0),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15),
-                borderSide: BorderSide.none, // Removes the standard border line
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(15),
-                borderSide: BorderSide(color: primaryColor, width: 1.0), // Optional focus highlight
-              ),
-            ),
-          ),
-        ),
-
-        // Right Icon (Sound/Voice)
-        const Padding(
-          padding: EdgeInsets.only(left: 15.0),
-          child: Icon(Icons.volume_up, color: Colors.grey, size: 20),
-        ),
-      ],
-    );
-  }
-
-  // -----------------------------------------------------------
-  // --- Widget helper for the 'Add Members' button (different style) ---
-  // -----------------------------------------------------------
-  Widget _buildFormButton({
-    required IconData icon,
-    required String text,
-    required VoidCallback onTap,
-  }) {
-    return Row(
-      children: [
-        // Left Icon
-        Padding(
-          padding: const EdgeInsets.only(right: 15.0),
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200, // Light gray
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: primaryColor, size: 24),
-          ),
-        ),
-
-        // Button/Text Field Container
-        Expanded(
-          child: GestureDetector(
-            onTap: onTap,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(leadingIcon, color: _kPrimaryPurple, size: 28),
+          const SizedBox(width: 15.0),
+          Expanded(
             child: Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: lightPurple, // Light purple background for the button
-                borderRadius: BorderRadius.circular(15),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 15.0,
+                vertical: 5.0,
               ),
-              alignment: Alignment.centerLeft,
-              padding: const EdgeInsets.symmetric(horizontal: 15.0),
-              child: Text(
-                text,
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: primaryColor,
-                  fontWeight: FontWeight.bold,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10.0),
+                border: Border.all(color: Colors.black38),
+              ),
+              child: TextFormField(
+                controller: controller,
+                maxLines: maxLines,
+                validator: validator,
+                decoration: InputDecoration(
+                  hintText: label,
+                  border: InputBorder.none,
+                  hintStyle: const TextStyle(color: Colors.black54),
                 ),
+                style: const TextStyle(fontSize: 16),
               ),
             ),
           ),
-        ),
-
-        // Right Icon (Sound/Voice)
-        const Padding(
-          padding: EdgeInsets.only(left: 15.0),
-          child: Icon(Icons.volume_up, color: Colors.grey, size: 20),
-        ),
-      ],
-    );
-  }
-
-
-  // --- Helper Widget for Large Circular Action Buttons (X and Check) ---
-  Widget _buildActionButton(
-      IconData icon, Color color, VoidCallback onPressed) {
-    return InkWell(
-      onTap: onPressed,
-      child: Container(
-        width: 80,
-        height: 80,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          color: Colors.white,
-          size: 40,
-        ),
+          const SizedBox(width: 15.0),
+          const Icon(Icons.volume_up, color: _kPrimaryPurple, size: 24),
+        ],
       ),
     );
   }

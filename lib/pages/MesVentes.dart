@@ -7,6 +7,11 @@ import 'package:musso_deme_app/services/femme_rurale_api.dart';
 import 'package:musso_deme_app/services/auth_service.dart';
 import 'package:musso_deme_app/services/session_service.dart';
 
+// Navigation (même pattern que RuralMarket / MesCommandes)
+import 'package:musso_deme_app/utils/navigation_utils.dart';
+import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:musso_deme_app/pages/ProfileScreen.dart';
+
 const Color _kPrimaryPurple = Color(0xFF5E2B97);
 const Color _kBackgroundColor = Color(0xFFF0F0F0);
 const Color _kCardColor = Colors.white;
@@ -20,7 +25,7 @@ class MySalesScreen extends StatefulWidget {
 }
 
 class _MySalesScreenState extends State<MySalesScreen> {
-  int _selectedIndex = 1;
+  int _selectedIndex = 0;
 
   late Future<List<Commande>> _futureVentes;
 
@@ -49,15 +54,16 @@ class _MySalesScreenState extends State<MySalesScreen> {
     final api = await _buildApi();
     final userId = await SessionService.getUserId();
 
-    // Si tu ajoutes un endpoint dédié côté backend :
-    // return api.getMesVentes();
-
-    // Fallback : on récupère les commandes et on filtre localement
+    // Si côté backend tu as un endpoint dédié /mes-ventes :
+    // final toutesCommandes = await api.getMesVentes();
+    // Ici on suppose que getMesVentes renvoie les commandes
+    // dans lesquelles la femme est potentiellement vendeuse.
     final toutesCommandes = await api.getMesVentes();
 
     if (userId == null) return [];
 
-    // On considère "vente" = commande dont le produit appartient à la femme
+    // Vente = commande dont le produit appartient à la femme connectée
+    // (grâce à Produit.femmeRuraleId qu'on a ajouté dans le modèle Flutter)
     return toutesCommandes
         .where((c) => c.produit?.femmeRuraleId == userId)
         .toList();
@@ -66,12 +72,32 @@ class _MySalesScreenState extends State<MySalesScreen> {
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
+
+      if (index == 0) {
+        // Accueil
+        navigateToHome(context);
+      } else if (index == 1) {
+        // Formations
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+        );
+      } else if (index == 2) {
+        // Profil
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
+      }
     });
-    // Navigation éventuelle si nécessaire
   }
 
   String _buildQuantiteLabel(Commande commande) {
-    return '${commande.quantite} vendu';
+    final q = commande.quantite;
+    if (q <= 1) {
+      return '$q vendu';
+    }
+    return '$q vendus';
   }
 
   @override
@@ -193,6 +219,7 @@ class SalesItemCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Image du produit
             Expanded(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(10.0),
@@ -200,6 +227,8 @@ class SalesItemCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8.0),
+
+            // Nom du produit
             Text(
               nom,
               textAlign: TextAlign.center,
@@ -212,6 +241,8 @@ class SalesItemCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4.0),
+
+            // Quantité vendue
             Text(
               quantiteLabel,
               textAlign: TextAlign.center,
@@ -222,6 +253,8 @@ class SalesItemCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8.0),
+
+            // Icône son (pour lecture audio plus tard)
             const Center(
               child: Icon(
                 Icons.volume_up,

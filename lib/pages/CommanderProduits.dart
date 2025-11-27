@@ -185,7 +185,12 @@ class _OrderScreenState extends State<OrderScreen> {
 
   Widget _buildProductCard() {
     final productName = widget.produit.nom;
-    final productPriceText = '${_unitPrice.toString()} FCFA';
+
+    // ===== Prix unitaire + unité =====
+    final unitLabel = (widget.produit.unite ?? '').trim();
+    final String productPriceText = unitLabel.isEmpty
+        ? '${_unitPrice.toString()} FCFA'
+        : '${_unitPrice.toString()} FCFA / $unitLabel';
 
     final stock = widget.produit.quantite ?? 0;
 

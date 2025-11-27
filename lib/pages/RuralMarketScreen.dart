@@ -379,6 +379,13 @@ class MarketProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double cardWidth = (MediaQuery.of(context).size.width - 45) / 2;
+
+    // Construction du texte prix + unité
+    final price = produit.prix?.toStringAsFixed(0) ?? '-';
+    final unit = (produit.unite ?? '').trim();
+    final priceLabel =
+        unit.isEmpty ? 'Prix : $price FCFA' : 'Prix : $price FCFA / $unit';
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -438,7 +445,7 @@ class MarketProductCard extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Prix : ${produit.prix?.toStringAsFixed(0) ?? '-'} FCFA',
+                        priceLabel, // prix + éventuelle unité
                         style: const TextStyle(
                           color: Colors.grey,
                           fontSize: 12,

@@ -26,6 +26,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
   Widget build(BuildContext context) {
     final produit = widget.produit;
 
+    // ===== Prix + unité pour l’affichage =====
+    final price = produit.prix?.toStringAsFixed(0) ?? '-';
+    final unit = (produit.unite ?? '').trim();
+    final priceLabel =
+        unit.isEmpty ? 'Prix : $price FCFA' : 'Prix : $price FCFA / $unit';
+
     return Scaffold(
       backgroundColor: _kBackgroundColor,
 
@@ -106,12 +112,12 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             ),
             const SizedBox(height: 5.0),
 
-            // Prix + icône son
+            // Prix + unité + icône son
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Prix : ${produit.prix?.toStringAsFixed(0) ?? '-'} FCFA',
+                  priceLabel, // Prix + FCFA + / unité éventuelle
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
@@ -145,7 +151,7 @@ class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
             ),
             const SizedBox(height: 20.0),
 
-            // Vendeuse (pour l’instant statique – pourra être branché plus tard sur l’API)
+            // Vendeuse (statique pour le moment)
             Row(
               children: const [
                 Text(
