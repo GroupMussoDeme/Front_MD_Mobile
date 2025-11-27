@@ -1,5 +1,6 @@
 // lib/pages/FinancialAidScreen.dart
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
@@ -10,6 +11,7 @@ import 'appel_screen.dart';
 
 import 'package:musso_deme_app/models/institution.dart';
 import 'package:musso_deme_app/services/institution_api_service.dart';
+import 'package:musso_deme_app/widgets/VocalIcon.dart';
 
 // --- Couleurs charte ---
 const Color primaryViolet = Color(0xFF491B6D);
@@ -27,11 +29,31 @@ class FinancialAidScreen extends StatefulWidget {
 class _FinancialAidScreenState extends State<FinancialAidScreen> {
   int _selectedIndex = 0;
   late Future<List<InstitutionFinanciere>> _futureInstitutions;
+  late AudioPlayer audioPlayer;
 
   @override
   void initState() {
     super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudio();
     _futureInstitutions = InstitutionApiService.fetchInstitutions();
+  }
+
+  void _playAudio() async {
+    try {
+      // Lecture automatique de l'audio "insttution financiere.aac"
+      await Future.delayed(const Duration(milliseconds: 500)); // Petit délai avant de commencer
+      await audioPlayer.setAsset("assets/audios/insttution financiere.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
   }
 
   void _onItemTapped(int index) {
@@ -104,6 +126,12 @@ class _FinancialAidScreenState extends State<FinancialAidScreen> {
                           color: neutralWhite,
                         ),
                         onPressed: () {},
+                      ),
+                      VocalIcon(
+                        onPressed: () {
+                          // TODO: Implémenter la fonctionnalité vocale
+                        },
+                        isActive: true,
                       ),
                     ],
                   ),

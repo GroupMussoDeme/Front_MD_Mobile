@@ -1,8 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/LoginScreen.dart'; // Import de la page de connexion
 
-class EcoutePage extends StatelessWidget {
+class EcoutePage extends StatefulWidget {
   const EcoutePage({super.key});
+
+  @override
+  State<EcoutePage> createState() => _EcoutePageState();
+}
+
+class _EcoutePageState extends State<EcoutePage> {
+  late AudioPlayer audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudio();
+  }
+
+  void _playAudio() async {
+    try {
+      // Arrêter toute lecture en cours
+      await audioPlayer.stop();
+      
+      // Lecture automatique de l'audio "bienvenue 1.aac"
+      await audioPlayer.setAsset("assets/audios/bienvenue 1.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/product_publish_screen.dart';
 import 'package:musso_deme_app/pages/MesProduits.dart';
 import 'package:musso_deme_app/pages/MesCommandes.dart';
@@ -13,6 +14,7 @@ import 'package:musso_deme_app/models/marche_models.dart';
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
 import 'package:musso_deme_app/services/auth_service.dart';
 import 'package:musso_deme_app/services/session_service.dart';
+import 'package:musso_deme_app/widgets/VocalIcon.dart';
 
 const Color primaryPurple = Color(0xFF5A1489);
 const Color cardBackground = Colors.white;
@@ -30,13 +32,32 @@ class RuralMarketScreen extends StatefulWidget {
 
 class _RuralMarketScreenState extends State<RuralMarketScreen> {
   int _selectedIndex = 0;
-
   late Future<List<Produit>> _futureProduits;
+  late AudioPlayer audioPlayer;
 
   @override
   void initState() {
     super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudio();
     _futureProduits = _loadProduits();
+  }
+
+  void _playAudio() async {
+    try {
+      // Lecture automatique de l'audio "le marcher.aac"
+      await Future.delayed(const Duration(milliseconds: 500)); // Petit délai avant de commencer
+      await audioPlayer.setAsset("assets/audios/le marcher.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
   }
 
   Future<FemmeRuraleApi> _buildApi() async {
@@ -131,6 +152,12 @@ class _RuralMarketScreenState extends State<RuralMarketScreen> {
                           color: neutralWhite,
                         ),
                         onPressed: () {},
+                      ),
+                      VocalIcon(
+                        onPressed: () {
+                          // TODO: Implémenter la fonctionnalité vocale
+                        },
+                        isActive: true,
                       ),
                     ],
                   ),

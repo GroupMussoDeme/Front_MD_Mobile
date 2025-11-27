@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/Demarrage2.dart';
-import 'package:flutter_tts/flutter_tts.dart'; // Import du package TTS
 import 'package:musso_deme_app/widgets/CustomNextButton.dart'; // Import du bouton personnalisé
 
 class Demarrage extends StatefulWidget {
@@ -12,59 +12,50 @@ class Demarrage extends StatefulWidget {
 
 class _DemarrageState extends State<Demarrage> {
   late PageController _pageController;
-  late FlutterTts flutterTts; // Instance de FlutterTts
-  bool _isSpeaking = false; // Indicateur pour savoir si la lecture est en cours
+  late AudioPlayer audioPlayer; // Instance de AudioPlayer
+  bool _isPlaying = false; // Indicateur pour savoir si la lecture est en cours
 
   @override
   void initState() {
     super.initState();
     _pageController = PageController();
-    _initTts(); // Initialisation du TTS
+    audioPlayer = AudioPlayer();
+    _playAudio(); // Lecture de l'audio
     
     // La navigation automatique est maintenant gérée par la fin de la lecture vocale
   }
   
-  // Initialisation du TTS
-  void _initTts() async {
-    flutterTts = FlutterTts();
-    
-    // Configuration de la langue en bambara (bamanankan)
-    await flutterTts.setLanguage("bm"); // bm est le code ISO pour le bambara
-    
-    // Configuration d'une voix féminine si disponible
-    await flutterTts.setVoice({"name": "bm-ML-language", "locale": "bm-ML"});
-    
-    // Réglage du pitch (hauteur) un peu plus élevé pour une voix féminine
-    await flutterTts.setPitch(1.2);
-    
-    // Réglage de la vitesse de parole (0.5 = plus lent, pour une meilleure compréhension)
-    await flutterTts.setSpeechRate(0.5);
-    
-    // Gestionnaires d'événements
-    flutterTts.setStartHandler(() {
-      setState(() {
-        _isSpeaking = true;
+  // Lecture de l'audio
+  void _playAudio() async {
+    try {
+      // Gestionnaires d'événements
+      audioPlayer.playerStateStream.listen((state) {
+        if (state.processingState == ProcessingState.completed) {
+          setState(() {
+            _isPlaying = false;
+          });
+          // Navigation vers la page suivante lorsque la lecture est terminée
+          _navigateToNextPage();
+        }
       });
-    });
-    
-    flutterTts.setCompletionHandler(() {
+      
+      // Arrêter toute lecture en cours
+      await audioPlayer.stop();
+      
+      // Lecture automatique de l'audio "Bienvenue.aac" au démarrage
+      await audioPlayer.setAsset("assets/audios/Bienvenue.aac");
       setState(() {
-        _isSpeaking = false;
+        _isPlaying = true;
       });
-      // Navigation vers la page suivante lorsque la lecture est terminée
-      _navigateToNextPage();
-    });
-    
-    flutterTts.setErrorHandler((msg) {
+      await audioPlayer.play();
+    } catch (e) {
       setState(() {
-        _isSpeaking = false;
+        _isPlaying = false;
       });
       // En cas d'erreur, on navigue quand même vers la page suivante
       _navigateToNextPage();
-    });
-    
-    // Lecture automatique du message traduit en bamanankan au démarrage avec une voix féminine
-    await flutterTts.speak("I BISSIMILAH MUSODEME SANFE! NIN APPLI NIN FEMMES WERI KAN JATIGUIYE DON. SABABU NI O YIRESE, NI O BAGA WERI KAN JATIGUIYE, SABABU NI O SE KAN JATIGUIYE. I BE SE KOMA COMPTE I JEN!");
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
   }
   
   // Navigation vers la page suivante avec animation
@@ -91,7 +82,7 @@ class _DemarrageState extends State<Demarrage> {
   @override
   void dispose() {
     _pageController.dispose();
-    flutterTts.stop(); // Arrêter la lecture TTS lors de la destruction
+    audioPlayer.dispose(); // Arrêter la lecture audio lors de la destruction
     super.dispose();
   }
 

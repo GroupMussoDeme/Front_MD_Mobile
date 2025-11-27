@@ -4,6 +4,7 @@ import 'package:musso_deme_app/services/audio_service.dart';
 import 'package:musso_deme_app/models/contenu.dart';
 import 'package:musso_deme_app/services/media_api_service.dart';
 import 'package:musso_deme_app/widgets/CustomAudioPlayerBar.dart';
+import 'package:musso_deme_app/widgets/VocalIcon.dart';
 import 'package:provider/provider.dart';
 
 const Color _kPrimaryPurple = Color(0xFF491B6D);
@@ -250,6 +251,12 @@ class _BackendAudioContentScreenState extends State<BackendAudioContentScreen> {
                         ),
                       );
                     },
+                  ),
+                  VocalIcon(
+                    onPressed: () {
+                      // TODO: Implémenter la fonctionnalité vocale
+                    },
+                    isActive: true,
                   ),
                 ],
               ),

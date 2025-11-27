@@ -4,6 +4,7 @@ import 'package:musso_deme_app/pages/GroupChatScreen.dart';
 import 'package:musso_deme_app/pages/NewCooperativeScreen.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:musso_deme_app/widgets/VocalIcon.dart';
 
 // NOTE: J'ai retiré l'import de 'HomeScreen.dart' et 'video_player' 
 // car ils ne sont pas nécessaires pour la CooperativePage elle-même.
@@ -112,26 +113,12 @@ class _CooperativePageState extends State<CooperativePage> {
                           fontSize: 22,
                         ),
                       ),
-                      // Bouton d'ajout (Icône +)
-                      Container(
-                        decoration: const BoxDecoration(
-                          color: primaryPurple, // Déjà dans le conteneur principal, mais peut être utile
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          // Remplacement de l'icône volume_up par l'icône add
-                          icon: const Icon(Icons.add, color: neutralWhite, size: 26),
-                          onPressed: () {
-                            // Action pour ajouter une coopérative
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => NewCooperativeScreenRevised(),
-                              ),
-                            );
-                          },
-
-                        ),
+                      // Icône vocale
+                      VocalIcon(
+                        onPressed: () {
+                          // TODO: Implémenter la fonctionnalité vocale
+                        },
+                        isActive: true,
                       ),
                     ],
                   ),

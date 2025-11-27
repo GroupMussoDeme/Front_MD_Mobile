@@ -5,6 +5,7 @@ import 'package:musso_deme_app/services/media_api_service.dart';
 import 'package:musso_deme_app/models/contenu.dart';
 import 'package:musso_deme_app/widgets/CustomAudioPlayerBar.dart';
 import 'package:musso_deme_app/widgets/RightAudioTile.dart';
+import 'package:musso_deme_app/widgets/VocalIcon.dart';
 import 'package:provider/provider.dart';
 
 const Color primaryViolet = Color(0xFF491B6D);
@@ -128,6 +129,12 @@ class _RightsBaseScreenState extends State<RightsBaseScreen> {
                         ),
                       );
                     },
+                  ),
+                  VocalIcon(
+                    onPressed: () {
+                      // TODO: Implémenter la fonctionnalité vocale
+                    },
+                    isActive: true,
                   ),
                 ],
               ),

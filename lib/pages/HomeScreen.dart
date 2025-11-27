@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/NutritionScreen.dart';
 import 'package:musso_deme_app/pages/FinancialAidScreen.dart';
 import 'package:musso_deme_app/pages/RuralMarketScreen.dart';
@@ -7,6 +8,7 @@ import 'package:musso_deme_app/pages/cooperative_page.dart';
 import 'package:musso_deme_app/pages/ProfileScreen.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/DroitsScreens.dart';
+import 'package:musso_deme_app/widgets/VocalIcon.dart';
 import 'dart:math' as math;
 
 // --- Définition des couleurs principales ---
@@ -110,6 +112,43 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  late AudioPlayer audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudios();
+  }
+
+  void _playAudios() async {
+    try {
+      // Lecture automatique des audios dans l'ordre spécifié avec un intervalle de 2 secondes
+      await Future.delayed(const Duration(seconds: 1)); // Délai initial avant de commencer
+      await audioPlayer.setAsset("assets/audios/BienvenueAccuiel.aac");
+      await audioPlayer.play();
+      await Future.delayed(const Duration(seconds: 2));
+      
+      await audioPlayer.setAsset("assets/audios/profil.aac");
+      await audioPlayer.play();
+      await Future.delayed(const Duration(seconds: 2));
+      
+      await audioPlayer.setAsset("assets/audios/whatsapp.aac");
+      await audioPlayer.play();
+      await Future.delayed(const Duration(seconds: 2));
+      
+      await audioPlayer.setAsset("assets/audios/guide.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture des audios: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
+  }
 
   final List<Map<String, dynamic>> _menuItems = [
     {'title': 'Nutrition', 'icon': Icons.baby_changing_station},
@@ -188,6 +227,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         size: 28,
                       ),
                       onPressed: () {},
+                    ),
+                  ),
+                  // Icône vocale
+                  Positioned(
+                    right: 65,
+                    top: 10,
+                    child: VocalIcon(
+                      onPressed: () {
+                        // TODO: Implémenter la fonctionnalité vocale
+                      },
+                      isActive: true,
                     ),
                   ),
                   // Logo centré descendant un peu en bas du bandeau
