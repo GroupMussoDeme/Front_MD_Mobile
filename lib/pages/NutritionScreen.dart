@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
 import 'package:musso_deme_app/models/contenu.dart';
 import 'package:musso_deme_app/widgets/CustomAudioPlayerBar.dart';
 import 'package:musso_deme_app/services/audio_service.dart';
 import 'package:musso_deme_app/services/media_api_service.dart';
+import 'package:musso_deme_app/widgets/VocalIcon.dart';
 import 'package:provider/provider.dart';
 
 const Color primaryViolet = Color(0xFF491B6D);
@@ -19,14 +21,34 @@ class NutritionScreen extends StatefulWidget {
 
 class _NutritionScreenState extends State<NutritionScreen> {
   late Future<List<Contenu>> _futureNutritions;
+  late AudioPlayer audioPlayer;
 
   @override
   void initState() {
     super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudio();
     _futureNutritions = MediaApiService.fetchContenus(
       typeInfo: 'NUTRITION',
       typeCategorie: 'AUDIOS',
     );
+  }
+
+  void _playAudio() async {
+    try {
+      // Lecture automatique de l'audio "conseil nutrition.aac"
+      await Future.delayed(const Duration(milliseconds: 500)); // Petit délai avant de commencer
+      await audioPlayer.setAsset("assets/audios/conseil nutrition.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
   }
 
   Future<void> _playContenu(Contenu contenu, int index) async {
@@ -180,6 +202,12 @@ class _NutritionScreenState extends State<NutritionScreen> {
                           },
                           icon: const Icon(Icons.notifications_none,
                               color: neutralWhite),
+                        ),
+                        VocalIcon(
+                          onPressed: () {
+                            // TODO: Implémenter la fonctionnalité vocale
+                          },
+                          isActive: true,
                         ),
                       ],
                     ),

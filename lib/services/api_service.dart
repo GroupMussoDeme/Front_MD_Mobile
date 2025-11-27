@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 /// Config centralisée des URLs de ton backend
 class ApiConfig {
   /// Base du backend (pour l'émulateur Android, localhost = 10.0.2.2)
-  static const String backendBase = 'http://10.0.2.2:8080';
+  //static const String backendBase = 'http://10.0.2.2:8080';
+  // Base du backend (pour telephone Android, localhost = 192.168.10.103)
+   static const String backendBase = 'http://192.168.10.103:8080';
 
   /// Base des endpoints REST: /api/...
   static const String apiBase = '$backendBase/api';

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/LoginScreen.dart';
 import 'package:musso_deme_app/widgets/primary_header.dart';
 import 'package:musso_deme_app/services/auth_service.dart';
@@ -20,6 +21,7 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
   bool _isPasswordVisible = false;
   bool _isFormValid = false;
   bool _isLoading = false;
+  late AudioPlayer audioPlayer;
 
   final _formKey = GlobalKey<FormState>();
 
@@ -32,16 +34,64 @@ class _InscriptionScreenState extends State<InscriptionScreen> {
   @override
   void initState() {
     super.initState();
+    print("Initializing InscriptionScreen");
+    audioPlayer = AudioPlayer();
+    print("AudioPlayer initialized");
     _nomController.addListener(_validateForm);
     _prenomController.addListener(_validateForm);
     _phoneController.addListener(_validateForm);
     _localiteController.addListener(_validateForm);
     _passwordController.addListener(_validateForm);
     _validateForm();
+    print("InscriptionScreen initialization complete");
+    
+    // Play audio sequence after a short delay to ensure the player is ready
+    Future.delayed(const Duration(milliseconds: 500), () {
+      print("Starting audio sequence after delay");
+      _playAudioSequence();
+    });
+  }
+
+  void _playAudioSequence() async {
+    try {
+      print("Starting audio sequence...");
+      // Arrêter toute lecture en cours
+      await audioPlayer.stop();
+      
+      // Lecture automatique des audios dans l'ordre spécifié avec un intervalle de 2 secondes
+      await Future.delayed(const Duration(seconds: 1)); // Délai initial avant de commencer
+      print("Playing début_inscription.aac");
+      await audioPlayer.setAsset("assets/audios/début_inscription.aac");
+      await audioPlayer.play();
+      await Future.delayed(const Duration(seconds: 2));
+      print("Playing nom.aac");
+      await audioPlayer.setAsset("assets/audios/nom.aac");
+      await audioPlayer.play();
+      await Future.delayed(const Duration(seconds: 2));
+      print("Playing prenom.aac");
+      await audioPlayer.setAsset("assets/audios/prenom.aac");
+      await audioPlayer.play();
+      await Future.delayed(const Duration(seconds: 2));
+      print("Playing numTel.aac");
+      await audioPlayer.setAsset("assets/audios/numTel.aac");
+      await audioPlayer.play();
+      await Future.delayed(const Duration(seconds: 2));
+      print("Playing localite.aac");
+      await audioPlayer.setAsset("assets/audios/localite.aac");
+      await audioPlayer.play();
+      await Future.delayed(const Duration(seconds: 2));
+      print("Playing motDePasse.aac");
+      await audioPlayer.setAsset("assets/audios/motDePasse.aac");
+      await audioPlayer.play();
+      print("Finished audio sequence");
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
   }
 
   @override
   void dispose() {
+    audioPlayer.dispose();
     _nomController.dispose();
     _prenomController.dispose();
     _phoneController.dispose();

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/HomeScreen.dart';
 import 'package:musso_deme_app/models/contenu.dart';
 import 'package:musso_deme_app/services/media_api_service.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/widgets/TutorialVideoCard.dart';
+import 'package:musso_deme_app/widgets/VocalIcon.dart';
 
 import 'full_screen_video_page.dart'; // voir section 3 ci-dessous
 
@@ -19,16 +21,35 @@ class FormationVideosPage extends StatefulWidget {
 
 class _FormationVideosPageState extends State<FormationVideosPage> {
   int _selectedIndex = 1;
+  late AudioPlayer audioPlayer;
 
   late Future<List<Contenu>> _futureVideos;
 
   @override
   void initState() {
     super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudio();
     _futureVideos = MediaApiService.fetchContenus(
       typeInfo: 'VIDEO_FORMATION',
       typeCategorie: 'VIDEOS',
     );
+  }
+
+  void _playAudio() async {
+    try {
+      // Lecture automatique de l'audio "formation.aac"
+      await audioPlayer.setAsset("assets/audios/formation.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
   }
 
   void _onItemTapped(int index) {
@@ -139,6 +160,13 @@ class _FormationVideosPageState extends State<FormationVideosPage> {
       ),
       child: Row(
         children: [
+          VocalIcon(
+            onPressed: () {
+              // TODO: Implémenter la fonctionnalité vocale
+            },
+            isActive: true,
+          ),
+          const SizedBox(width: 10),
           GestureDetector(
             onTap: () => Navigator.pushReplacement(
               context,

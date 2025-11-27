@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/HomeScreen.dart';
 import 'package:musso_deme_app/services/session_service.dart';
 import 'package:musso_deme_app/widgets/primary_header.dart';
@@ -19,6 +20,35 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  late AudioPlayer audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudio();
+  }
+
+  void _playAudio() async {
+    try {
+      // Arrêter toute lecture en cours
+      await audioPlayer.stop();
+      
+      // Lecture automatique de l'audio "inscription.aac"
+      await audioPlayer.setAsset("assets/audios/inscription.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    _identifiantController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
   bool _isPasswordVisible = false;
   bool _isLoading = false;
 
@@ -28,15 +58,10 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
 
   void _playAudioInstruction(String fieldName) {
-    // À brancher plus tard avec TTS ou fichiers audio
+    // Arrêter toute lecture en cours
+    audioPlayer.stop();
+    
     print("DEMANDE AUDIO : Lecture de l'instruction pour '$fieldName'");
-  }
-
-  @override
-  void dispose() {
-    _identifiantController.dispose();
-    _passwordController.dispose();
-    super.dispose();
   }
 
   Future<void> _submitLogin() async {

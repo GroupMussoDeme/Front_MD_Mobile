@@ -1,10 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/pages/RightsBaseScreen.dart';
 import 'package:musso_deme_app/pages/backend_audio_content_screen.dart';
 
 /// Droits des femmes
-class DroitsDesFemmesScreen extends StatelessWidget {
+class DroitsDesFemmesScreen extends StatefulWidget {
   const DroitsDesFemmesScreen({super.key});
+
+  @override
+  State<DroitsDesFemmesScreen> createState() => _DroitsDesFemmesScreenState();
+}
+
+class _DroitsDesFemmesScreenState extends State<DroitsDesFemmesScreen> {
+  late AudioPlayer audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudio();
+  }
+
+  void _playAudio() async {
+    try {
+      // Lecture automatique de l'audio "droitdesfemme.aac"
+      await Future.delayed(const Duration(milliseconds: 500)); // Petit délai avant de commencer
+      await audioPlayer.setAsset("assets/audios/droitdesfemme.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -21,8 +53,39 @@ class DroitsDesFemmesScreen extends StatelessWidget {
 
 
 /// Droits des enfants
-class DroitsDesEnfantsScreen extends StatelessWidget {
+class DroitsDesEnfantsScreen extends StatefulWidget {
   const DroitsDesEnfantsScreen({super.key});
+
+  @override
+  State<DroitsDesEnfantsScreen> createState() => _DroitsDesEnfantsScreenState();
+}
+
+class _DroitsDesEnfantsScreenState extends State<DroitsDesEnfantsScreen> {
+  late AudioPlayer audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudio();
+  }
+
+  void _playAudio() async {
+    try {
+      // Lecture automatique de l'audio "droitdes enfant.aac"
+      await Future.delayed(const Duration(milliseconds: 500)); // Petit délai avant de commencer
+      await audioPlayer.setAsset("assets/audios/droitdes enfant.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,8 +102,39 @@ class DroitsDesEnfantsScreen extends StatelessWidget {
 
 
 /// Conseils aux nouvelles mamans
-class ConseilsNouvellesMamansScreen extends StatelessWidget {
+class ConseilsNouvellesMamansScreen extends StatefulWidget {
   const ConseilsNouvellesMamansScreen({super.key});
+
+  @override
+  State<ConseilsNouvellesMamansScreen> createState() => _ConseilsNouvellesMamansScreenState();
+}
+
+class _ConseilsNouvellesMamansScreenState extends State<ConseilsNouvellesMamansScreen> {
+  late AudioPlayer audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudio();
+  }
+
+  void _playAudio() async {
+    try {
+      // Lecture automatique de l'audio "conseil maternelle.aac"
+      await Future.delayed(const Duration(milliseconds: 500)); // Petit délai avant de commencer
+      await audioPlayer.setAsset("assets/audios/conseil maternelle.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

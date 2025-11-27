@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/GroupCallScreen.dart';
 import 'package:musso_deme_app/pages/GroupInfoScreen.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
+import 'package:musso_deme_app/pages/chat_home_screen.dart';
 
 const Color _kPrimaryPurple = Color(0xFF4A0072);
 const Color _kLightPurple = Color(0xFFEAE1F4);

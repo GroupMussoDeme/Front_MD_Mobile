@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:musso_deme_app/utils/navigation_utils.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:musso_deme_app/widgets/VocalIcon.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,6 +14,31 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int _selectedIndex = 2; // Profil sélectionné par défaut
+  late AudioPlayer audioPlayer;
+
+  @override
+  void initState() {
+    super.initState();
+    audioPlayer = AudioPlayer();
+    _playAudio();
+  }
+
+  void _playAudio() async {
+    try {
+      // Lecture automatique de l'audio "profil afficher.aac"
+      await Future.delayed(const Duration(milliseconds: 500)); // Petit délai avant de commencer
+      await audioPlayer.setAsset("assets/audios/profil afficher.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    super.dispose();
+  }
 
   void _onItemTapped(int index) {
     setState(() {
@@ -60,6 +87,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Icône vocale
+                  VocalIcon(
+                    onPressed: () {
+                      // TODO: Implémenter la fonctionnalité vocale
+                    },
+                    isActive: true,
+                  ),
                   // Flèche de retour
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -76,8 +110,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  // Espace vide pour équilibrer la disposition
-                  const SizedBox(width: 40.0),
                 ],
               ),
             ),
