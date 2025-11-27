@@ -7,12 +7,16 @@ import 'package:musso_deme_app/pages/Demarrage.dart';
 import 'package:musso_deme_app/pages/ValiderInscription.dart';
 import 'package:musso_deme_app/pages/ValiderConnexion.dart'; // Import de la nouvelle page
 import 'package:musso_deme_app/services/audio_service.dart';// Import de l'écran de test audio // Import du service audio
+import 'package:musso_deme_app/services/contact_service.dart'; // Import du service de contacts
 import 'package:provider/provider.dart'; // Import de provider
 
 void main() {
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => AudioService(),
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => AudioService()),
+        ChangeNotifierProvider(create: (context) => ContactService()),
+      ],
       child: MyApp(),
     ),
   );

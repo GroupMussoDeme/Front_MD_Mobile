@@ -87,6 +87,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
+                  // Icône vocale
+                  VocalIcon(
+                    onPressed: () {
+                      // TODO: Implémenter la fonctionnalité vocale
+                    },
+                    isActive: true,
+                  ),
                   // Flèche de retour
                   IconButton(
                     icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -102,13 +109,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       fontSize: 20.0,
                       fontWeight: FontWeight.bold,
                     ),
-                  ),
-                  // Icône vocale
-                  VocalIcon(
-                    onPressed: () {
-                      // TODO: Implémenter la fonctionnalité vocale
-                    },
-                    isActive: true,
                   ),
                 ],
               ),

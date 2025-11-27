@@ -4,6 +4,7 @@ import 'package:musso_deme_app/pages/NutritionScreen.dart';
 import 'package:musso_deme_app/pages/FinancialAidScreen.dart';
 import 'package:musso_deme_app/pages/RuralMarketScreen.dart';
 import 'package:musso_deme_app/pages/Formations.dart';
+import 'package:musso_deme_app/pages/GroupChatScreen.dart';
 import 'package:musso_deme_app/pages/cooperative_page.dart';
 import 'package:musso_deme_app/pages/ProfileScreen.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
@@ -216,6 +217,27 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
+                  // Icône chat
+                  Positioned(
+                    right: 65,
+                    top: 10,
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.chat_bubble_outline,
+                        color: neutralWhite,
+                        size: 28,
+                      ),
+                      onPressed: () {
+                        // Navigation vers le chat
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const GroupChatScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
                   // Icône notification
                   Positioned(
                     right: 15,
@@ -231,7 +253,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   // Icône vocale
                   Positioned(
-                    right: 65,
+                    left: 15,
                     top: 10,
                     child: VocalIcon(
                       onPressed: () {

@@ -595,7 +595,11 @@ class _ValiderConnexionState extends State<ValiderConnexion> {
                   color: neutralWhite,
                 ),
                 onPressed: () {
-                  _playAudioInstruction(label);
+                  if (label == "Téléphone") {
+                    _showNumericKeypad(_phoneController);
+                  } else {
+                    _playAudioInstruction(label);
+                  }
                 },
               ),
             ),

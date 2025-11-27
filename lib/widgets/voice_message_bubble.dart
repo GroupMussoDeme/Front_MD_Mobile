@@ -1,44 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:musso_deme_app/pages/GroupCallScreen.dart';
-import 'package:musso_deme_app/pages/GroupInfoScreen.dart';
-import 'package:musso_deme_app/pages/Notifications.dart';
-import 'package:musso_deme_app/pages/chat_home_screen.dart';
+import 'package:musso_deme_app/models/chat_message.dart';
 
-// Définition des couleurs de la charte graphique
-const Color _kPrimaryPurple = Color(0xFF4A0072); // Couleur violette principale
-const Color _kLightPurple = Color(0xFFEAE1F4); // Violet clair
-const Color _kBackgroundColor = Colors.white;
-
-// --- WIDGET PRINCIPAL : ÉCRAN DE CHAT DE GROUPE ---
-class GroupChatScreen extends StatelessWidget {
-  const GroupChatScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const ChatHomeScreen();
-  }
-}
-
-
-// --- WIDGET : BULLE DE MESSAGE VOCAL (modifié pour utiliser la charte graphique) ---
 class VoiceMessageBubble extends StatelessWidget {
-  final String sender;
-  final String avatarUrl;
-  final bool isMe;
-  final String duration;
-  final String time;
-
+  final ChatMessage message;
+  
   const VoiceMessageBubble({
     super.key,
-    required this.sender,
-    required this.avatarUrl,
-    required this.isMe,
-    this.duration = '0:20',
-    this.time = '11:14 AM',
+    required this.message,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isMe = message.isMe;
+    final colorScheme = Theme.of(context).colorScheme;
+    
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4.0),
       child: Row(
@@ -46,12 +21,13 @@ class VoiceMessageBubble extends StatelessWidget {
         mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         children: [
           // Avatar du contact (seulement pour les messages des autres)
-          if (!isMe)
+          if (!isMe && message.senderAvatar != null)
             Padding(
               padding: const EdgeInsets.only(right: 8.0),
               child: CircleAvatar(
                 radius: 15,
-                backgroundImage: AssetImage(avatarUrl),
+                backgroundImage: AssetImage(message.senderAvatar!),
+                backgroundColor: colorScheme.primaryContainer,
               ),
             ),
           
@@ -61,11 +37,11 @@ class VoiceMessageBubble extends StatelessWidget {
               crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
               children: [
                 // Nom de l'expéditeur (seulement pour les messages des autres et si non vide)
-                if (!isMe && sender.isNotEmpty)
+                if (!isMe && message.senderName.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(left: 8.0, bottom: 4.0),
                     child: Text(
-                      sender,
+                      message.senderName,
                       style: const TextStyle(
                         fontWeight: FontWeight.bold,
                         fontSize: 14,
@@ -82,10 +58,14 @@ class VoiceMessageBubble extends StatelessWidget {
                   ),
                   padding: const EdgeInsets.all(8.0),
                   decoration: BoxDecoration(
-                    color: isMe ? _kLightPurple : Colors.white, // Violet clair pour les messages envoyés
+                    color: isMe 
+                        ? const Color(0xFFEAE1F4) // Violet clair pour les messages envoyés
+                        : Colors.white,
                     borderRadius: BorderRadius.circular(8.0),
                     border: Border.all(
-                      color: isMe ? _kLightPurple : Colors.grey.shade300,
+                      color: isMe 
+                          ? const Color(0xFFEAE1F4)
+                          : Colors.grey.shade300,
                       width: 1.0,
                     ),
                     boxShadow: [
@@ -103,8 +83,8 @@ class VoiceMessageBubble extends StatelessWidget {
                       Container(
                         width: 36,
                         height: 36,
-                        decoration: BoxDecoration(
-                          color: _kPrimaryPurple, // Couleur violette principale
+                        decoration: const BoxDecoration(
+                          color: Color(0xFF4A0072), // Couleur violette principale
                           shape: BoxShape.circle,
                         ),
                         child: const Icon(
@@ -126,9 +106,9 @@ class VoiceMessageBubble extends StatelessWidget {
                       const SizedBox(width: 8.0),
 
                       // Durée
-                      Text(
-                        duration,
-                        style: const TextStyle(
+                      const Text(
+                        '0:20',
+                        style: TextStyle(
                           fontSize: 14,
                           color: Colors.black54,
                           fontWeight: FontWeight.w500,
@@ -149,12 +129,44 @@ class VoiceMessageBubble extends StatelessWidget {
                 // Heure d'envoi
                 Padding(
                   padding: const EdgeInsets.only(top: 4.0, left: 8.0, right: 8.0),
-                  child: Text(
-                    time,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey,
-                    ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Icône de statut
+                      if (message.status == MessageStatus.sending)
+                        const Icon(
+                          Icons.access_time,
+                          size: 12,
+                          color: Colors.grey,
+                        )
+                      else if (message.status == MessageStatus.sent)
+                        const Icon(
+                          Icons.done,
+                          size: 12,
+                          color: Colors.grey,
+                        )
+                      else if (message.status == MessageStatus.delivered)
+                        const Icon(
+                          Icons.done_all,
+                          size: 12,
+                          color: Colors.grey,
+                        )
+                      else if (message.status == MessageStatus.read)
+                        const Icon(
+                          Icons.done_all,
+                          size: 12,
+                          color: Colors.blue,
+                        ),
+                      const SizedBox(width: 4),
+                      // Heure d'envoi
+                      Text(
+                        _formatTime(message.timestamp),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -162,17 +174,22 @@ class VoiceMessageBubble extends StatelessWidget {
           ),
           
           // Avatar de l'utilisateur (seulement pour les messages envoyés)
-          if (isMe)
+          if (isMe && message.senderAvatar != null)
             Padding(
               padding: const EdgeInsets.only(left: 8.0),
               child: CircleAvatar(
                 radius: 15,
-                backgroundImage: AssetImage(avatarUrl),
+                backgroundImage: AssetImage(message.senderAvatar!),
+                backgroundColor: colorScheme.primaryContainer,
               ),
             ),
         ],
       ),
     );
+  }
+  
+  String _formatTime(DateTime time) {
+    return '${time.hour}:${time.minute.toString().padLeft(2, '0')}';
   }
 }
 
@@ -214,75 +231,4 @@ class WaveformPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-
-// --- WIDGET : BARRE DE SAISIE DE MESSAGE (modifié pour utiliser la charte graphique) ---
-class ChatInputBar extends StatelessWidget {
-  const ChatInputBar({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 6.0),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade300, width: 1.0)),
-      ),
-      child: Row(
-        children: [
-          // Icône Emoji
-          IconButton(
-            icon: const Icon(Icons.tag_faces, color: Colors.grey),
-            onPressed: () {},
-          ),
-          
-          // Champ de texte
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12.0),
-              decoration: BoxDecoration(
-                color: _kLightPurple, // Utilisation du violet clair de la charte
-                borderRadius: BorderRadius.circular(20.0),
-              ),
-              child: const TextField(
-                decoration: InputDecoration(
-                  hintText: 'Type a message',
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.only(top: 12, bottom: 12),
-                ),
-              ),
-            ),
-          ),
-          
-          // Icônes Fichier/Appareil photo
-          IconButton(
-            icon: const Icon(Icons.attach_file, color: Colors.grey),
-            onPressed: () {},
-          ),
-          IconButton(
-            icon: const Icon(Icons.camera_alt, color: Colors.grey),
-            onPressed: () {},
-          ),
-
-          // Bouton Microphone/Vocal
-          Container(
-            margin: const EdgeInsets.only(left: 4.0),
-            width: 40,
-            height: 40,
-            decoration: const BoxDecoration(
-              color: _kPrimaryPurple, // Couleur violette principale
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.mic,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
-
-        ],
-      ),
-    );
-  }
 }

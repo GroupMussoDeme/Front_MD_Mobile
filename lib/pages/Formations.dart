@@ -160,6 +160,13 @@ class _FormationVideosPageState extends State<FormationVideosPage> {
       ),
       child: Row(
         children: [
+          VocalIcon(
+            onPressed: () {
+              // TODO: Implémenter la fonctionnalité vocale
+            },
+            isActive: true,
+          ),
+          const SizedBox(width: 10),
           GestureDetector(
             onTap: () => Navigator.pushReplacement(
               context,
@@ -177,12 +184,6 @@ class _FormationVideosPageState extends State<FormationVideosPage> {
                 color: Colors.white,
               ),
             ),
-          ),
-          VocalIcon(
-            onPressed: () {
-              // TODO: Implémenter la fonctionnalité vocale
-            },
-            isActive: true,
           ),
         ],
       ),
