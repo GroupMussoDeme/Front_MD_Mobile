@@ -415,6 +415,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
 
       bottomNavigationBar: BottomNavBar(
         selectedIndex: _selectedIndex,
+        
         onItemTapped: _onItemTapped,
       ),
     );
