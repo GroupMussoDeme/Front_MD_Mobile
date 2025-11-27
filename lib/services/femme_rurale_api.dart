@@ -360,6 +360,27 @@ class FemmeRuraleApi {
     return Commande.fromJson(commandeJson);
   }
 
+  /// Récupérer toutes mes ventes (commandes où je suis vendeuse)
+/// --> GET /api/femmes-rurales/{femmeId}/mes-ventes
+Future<List<Commande>> getMesVentes() async {
+  final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/mes-ventes');
+
+  final response = await http.get(uri, headers: _authHeaders());
+
+  if (response.statusCode != 200) {
+    throw Exception(
+      'Erreur récupération mes ventes (${response.statusCode}) : ${response.body}',
+    );
+  }
+
+  final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+  final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
+
+  return dataList
+      .map((e) => Commande.fromJson(e as Map<String, dynamic>))
+      .toList();
+}
+
 
   /// Payer une commande
   /// --> POST /api/femmes-rurales/{femmeId}/commandes/{commandeId}/payer

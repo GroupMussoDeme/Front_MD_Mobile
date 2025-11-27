@@ -53,7 +53,7 @@ class _MySalesScreenState extends State<MySalesScreen> {
     // return api.getMesVentes();
 
     // Fallback : on récupère les commandes et on filtre localement
-    final toutesCommandes = await api.getMesCommandes();
+    final toutesCommandes = await api.getMesVentes();
 
     if (userId == null) return [];
 
