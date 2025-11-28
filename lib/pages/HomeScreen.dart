@@ -10,6 +10,8 @@ import 'package:musso_deme_app/pages/ProfileScreen.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/DroitsScreens.dart';
 import 'package:musso_deme_app/widgets/VocalIcon.dart';
+import 'package:musso_deme_app/services/session_service.dart';
+import 'package:musso_deme_app/pages/HistoriquesDesCommandes.dart';
 import 'dart:math' as math;
 
 // --- Définition des couleurs principales ---
@@ -114,6 +116,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
   late AudioPlayer audioPlayer;
+  bool _isAudioPlaying = false;
+  bool _isKeypadVisible = false;
 
   @override
   void initState() {
@@ -143,6 +147,283 @@ class _HomeScreenState extends State<HomeScreen> {
     } catch (e) {
       print("Erreur lors de la lecture des audios: $e");
     }
+  }
+
+  // Méthode pour lire l'audio du clavier numérique en boucle
+  void _playClavierAudioLoop() async {
+    setState(() {
+      _isAudioPlaying = true;
+      _isKeypadVisible = true;
+    });
+    
+    try {
+      // Lecture de l'audio "clavierNumérique.aac"
+      await audioPlayer.setAsset("assets/audios/clavierNumérique.aac");
+      await audioPlayer.play();
+      
+      // Attendre 2 secondes
+      await Future.delayed(const Duration(seconds: 2));
+      
+      // Relancer la lecture si l'audio doit continuer
+      if (_isAudioPlaying) {
+        _playClavierAudioLoop();
+      }
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio: $e");
+    }
+  }
+
+  // Méthode pour arrêter la lecture audio
+  void _stopAudio() {
+    setState(() {
+      _isAudioPlaying = false;
+    });
+    audioPlayer.stop();
+  }
+
+  // Méthode pour masquer le clavier numérique
+  void _hideNumericKeypad() {
+    setState(() {
+      _isKeypadVisible = false;
+      _isAudioPlaying = false;
+    });
+    audioPlayer.stop();
+  }
+
+  // Méthode pour ajouter un chiffre et naviguer
+  void _addDigit(String digit) {
+    // Arrêter toute lecture audio en cours
+    _stopAudio();
+    
+    // Masquer le clavier
+    _hideNumericKeypad();
+    
+    // Redirection vers différentes pages selon le chiffre entré
+    switch (digit) {
+      case '1':
+        // Direction page formation
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FormationVideosPage()),
+        );
+        break;
+      case '2':
+        // Direction page DroitsDesFemmesScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const DroitsDesFemmesScreen()),
+        );
+        break;
+      case '3':
+        // Direction page DroitsDesEnfantsScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const DroitsDesEnfantsScreen()),
+        );
+        break;
+      case '4':
+        // Direction page ConseilsNouvellesMamansScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ConseilsNouvellesMamansScreen()),
+        );
+        break;
+      case '5':
+        // Direction page NutritionScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const NutritionScreen()),
+        );
+        break;
+      case '6':
+        // Direction page FinancialAidScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const FinancialAidScreen()),
+        );
+        break;
+      case '7':
+        // Direction page RuralMarketScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const RuralMarketScreen()),
+        );
+        break;
+      case '8':
+        // Direction page OrderHistoryScreen (HistoriquesDesCommandes)
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const OrderHistoryScreen()),
+        );
+        break;
+      case '9':
+        // Direction page CooperativeTile
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CooperativePage()),
+        );
+        break;
+      case '0':
+        // Direction page accueil (restez sur la même page)
+        break;
+      case '*':
+        // Direction page ProfileScreen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileScreen()),
+        );
+        break;
+      case '#':
+        // Pour la déconnexion avec popup
+        _showLogoutDialog();
+        break;
+    }
+  }
+
+  // Méthode pour lire l'audio de déconnexion
+  void _playLogoutAudio() async {
+    try {
+      await audioPlayer.setAsset("assets/audios/deconnexion.aac");
+      await audioPlayer.play();
+    } catch (e) {
+      print("Erreur lors de la lecture de l'audio de déconnexion: $e");
+    }
+  }
+
+  // Méthode pour afficher le popup de déconnexion
+  void _showLogoutDialog() {
+    // Lecture de l'audio de déconnexion
+    audioPlayer.stop();
+    
+    // Lecture de l'audio "deconnexion.aac"
+    _playLogoutAudio();
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: const Text('Déconnexion'),
+          content: const Text('Souhaitez-vous vraiment vous déconnecter ?'),
+          actions: [
+            // Bouton d'annulation (rouge)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Fermer le popup
+              },
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.cancel, color: Colors.red),
+                  SizedBox(width: 5),
+                  Text('Annuler'),
+                ],
+              ),
+            ),
+            // Bouton de validation (vert)
+            TextButton(
+              onPressed: () async {
+                // Déconnexion de l'utilisateur
+                await SessionService.clearSession();
+                
+                // Redirection vers la page de démarrage
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HomeScreen()),
+                  (route) => false,
+                );
+              },
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.check_circle, color: Colors.green),
+                  SizedBox(width: 5),
+                  Text('Valider'),
+                ],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Widget pour le clavier numérique personnalisé
+  Widget _buildNumericKeypad() {
+    return Container(
+      padding: const EdgeInsets.all(16.0),
+      decoration: BoxDecoration(
+        color: Colors.transparent, // Palette du clavier transparente
+        borderRadius: BorderRadius.circular(20.0),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Ligne 1: 1, 2, 3
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildKeypadButton('1', () => _addDigit('1')),
+              _buildKeypadButton('2', () => _addDigit('2')),
+              _buildKeypadButton('3', () => _addDigit('3')),
+            ],
+          ),
+          const SizedBox(height: 10),
+          
+          // Ligne 2: 4, 5, 6
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildKeypadButton('4', () => _addDigit('4')),
+              _buildKeypadButton('5', () => _addDigit('5')),
+              _buildKeypadButton('6', () => _addDigit('6')),
+            ],
+          ),
+          const SizedBox(height: 10),
+          
+          // Ligne 3: 7, 8, 9
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildKeypadButton('7', () => _addDigit('7')),
+              _buildKeypadButton('8', () => _addDigit('8')),
+              _buildKeypadButton('9', () => _addDigit('9')),
+            ],
+          ),
+          const SizedBox(height: 10),
+          
+          // Ligne 4: *, 0, #
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildKeypadButton('*', () => _addDigit('*')),
+              _buildKeypadButton('0', () => _addDigit('0')),
+              _buildKeypadButton('#', () => _addDigit('#')),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Widget pour un bouton du clavier numérique
+  Widget _buildKeypadButton(String text, VoidCallback onPressed) {
+    return ElevatedButton(
+      onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF491B6D), // Couleur #491B6D
+        shape: const CircleBorder(), // Boutons en cercle
+        padding: const EdgeInsets.all(20.0),
+        minimumSize: const Size(70, 70),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(
+          fontSize: 24,
+          color: Colors.white, // Chiffres en blanc
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+    );
   }
 
   @override
@@ -196,8 +477,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: neutralWhite,
+    return GestureDetector(
+      onTap: () {
+        // Arrêter l'audio et masquer le clavier si l'utilisateur clique n'importe où sur l'écran
+        if (_isAudioPlaying || _isKeypadVisible) {
+          _hideNumericKeypad();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: neutralWhite,
 
       body: SafeArea(
         child: SingleChildScrollView(
@@ -298,129 +586,129 @@ class _HomeScreenState extends State<HomeScreen> {
                 ],
               ),
 
-              const SizedBox(height: 60), // espace ajusté après le logo
-              // Image principale
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.asset(
-                  'assets/images/image1.png', // Remplace par ton image
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  height: 200,
-                  fit: BoxFit.cover,
-                ),
-              ),
+                    const SizedBox(height: 60), // espace ajusté après le logo
+                    // Image principale
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/images/image1.png', // Remplace par ton image
+                        width: MediaQuery.of(context).size.width * 0.9,
+                        height: 200,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
 
-              const SizedBox(height: 15),
+                    const SizedBox(height: 15),
 
-              // Message de bienvenue
-              const Text(
-                "Bienvenue Aminata...",
-                style: TextStyle(
-                  color: primaryViolet,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+                    // Message de bienvenue
+                    const Text(
+                      "Bienvenue Aminata...",
+                      style: TextStyle(
+                        color: primaryViolet,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
 
-              const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-              // Grille des options principales
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: GridView.count(
-                  crossAxisCount: 3,
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  mainAxisSpacing: 25,
-                  crossAxisSpacing: 15,
-                  childAspectRatio: 0.85,
-                  children: _menuItems.map((item) {
-                    return GestureDetector(
-                      onTap: () {
-                        final title = item['title'];
-                        switch (title) {
-                          case 'Nutrition':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const NutritionScreen(),
-                              ),
-                            );
-                            break;
+                    // Grille des options principales
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                      child: GridView.count(
+                        crossAxisCount: 3,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        mainAxisSpacing: 25,
+                        crossAxisSpacing: 15,
+                        childAspectRatio: 0.85,
+                        children: _menuItems.map((item) {
+                          return GestureDetector(
+                            onTap: () {
+                              final title = item['title'];
+                              switch (title) {
+                                case 'Nutrition':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const NutritionScreen(),
+                                    ),
+                                  );
+                                  break;
 
-                          case 'Droits des enfants':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const DroitsDesEnfantsScreen(),
-                              ),
-                            );
-                            break;
+                                case 'Droits des enfants':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const DroitsDesEnfantsScreen(),
+                                    ),
+                                  );
+                                  break;
 
-                          case 'Droits des femmes':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const DroitsDesFemmesScreen(),
-                              ),
-                            );
-                            break;
+                                case 'Droits des femmes':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const DroitsDesFemmesScreen(),
+                                    ),
+                                  );
+                                  break;
 
-                          case 'Conseils aux mamans':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const ConseilsNouvellesMamansScreen(),
-                              ),
-                            );
-                            break;
+                                case 'Conseils aux mamans':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const ConseilsNouvellesMamansScreen(),
+                                    ),
+                                  );
+                                  break;
 
-                          case 'Protection contre la violence':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    const ProtectionViolenceScreen(),
-                              ),
-                            );
-                            break;
+                                case 'Protection contre la violence':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) =>
+                                          const ProtectionViolenceScreen(),
+                                    ),
+                                  );
+                                  break;
 
-                          case 'Marchés':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => RuralMarketScreen(),
-                              ),
-                            );
-                            break;
+                                case 'Marchés':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => RuralMarketScreen(),
+                                    ),
+                                  );
+                                  break;
 
-                          case 'Aides aux financements':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const FinancialAidScreen(),
-                              ),
-                            );
-                            break;
+                                case 'Aides aux financements':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const FinancialAidScreen(),
+                                    ),
+                                  );
+                                  break;
 
-                          case 'Formations':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const FormationVideosPage(),
-                              ),
-                            );
-                            break;
+                                case 'Formations':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const FormationVideosPage(),
+                                    ),
+                                  );
+                                  break;
 
-                          case 'Coopératives':
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => const CooperativePage(),
-                              ),
-                            );
-                            break;
+                                case 'Coopératives':
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const CooperativePage(),
+                                    ),
+                                  );
+                                  break;
 
                           default:
                             Navigator.push(
@@ -478,10 +766,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      // Barre de navigation inférieure
-      bottomNavigationBar: BottomNavBar(
-        selectedIndex: _selectedIndex,
-        onItemTapped: _onItemTapped,
+        // Barre de navigation inférieure
+        bottomNavigationBar: BottomNavBar(
+          selectedIndex: _selectedIndex,
+          onItemTapped: _onItemTapped,
+        ),
       ),
     );
   }
