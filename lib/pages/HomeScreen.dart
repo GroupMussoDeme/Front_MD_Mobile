@@ -228,11 +228,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         size: 28,
                       ),
                       onPressed: () {
-                        // Navigation vers le chat
+                        // ✅ Navigation vers la page des coopératives,
+                        // où l’utilisatrice choisit une coop,
+                        // puis CooperativePage ouvrira GroupChatScreen(cooperativeId, cooperativeNom)
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const GroupChatScreen(),
+                            builder: (context) => const CooperativePage(),
                           ),
                         );
                       },
@@ -429,7 +431,6 @@ class _HomeScreenState extends State<HomeScreen> {
                             );
                         }
                       },
-
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -450,9 +451,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
 
-                          const SizedBox(
-                            height: 6,
-                          ), // petit espace entre icône et texte
+                          const SizedBox(height: 6),
                           // Texte sous l’icône
                           SizedBox(
                             width: 90,

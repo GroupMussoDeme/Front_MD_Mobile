@@ -238,6 +238,7 @@ class ChatVocal {
   final int? id;
   final String audioUrl;
   final String? duree;
+  final String? texte;
 
   final int? expediteurId;
   final String? expediteurNom;
@@ -258,6 +259,7 @@ class ChatVocal {
     this.id,
     required this.audioUrl,
     this.duree,
+    this.texte,
     this.expediteurId,
     this.expediteurNom,
     this.expediteurPrenom,
@@ -276,6 +278,7 @@ class ChatVocal {
       id: json['id'] as int?,
       audioUrl: json['audioUrl'] as String? ?? '',
       duree: json['duree'] as String?,
+      texte: json['texte'] as String?,
       expediteurId: json['expediteurId'] as int?,
       expediteurNom: json['expediteurNom'] as String?,
       expediteurPrenom: json['expediteurPrenom'] as String?,

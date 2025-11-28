@@ -42,10 +42,15 @@ dependencies:
   flutter_tts: ^4.0.2 # Ajout du package pour la synthèse vocale
   image_picker: ^1.0.4
   shared_preferences: ^2.2.3
+  record: ^5.2.1
+  path_provider: ^2.0.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+
+dependency_overrides:
+  record_linux: ^1.2.1
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

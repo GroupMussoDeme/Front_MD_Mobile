@@ -85,96 +85,94 @@ class FemmeRuraleApi {
   /// Publier un produit
   /// --> POST /api/femmes-rurales/{femmeId}/produits
   Future<Produit> publierProduit({
-  required String nom,
-  required String description,
-  required double prix,
-  required int quantite,
-  required String typeProduit, // "ALIMENTAIRE" / "AGRICOLE" / "ARTISANAT"
-  required String? image,
-  String? audioGuideUrl,
-  required String? unite,       // ✅ nouvelle donnée
-}) async {
-  final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/produits');
+    required String nom,
+    required String description,
+    required double prix,
+    required int quantite,
+    required String typeProduit, // "ALIMENTAIRE" / "AGRICOLE" / "ARTISANAT"
+    required String? image,
+    String? audioGuideUrl,
+    required String? unite, // ✅ nouvelle donnée
+  }) async {
+    final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/produits');
 
-  final body = {
-    'nom': nom,
-    'description': description,
-    'prix': prix,
-    'quantite': quantite,
-    'typeProduit': typeProduit,
-    'image': image,
-    'audioGuideUrl': audioGuideUrl,
-    'unite': unite,            // ✅ doit matcher ProduitDTO.setUnite()
-  };
+    final body = {
+      'nom': nom,
+      'description': description,
+      'prix': prix,
+      'quantite': quantite,
+      'typeProduit': typeProduit,
+      'image': image,
+      'audioGuideUrl': audioGuideUrl,
+      'unite': unite, // ✅ doit matcher ProduitDTO.setUnite()
+    };
 
-  final response = await http.post(
-    uri,
-    headers: _authHeaders(extra: {'Content-Type': 'application/json'}),
-    body: jsonEncode(body),
-  );
-
-  if (response.statusCode != 201) {
-    throw Exception(
-      'Erreur publication produit (${response.statusCode}) : ${response.body}',
+    final response = await http.post(
+      uri,
+      headers: _authHeaders(extra: {'Content-Type': 'application/json'}),
+      body: jsonEncode(body),
     );
+
+    if (response.statusCode != 201) {
+      throw Exception(
+        'Erreur publication produit (${response.statusCode}) : ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> produitJson =
+        (jsonBody['data'] as Map<String, dynamic>);
+
+    return Produit.fromJson(produitJson);
   }
-
-  final Map<String, dynamic> jsonBody = jsonDecode(response.body);
-  final Map<String, dynamic> produitJson =
-      (jsonBody['data'] as Map<String, dynamic>);
-
-  return Produit.fromJson(produitJson);
-}
-
 
   /// Modifier un produit
   /// --> PUT /api/femmes-rurales/{femmeId}/produits/{produitId}
   Future<Produit> modifierProduit({
-  required int produitId,
-  required String nom,
-  required String description,
-  required double prix,
-  required int quantite,
-  required String typeProduit,
-  required String? image,
-  String? audioGuideUrl,
-  required String? unite,   // ✅
-}) async {
-  final uri = Uri.parse(
-    '$baseUrl/femmes-rurales/$femmeId/produits/$produitId',
-  );
-
-  final body = {
-    'id': produitId,
-    'nom': nom,
-    'description': description,
-    'prix': prix,
-    'quantite': quantite,
-    'typeProduit': typeProduit,
-    'image': image,
-    'audioGuideUrl': audioGuideUrl,
-    'unite': unite,        // ✅
-  };
-
-  final response = await http.put(
-    uri,
-    headers: _authHeaders(extra: {'Content-Type': 'application/json'}),
-    body: jsonEncode(body),
-  );
-
-  if (response.statusCode != 200) {
-    throw Exception(
-      'Erreur modification produit (${response.statusCode}) : ${response.body}',
+    required int produitId,
+    required String nom,
+    required String description,
+    required double prix,
+    required int quantite,
+    required String typeProduit,
+    required String? image,
+    String? audioGuideUrl,
+    required String? unite, // ✅
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeId/produits/$produitId',
     );
+
+    final body = {
+      'id': produitId,
+      'nom': nom,
+      'description': description,
+      'prix': prix,
+      'quantite': quantite,
+      'typeProduit': typeProduit,
+      'image': image,
+      'audioGuideUrl': audioGuideUrl,
+      'unite': unite, // ✅
+    };
+
+    final response = await http.put(
+      uri,
+      headers: _authHeaders(extra: {'Content-Type': 'application/json'}),
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Erreur modification produit (${response.statusCode}) : ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> produitJson =
+        (jsonBody['data'] as Map<String, dynamic>);
+
+    return Produit.fromJson(produitJson);
   }
-
-  final Map<String, dynamic> jsonBody = jsonDecode(response.body);
-  final Map<String, dynamic> produitJson =
-      (jsonBody['data'] as Map<String, dynamic>);
-
-  return Produit.fromJson(produitJson);
-}
-
 
   /// Supprimer un produit
   /// --> DELETE /api/femmes-rurales/{femmeId}/produits/{produitId}
@@ -213,7 +211,7 @@ class FemmeRuraleApi {
         .toList();
   }
 
-    Future<List<Produit>> getTousLesProduits() async {
+  Future<List<Produit>> getTousLesProduits() async {
     final uri = Uri.parse('$baseUrl/femmes-rurales/produits');
 
     final response = await http.get(uri, headers: _authHeaders());
@@ -237,7 +235,6 @@ class FemmeRuraleApi {
         .where((p) => p.femmeRuraleId == null || p.femmeRuraleId != femmeId)
         .toList();
   }
-
 
   /// Récupérer un produit par son id (avec éventuellement audio guide)
   /// --> GET /api/femmes-rurales/produits/{produitId}
@@ -337,7 +334,7 @@ class FemmeRuraleApi {
   /// Passer une commande sur un produit donné
   /// --> POST /api/femmes-rurales/{femmeId}/commandes
   /// @RequestParam Long produitId, @RequestParam Integer quantite
-    Future<Commande> passerCommande({
+  Future<Commande> passerCommande({
     required int produitId,
     required int quantite,
   }) async {
@@ -367,26 +364,25 @@ class FemmeRuraleApi {
   }
 
   /// Récupérer toutes mes ventes (commandes où je suis vendeuse)
-/// --> GET /api/femmes-rurales/{femmeId}/mes-ventes
-Future<List<Commande>> getMesVentes() async {
-  final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/mes-ventes');
+  /// --> GET /api/femmes-rurales/{femmeId}/mes-ventes
+  Future<List<Commande>> getMesVentes() async {
+    final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/mes-ventes');
 
-  final response = await http.get(uri, headers: _authHeaders());
+    final response = await http.get(uri, headers: _authHeaders());
 
-  if (response.statusCode != 200) {
-    throw Exception(
-      'Erreur récupération mes ventes (${response.statusCode}) : ${response.body}',
-    );
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Erreur récupération mes ventes (${response.statusCode}) : ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
+
+    return dataList
+        .map((e) => Commande.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
-
-  final Map<String, dynamic> jsonBody = jsonDecode(response.body);
-  final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
-
-  return dataList
-      .map((e) => Commande.fromJson(e as Map<String, dynamic>))
-      .toList();
-}
-
 
   /// Payer une commande
   /// --> POST /api/femmes-rurales/{femmeId}/commandes/{commandeId}/payer
@@ -394,7 +390,7 @@ Future<List<Commande>> getMesVentes() async {
   ///
   /// modePaiement doit être une valeur string de l'enum backend :
   /// "ORANGE_MONEY", "MOOV_MONEY", "ESPECE", etc.
-    Future<Paiement> payerCommande({
+  Future<Paiement> payerCommande({
     required int commandeId,
     required double montant,
     required String modePaiement,
@@ -408,10 +404,7 @@ Future<List<Commande>> getMesVentes() async {
       headers: _authHeaders(
         extra: {'Content-Type': 'application/x-www-form-urlencoded'},
       ),
-      body: {
-        'montant': montant.toString(),
-        'modePaiement': modePaiement,
-      },
+      body: {'montant': montant.toString(), 'modePaiement': modePaiement},
     );
 
     if (response.statusCode != 201) {
@@ -425,7 +418,6 @@ Future<List<Commande>> getMesVentes() async {
 
     return Paiement.fromJson(paiementJson);
   }
-
 
   /// Récupérer toutes mes commandes (en tant qu'acheteuse + vendeuse)
   /// --> GET /api/femmes-rurales/{femmeId}/mes-commandes
@@ -456,7 +448,7 @@ Future<List<Commande>> getMesVentes() async {
   // GET /paiements pour la femme. Si tu en ajoutes un côté backend,
   // on pourra compléter ici une méthode getMesPaiements().
 
-    // =========================================================
+  // =========================================================
   //                  COOPERATIVES & APPARTENANCES
   // =========================================================
 
@@ -495,17 +487,12 @@ Future<List<Commande>> getMesVentes() async {
 
   /// Rejoindre une coopérative
   /// POST /api/femmes-rurales/{femmeId}/cooperatives/{cooperativeId}/joindre
-  Future<Appartenance> joindreCooperative({
-    required int cooperativeId,
-  }) async {
+  Future<Appartenance> joindreCooperative({required int cooperativeId}) async {
     final uri = Uri.parse(
       '$baseUrl/femmes-rurales/$femmeId/cooperatives/$cooperativeId/joindre',
     );
 
-    final response = await http.post(
-      uri,
-      headers: _authHeaders(),
-    );
+    final response = await http.post(uri, headers: _authHeaders());
 
     if (response.statusCode != 201) {
       throw _buildApiException('Erreur rejoindre coopérative', response);
@@ -518,8 +505,7 @@ Future<List<Commande>> getMesVentes() async {
     return Appartenance.fromJson(appartJson);
   }
 
-
-    /// =========================================================
+  /// =========================================================
   ///                 COOPERATIVES (lecture)
   /// =========================================================
 
@@ -544,40 +530,9 @@ Future<List<Commande>> getMesVentes() async {
         .toList();
   }
 
-    // =========================================================
+  // =========================================================
   //                  CHAT VOCAL - COOPERATIVES
   // =========================================================
-
-  /// Envoyer un message vocal dans une coopérative
-  /// POST /api/femmes-rurales/{femmeId}/cooperatives/{cooperativeId}/messages
-  Future<ChatVocal> envoyerMessageCooperative({
-    required int cooperativeId,
-    required String audioUrl,
-  }) async {
-    final uri = Uri.parse(
-      '$baseUrl/femmes-rurales/$femmeId/cooperatives/$cooperativeId/messages',
-    );
-
-    final response = await http.post(
-      uri,
-      headers: _authHeaders(
-        extra: {'Content-Type': 'application/x-www-form-urlencoded'},
-      ),
-      body: {
-        'audioUrl': audioUrl,
-      },
-    );
-
-    if (response.statusCode != 201) {
-      throw _buildApiException('Erreur envoi message coopérative', response);
-    }
-
-    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
-    final Map<String, dynamic> msgJson =
-        jsonBody['data'] as Map<String, dynamic>;
-
-    return ChatVocal.fromJson(msgJson);
-  }
 
   /// Récupérer les messages vocaux d'une coopérative
   /// GET /api/femmes-rurales/cooperatives/{cooperativeId}/messages
@@ -605,7 +560,7 @@ Future<List<Commande>> getMesVentes() async {
         .toList();
   }
 
-    // =========================================================
+  // =========================================================
   //                  CHAT VOCAL - PRIVE
   // =========================================================
 
@@ -615,19 +570,14 @@ Future<List<Commande>> getMesVentes() async {
     required int destinataireId,
     required String audioUrl,
   }) async {
-    final uri = Uri.parse(
-      '$baseUrl/femmes-rurales/$femmeId/chats/envoyer',
-    );
+    final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/chats/envoyer');
 
     final response = await http.post(
       uri,
       headers: _authHeaders(
         extra: {'Content-Type': 'application/x-www-form-urlencoded'},
       ),
-      body: {
-        'destinataireId': destinataireId.toString(),
-        'audioUrl': audioUrl,
-      },
+      body: {'destinataireId': destinataireId.toString(), 'audioUrl': audioUrl},
     );
 
     if (response.statusCode != 201) {
@@ -669,12 +619,8 @@ Future<List<Commande>> getMesVentes() async {
 
   /// Marquer un message vocal comme lu
   /// PUT /api/femmes-rurales/chats/{messageId}/lu
-  Future<void> marquerMessageCommeLu({
-    required int messageId,
-  }) async {
-    final uri = Uri.parse(
-      '$baseUrl/femmes-rurales/chats/$messageId/lu',
-    );
+  Future<void> marquerMessageCommeLu({required int messageId}) async {
+    final uri = Uri.parse('$baseUrl/femmes-rurales/chats/$messageId/lu');
 
     final response = await http.put(uri, headers: _authHeaders());
 
@@ -684,25 +630,124 @@ Future<List<Commande>> getMesVentes() async {
     // le backend ne renvoie pas de data spécifique, juste un message
   }
 
-}
-
   // =========================================================
-  //                  UTILITAIRE ERREUR API
+  //           COOPERATIVES : UPLOAD AUDIO + MESSAGES
   // =========================================================
 
-  Exception _buildApiException(String prefix, http.Response response) {
-    try {
-      final Map<String, dynamic> body = jsonDecode(response.body);
-      final message = body['message'] as String?;
-      if (message != null && message.isNotEmpty) {
-        // On renvoie uniquement le message fonctionnel
-        return Exception(message);
-      }
-    } catch (_) {
-      // si le body n'est pas du JSON ou n'a pas 'message'
+  /// Upload d'un audio pour une coopérative
+  /// --> POST /api/femmes-rurales/{femmeId}/cooperatives/{cooperativeId}/audios
+  /// form-data: file = <audio>
+  ///
+  /// Retourne l'URL relative renvoyée par le backend (ex: "/uploads/audios/xxx.aac")
+  Future<String> uploadCoopAudio({
+    required int cooperativeId,
+    required String filePath,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeId/cooperatives/$cooperativeId/audios',
+    );
+
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    if (response.statusCode != 201) {
+      throw _buildApiException('Erreur upload audio coopérative', response);
     }
 
-    // Fallback : message générique
-    return Exception('$prefix (${response.statusCode}) : ${response.body}');
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    // data contient directement l'URL relative
+    final audioUrl = jsonBody['data'] as String?;
+    if (audioUrl == null || audioUrl.isEmpty) {
+      throw Exception(
+        'Réponse backend invalide : "data" manquant (body = ${response.body})',
+      );
+    }
+    return audioUrl;
   }
 
+  /// Envoyer un message vocal dans une coopérative
+  /// --> POST /api/femmes-rurales/{femmeId}/cooperatives/{cooperativeId}/messages
+  /// @RequestParam String audioUrl
+  Future<ChatVocal> envoyerMessageCooperative({
+    required int cooperativeId,
+    required String audioUrl,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeId/cooperatives/$cooperativeId/messages',
+    );
+
+    final response = await http.post(
+      uri,
+      headers: _authHeaders(
+        extra: {'Content-Type': 'application/x-www-form-urlencoded'},
+      ),
+      body: {'audioUrl': audioUrl},
+    );
+
+    if (response.statusCode != 201) {
+      throw _buildApiException('Erreur envoi message coopérative', response);
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> msgJson =
+        jsonBody['data'] as Map<String, dynamic>;
+
+    return ChatVocal.fromJson(msgJson);
+  }
+
+  /// Envoyer un message TEXTE dans une coopérative
+  /// POST /api/femmes-rurales/{femmeId}/cooperatives/{cooperativeId}/messages-textes
+  Future<ChatVocal> envoyerMessageTexteCooperative({
+    required int cooperativeId,
+    required String texte,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeId/cooperatives/$cooperativeId/messages-textes',
+    );
+
+    final response = await http.post(
+      uri,
+      headers: _authHeaders(
+        extra: {'Content-Type': 'application/x-www-form-urlencoded'},
+      ),
+      body: {'texte': texte},
+    );
+
+    if (response.statusCode != 201) {
+      throw _buildApiException(
+        'Erreur envoi message texte coopérative',
+        response,
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> msgJson =
+        jsonBody['data'] as Map<String, dynamic>;
+
+    return ChatVocal.fromJson(msgJson);
+  }
+}
+
+// =========================================================
+//                  UTILITAIRE ERREUR API
+// =========================================================
+
+Exception _buildApiException(String prefix, http.Response response) {
+  try {
+    final Map<String, dynamic> body = jsonDecode(response.body);
+    final message = body['message'] as String?;
+    if (message != null && message.isNotEmpty) {
+      // On renvoie uniquement le message fonctionnel
+      return Exception(message);
+    }
+  } catch (_) {
+    // si le body n'est pas du JSON ou n'a pas 'message'
+  }
+
+  // Fallback : message générique
+  return Exception('$prefix (${response.statusCode}) : ${response.body}');
+}

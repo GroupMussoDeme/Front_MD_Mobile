@@ -208,7 +208,7 @@ class _CooperativePageState extends State<CooperativePage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => GroupChatScreen(
-                              cooperativeId: coop.id,
+                              cooperativeId: coop.id!,
                               cooperativeNom: coop.nom,
                             ),
                           ),
