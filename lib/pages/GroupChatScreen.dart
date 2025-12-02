@@ -6,6 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 import 'package:musso_deme_app/pages/GroupCallScreen.dart';
 import 'package:musso_deme_app/pages/GroupInfoScreen.dart';
@@ -43,15 +46,17 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   List<ChatVocal> _messages = [];
 
-  // --- Enregistrement audio (nouvelle API) ---
+  // --- Enregistrement audio ---
   final AudioRecorder _recorder = AudioRecorder();
   bool _isRecording = false;
-  String? _currentRecordPath;
 
-  // --- Saisie texte (SMS) ---
+  // --- Saisie texte ---
   final TextEditingController _textController = TextEditingController();
 
-  int get _cooperativeId => widget.cooperative.id!; // on suppose non nul
+  // --- Image & fichiers ---
+  final ImagePicker _imagePicker = ImagePicker();
+
+  int get _cooperativeId => widget.cooperative.id!;
 
   @override
   void initState() {
@@ -110,7 +115,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  /// Rafraîchit la liste des messages depuis le backend
   Future<void> _refreshMessages() async {
     final api = _api;
     if (api == null) return;
@@ -175,7 +179,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     setState(() {
       _isRecording = true;
-      _currentRecordPath = filePath;
     });
   }
 
@@ -203,21 +206,18 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         _isSending = true;
       });
 
-      // 1) Upload du fichier audio vers le backend pour obtenir une URL
       final audioUrl = await api.uploadCoopAudio(
         cooperativeId: _cooperativeId,
         filePath: path,
       );
       print('[UI] uploadCoopAudio OK, audioUrl=$audioUrl');
 
-      // 2) Envoi du message vocal avec cette URL
       await api.envoyerMessageCooperative(
         cooperativeId: _cooperativeId,
         audioUrl: audioUrl,
       );
       print('[UI] envoyerMessageCooperative OK');
 
-      // 3) Rechargement des messages
       await _refreshMessages();
     } catch (e) {
       print('[UI] Erreur _stopRecordingAndSend: $e');
@@ -235,7 +235,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  /// Tap sur le micro : toggle start/stop comme WhatsApp simple
   Future<void> _onMicPressed() async {
     if (_isSending) {
       print('[UI] _onMicPressed ignoré car _isSending=true');
@@ -251,7 +250,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
-  // ===================== GESTION ENVOI TEXTE (SMS) =====================
+  // ===================== GESTION ENVOI TEXTE =====================
 
   Future<void> _onSendText() async {
     final api = _api;
@@ -289,6 +288,129 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     }
   }
 
+  // ===================== GESTION FICHIERS / IMAGES =====================
+
+  Future<void> _onAttachPressed() async {
+    if (_api == null) return;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) {
+        return SafeArea(
+          child: Wrap(
+            children: [
+              ListTile(
+                leading: const Icon(Icons.image),
+                title: const Text('Photo depuis la galerie'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _pickImage(ImageSource.gallery);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.insert_drive_file),
+                title: const Text('Fichier (PDF, document, etc.)'),
+                onTap: () async {
+                  Navigator.pop(context);
+                  await _pickFile();
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _onCameraPressed() async {
+    await _pickImage(ImageSource.camera);
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    final api = _api;
+    if (api == null) return;
+
+    try {
+      final pickedFile = await _imagePicker.pickImage(
+        source: source,
+        imageQuality: 80,
+      );
+      if (pickedFile == null) return;
+
+      final file = File(pickedFile.path);
+      await _sendFileMessage(file);
+    } catch (e) {
+      print('[UI] Erreur _pickImage: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur sélection image : $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pickFile() async {
+    final api = _api;
+    if (api == null) return;
+
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: false,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final path = result.files.single.path;
+      if (path == null) return;
+
+      final file = File(path);
+      await _sendFileMessage(file);
+    } catch (e) {
+      print('[UI] Erreur _pickFile: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur sélection fichier : $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendFileMessage(File file) async {
+    final api = _api;
+    if (api == null) return;
+
+    try {
+      setState(() => _isSending = true);
+
+      final fichierUrl = await api.uploadCoopFile(
+        cooperativeId: _cooperativeId,
+        filePath: file.path,
+      );
+      print('[UI] uploadCoopFile OK, fichierUrl=$fichierUrl');
+
+      await api.envoyerMessageFichierCooperative(
+        cooperativeId: _cooperativeId,
+        fichierUrl: fichierUrl,
+      );
+      print('[UI] envoyerMessageFichierCooperative OK');
+
+      await _refreshMessages();
+    } catch (e) {
+      print('[UI] Erreur _sendFileMessage: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur envoi fichier : $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSending = false);
+      }
+    }
+  }
+
   String _formatHeure(String? isoDate) {
     if (isoDate == null) return '';
     try {
@@ -307,8 +429,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     return Scaffold(
       backgroundColor: _kBackgroundColor,
-
-      // 1. AppBar
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
         child: Container(
@@ -426,8 +546,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           ),
         ),
       ),
-
-      // 2. Corps : liste dynamique de messages + barre de saisie
       body: Column(
         children: [
           Expanded(
@@ -437,6 +555,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             textController: _textController,
             onSendText: _onSendText,
             onMicPressed: _onMicPressed,
+            onAttachPressed: _onAttachPressed,
+            onCameraPressed: _onCameraPressed,
             isSending: _isSending,
             isRecording: _isRecording,
           ),
@@ -466,7 +586,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
     if (_messages.isEmpty) {
       return const Center(
         child: Text(
-          'Aucun message pour le moment.\nUtilisez le micro ou le clavier pour envoyer un message.',
+          'Aucun message pour le moment.\nUtilisez le micro, le clavier ou les pièces jointes pour envoyer un message.',
           textAlign: TextAlign.center,
         ),
       );
@@ -511,6 +631,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             );
           }
 
+          if ((msg.fichierUrl ?? '').isNotEmpty) {
+            return AttachmentMessageBubble(
+              sender: isMe ? '' : (senderName.isEmpty ? 'Membre' : senderName),
+              isMe: isMe,
+              avatarUrl: 'assets/images/Ellipse 77.png',
+              fichierUrl: msg.fichierUrl!,
+              time: time,
+            );
+          }
+
           return const SizedBox.shrink();
         },
       ),
@@ -518,7 +648,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 }
 
-// ===================== BULLE DE MESSAGE VOCAL (LECTURE) =====================
+// ===================== BULLE DE MESSAGE VOCAL =====================
 
 class VoiceMessageBubble extends StatefulWidget {
   final String sender;
@@ -857,7 +987,204 @@ class TextMessageBubble extends StatelessWidget {
   }
 }
 
-// ===================== WAVEFORM (DÉCORATION) =====================
+// ===================== BULLE DE MESSAGE FICHIER / IMAGE =====================
+
+class AttachmentMessageBubble extends StatelessWidget {
+  final String sender;
+  final String avatarUrl;
+  final bool isMe;
+  final String fichierUrl;
+  final String time;
+
+  const AttachmentMessageBubble({
+    super.key,
+    required this.sender,
+    required this.avatarUrl,
+    required this.isMe,
+    required this.fichierUrl,
+    required this.time,
+  });
+
+  bool _isImage(String url) {
+    final lower = url.toLowerCase();
+    return lower.endsWith('.png') ||
+        lower.endsWith('.jpg') ||
+        lower.endsWith('.jpeg') ||
+        lower.endsWith('.gif') ||
+        lower.endsWith('.webp');
+  }
+
+  String _buildFullUrl(String relativeOrFull) {
+    if (relativeOrFull.startsWith('http')) {
+      return relativeOrFull;
+    }
+    final base = AuthService.baseUrl;
+    final apiIndex = base.indexOf('/api');
+    final root = apiIndex == -1 ? base : base.substring(0, apiIndex);
+    return '$root$relativeOrFull';
+  }
+
+  Future<void> _openFile(BuildContext context) async {
+    final fullUrl = _buildFullUrl(fichierUrl);
+    try {
+      final ok = await launchUrlString(fullUrl);
+      if (!ok && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Impossible d\'ouvrir le fichier')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur ouverture fichier : $e')),
+        );
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool isSenderMe = isMe;
+    final fullUrl = _buildFullUrl(fichierUrl);
+    final isImage = _isImage(fullUrl);
+    final fileName = fullUrl.split('/').last;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment:
+            isSenderMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          if (!isSenderMe)
+            Padding(
+              padding: const EdgeInsets.only(right: 8.0),
+              child: CircleAvatar(
+                radius: 15,
+                backgroundImage: AssetImage(avatarUrl),
+              ),
+            ),
+          Flexible(
+            child: Column(
+              crossAxisAlignment: isSenderMe
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
+              children: [
+                if (!isSenderMe && sender.isNotEmpty)
+                  Padding(
+                    padding:
+                        const EdgeInsets.only(left: 8.0, bottom: 4.0),
+                    child: Text(
+                      sender,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.black87,
+                      ),
+                    ),
+                  ),
+                GestureDetector(
+                  onTap: () => _openFile(context),
+                  child: Container(
+                    margin: EdgeInsets.only(
+                      left: isSenderMe ? 50.0 : 0.0,
+                      right: isSenderMe ? 0.0 : 50.0,
+                    ),
+                    padding: const EdgeInsets.all(8.0),
+                    decoration: BoxDecoration(
+                      color: isSenderMe ? _kLightPurple : Colors.white,
+                      borderRadius: BorderRadius.circular(12.0),
+                      border: Border.all(
+                        color: isSenderMe
+                            ? _kLightPurple
+                            : Colors.grey.shade300,
+                        width: 1.0,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 2,
+                          offset: const Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: isSenderMe
+                          ? CrossAxisAlignment.end
+                          : CrossAxisAlignment.start,
+                      children: [
+                        if (isImage)
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.network(
+                              fullUrl,
+                              height: 150,
+                              width: 200,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) => Container(
+                                height: 80,
+                                width: 200,
+                                color: Colors.grey.shade200,
+                                alignment: Alignment.center,
+                                child: const Icon(Icons.broken_image),
+                              ),
+                            ),
+                          )
+                        else
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.insert_drive_file,
+                                color: _kPrimaryPurple,
+                              ),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  fileName,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.black87,
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(
+                      top: 4.0, left: 8.0, right: 8.0),
+                  child: Text(
+                    time,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (isSenderMe)
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: CircleAvatar(
+                radius: 15,
+                backgroundImage: AssetImage(avatarUrl),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ===================== WAVEFORM =====================
 
 class WaveformPainter extends CustomPainter {
   final Color color;
@@ -897,11 +1224,13 @@ class WaveformPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-// ===================== BARRE DE SAISIE (VOCAL + TEXTE) =====================
+// ===================== BARRE DE SAISIE =====================
 
 class ChatInputBar extends StatefulWidget {
   final VoidCallback? onMicPressed;
   final VoidCallback onSendText;
+  final VoidCallback? onAttachPressed;
+  final VoidCallback? onCameraPressed;
   final bool isSending;
   final bool isRecording;
   final TextEditingController textController;
@@ -911,6 +1240,8 @@ class ChatInputBar extends StatefulWidget {
     required this.textController,
     required this.onSendText,
     required this.onMicPressed,
+    this.onAttachPressed,
+    this.onCameraPressed,
     this.isSending = false,
     this.isRecording = false,
   });
@@ -973,7 +1304,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 decoration: InputDecoration(
                   hintText: widget.isRecording
                       ? 'Enregistrement en cours...'
-                      : 'Message vocal ou SMS…',
+                      : 'Message, photo ou fichier…',
                   border: InputBorder.none,
                   contentPadding:
                       const EdgeInsets.only(top: 12, bottom: 12),
@@ -983,11 +1314,11 @@ class _ChatInputBarState extends State<ChatInputBar> {
           ),
           IconButton(
             icon: const Icon(Icons.attach_file, color: Colors.grey),
-            onPressed: () {},
+            onPressed: widget.onAttachPressed,
           ),
           IconButton(
             icon: const Icon(Icons.camera_alt, color: Colors.grey),
-            onPressed: () {},
+            onPressed: widget.onCameraPressed,
           ),
           Container(
             margin: const EdgeInsets.only(left: 4.0),

@@ -236,63 +236,42 @@ class Appartenance {
 
 class ChatVocal {
   final int? id;
-  final String audioUrl;
-  final String? duree;
-  final String? texte;
-
   final int? expediteurId;
   final String? expediteurNom;
   final String? expediteurPrenom;
-
-  final int? destinataireId;
-  final String? destinataireNom;
-  final String? destinatairePrenom;
-
-  final int? cooperativeId;
-  final String? cooperativeNom;
-
+  final String? texte;
+  final String? audioUrl;
+  final String? fichierUrl;
   final String? dateEnvoi;
-  final bool lu;
-  final String? dateLecture;
+  final String? duree;
 
   ChatVocal({
     this.id,
-    required this.audioUrl,
-    this.duree,
-    this.texte,
     this.expediteurId,
     this.expediteurNom,
     this.expediteurPrenom,
-    this.destinataireId,
-    this.destinataireNom,
-    this.destinatairePrenom,
-    this.cooperativeId,
-    this.cooperativeNom,
+    this.texte,
+    this.audioUrl,
+    this.fichierUrl, 
     this.dateEnvoi,
-    required this.lu,
-    this.dateLecture,
+    this.duree,
   });
 
   factory ChatVocal.fromJson(Map<String, dynamic> json) {
     return ChatVocal(
       id: json['id'] as int?,
-      audioUrl: json['audioUrl'] as String? ?? '',
-      duree: json['duree'] as String?,
-      texte: json['texte'] as String?,
       expediteurId: json['expediteurId'] as int?,
       expediteurNom: json['expediteurNom'] as String?,
       expediteurPrenom: json['expediteurPrenom'] as String?,
-      destinataireId: json['destinataireId'] as int?,
-      destinataireNom: json['destinataireNom'] as String?,
-      destinatairePrenom: json['destinatairePrenom'] as String?,
-      cooperativeId: json['cooperativeId'] as int?,
-      cooperativeNom: json['cooperativeNom'] as String?,
+      texte: json['texte'] as String?,
+      audioUrl: json['audioUrl'] as String?,
+      fichierUrl: json['fichierUrl'] as String?,
       dateEnvoi: json['dateEnvoi'] as String?,
-      lu: json['lu'] as bool? ?? false,
-      dateLecture: json['dateLecture'] as String?,
+      duree: json['duree'] as String?,
     );
   }
 }
+
 
 class FemmeRurale {
   final int id;

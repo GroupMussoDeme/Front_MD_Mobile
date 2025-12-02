@@ -64,12 +64,8 @@ class FemmeRuraleApi {
       );
     }
 
-    // Pour vérifier ce que renvoie le backend
-    // print('UPLOAD RESPONSE BODY = ${response.body}');
-
     final Map<String, dynamic> jsonBody = jsonDecode(response.body);
 
-    // ✅ maintenant le backend renvoie bien un champ "data"
     final data = jsonBody['data'] as Map<String, dynamic>?;
     final fileName = data?['fileName'] as String?;
 
@@ -225,18 +221,16 @@ class FemmeRuraleApi {
     final Map<String, dynamic> jsonBody = jsonDecode(response.body);
     final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
 
-    // On parse les produits
     final produits = dataList
         .map((e) => Produit.fromJson(e as Map<String, dynamic>))
         .toList();
 
-    // 🆕 On retire les produits de la femme connectée
     return produits
         .where((p) => p.femmeRuraleId == null || p.femmeRuraleId != femmeId)
         .toList();
   }
 
-  /// Récupérer un produit par son id (avec éventuellement audio guide)
+  /// Récupérer un produit par son id
   /// --> GET /api/femmes-rurales/produits/{produitId}
   Future<Produit> getProduit(int produitId) async {
     final uri = Uri.parse('$baseUrl/femmes-rurales/produits/$produitId');
@@ -333,7 +327,6 @@ class FemmeRuraleApi {
 
   /// Passer une commande sur un produit donné
   /// --> POST /api/femmes-rurales/{femmeId}/commandes
-  /// @RequestParam Long produitId, @RequestParam Integer quantite
   Future<Commande> passerCommande({
     required int produitId,
     required int quantite,
@@ -352,7 +345,6 @@ class FemmeRuraleApi {
     );
 
     if (response.statusCode != 201) {
-      // 🆕 utilise le helper pour récupérer le message fonctionnel
       throw _buildApiException('Erreur passage commande', response);
     }
 
@@ -386,10 +378,6 @@ class FemmeRuraleApi {
 
   /// Payer une commande
   /// --> POST /api/femmes-rurales/{femmeId}/commandes/{commandeId}/payer
-  /// @RequestParam Double montant, @RequestParam ModePaiement modePaiement
-  ///
-  /// modePaiement doit être une valeur string de l'enum backend :
-  /// "ORANGE_MONEY", "MOOV_MONEY", "ESPECE", etc.
   Future<Paiement> payerCommande({
     required int commandeId,
     required double montant,
@@ -408,7 +396,6 @@ class FemmeRuraleApi {
     );
 
     if (response.statusCode != 201) {
-      // 🆕 remonte le message métier (montant incorrect, commande déjà payée, etc.)
       throw _buildApiException('Erreur paiement commande', response);
     }
 
@@ -419,7 +406,7 @@ class FemmeRuraleApi {
     return Paiement.fromJson(paiementJson);
   }
 
-  /// Récupérer toutes mes commandes (en tant qu'acheteuse + vendeuse)
+  /// Récupérer toutes mes commandes (acheteuse + vendeuse)
   /// --> GET /api/femmes-rurales/{femmeId}/mes-commandes
   Future<List<Commande>> getMesCommandes() async {
     final uri = Uri.parse('$baseUrl/femmes-rurales/$femmeId/mes-commandes');
@@ -439,14 +426,6 @@ class FemmeRuraleApi {
         .map((e) => Commande.fromJson(e as Map<String, dynamic>))
         .toList();
   }
-
-  // =========================================================
-  //                      PAIEMENTS (lecture)
-  // =========================================================
-  //
-  // Pour l'instant, ton controller ne publie pas d'endpoint
-  // GET /paiements pour la femme. Si tu en ajoutes un côté backend,
-  // on pourra compléter ici une méthode getMesPaiements().
 
   // =========================================================
   //                  COOPERATIVES & APPARTENANCES
@@ -504,10 +483,6 @@ class FemmeRuraleApi {
 
     return Appartenance.fromJson(appartJson);
   }
-
-  /// =========================================================
-  ///                 COOPERATIVES (lecture)
-  /// =========================================================
 
   /// Récupérer les coopératives dont je suis membre
   /// --> GET /api/femmes-rurales/{femmeId}/mes-cooperatives
@@ -591,7 +566,7 @@ class FemmeRuraleApi {
     return ChatVocal.fromJson(msgJson);
   }
 
-  /// Récupérer l'historique de chat vocal entre la femme connectée et une autre
+  /// Historique de chat vocal entre la femme connectée et une autre
   /// GET /api/femmes-rurales/{femme1Id}/chats/{femme2Id}
   Future<List<ChatVocal>> getHistoriqueChatVocal({
     required int autreFemmeId,
@@ -627,18 +602,12 @@ class FemmeRuraleApi {
     if (response.statusCode != 200) {
       throw _buildApiException('Erreur marquage message comme lu', response);
     }
-    // le backend ne renvoie pas de data spécifique, juste un message
   }
 
   // =========================================================
   //           COOPERATIVES : UPLOAD AUDIO + MESSAGES
   // =========================================================
 
-  /// Upload d'un audio pour une coopérative
-  /// --> POST /api/femmes-rurales/{femmeId}/cooperatives/{cooperativeId}/audios
-  /// form-data: file = <audio>
-  ///
-  /// Retourne l'URL relative renvoyée par le backend (ex: "/uploads/audios/xxx.aac")
   Future<String> uploadCoopAudio({
     required int cooperativeId,
     required String filePath,
@@ -659,7 +628,6 @@ class FemmeRuraleApi {
     }
 
     final Map<String, dynamic> jsonBody = jsonDecode(response.body);
-    // data contient directement l'URL relative
     final audioUrl = jsonBody['data'] as String?;
     if (audioUrl == null || audioUrl.isEmpty) {
       throw Exception(
@@ -669,9 +637,6 @@ class FemmeRuraleApi {
     return audioUrl;
   }
 
-  /// Envoyer un message vocal dans une coopérative
-  /// --> POST /api/femmes-rurales/{femmeId}/cooperatives/{cooperativeId}/messages
-  /// @RequestParam String audioUrl
   Future<ChatVocal> envoyerMessageCooperative({
     required int cooperativeId,
     required String audioUrl,
@@ -699,8 +664,6 @@ class FemmeRuraleApi {
     return ChatVocal.fromJson(msgJson);
   }
 
-  /// Envoyer un message TEXTE dans une coopérative
-  /// POST /api/femmes-rurales/{femmeId}/cooperatives/{cooperativeId}/messages-textes
   Future<ChatVocal> envoyerMessageTexteCooperative({
     required int cooperativeId,
     required String texte,
@@ -731,7 +694,7 @@ class FemmeRuraleApi {
     return ChatVocal.fromJson(msgJson);
   }
 
-    /// Récupérer les membres d'une coopérative
+  /// Récupérer les membres d'une coopérative
   /// --> GET /api/femmes-rurales/cooperatives/{cooperativeId}/membres
   Future<List<FemmeRurale>> getMembresCooperative({
     required int cooperativeId,
@@ -790,9 +753,6 @@ class FemmeRuraleApi {
   }
 
   /// Ajouter un membre dans une coopérative
-  /// Ici on utilise l'endpoint existant "joindre" en passant l'ID
-  /// de la femme qu'on veut ajouter (nouvelle membre).
-  ///
   /// --> POST /api/femmes-rurales/{femmeRuraleId}/cooperatives/{cooperativeId}/joindre
   Future<Appartenance> ajouterMembreDansCooperative({
     required int cooperativeId,
@@ -820,6 +780,77 @@ class FemmeRuraleApi {
     return Appartenance.fromJson(appartJson);
   }
 
+  // =========================================================
+  //           COOPERATIVES : UPLOAD FICHIERS + MESSAGES
+  // =========================================================
+
+  Future<String> uploadCoopFile({
+    required int cooperativeId,
+    required String filePath,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeId/cooperatives/$cooperativeId/fichiers',
+    );
+    print('[API] uploadCoopFile => $uri | file=$filePath');
+
+    final request = http.MultipartRequest('POST', uri)
+      ..headers['Authorization'] = 'Bearer $token'
+      ..files.add(await http.MultipartFile.fromPath('file', filePath));
+
+    final streamedResponse = await request.send();
+    final response = await http.Response.fromStream(streamedResponse);
+
+    print(
+        '[API] uploadCoopFile <== ${response.statusCode} | ${response.body}');
+
+    if (response.statusCode != 201) {
+      throw _buildApiException('Erreur upload fichier coopérative', response);
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final fichierUrl = jsonBody['data'] as String?;
+    if (fichierUrl == null || fichierUrl.isEmpty) {
+      throw Exception(
+        'Réponse backend invalide : "data" manquant (body = ${response.body})',
+      );
+    }
+    return fichierUrl;
+  }
+
+  Future<ChatVocal> envoyerMessageFichierCooperative({
+    required int cooperativeId,
+    required String fichierUrl,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeId/cooperatives/$cooperativeId/messages-fichiers',
+    );
+    print(
+        '[API] envoyerMessageFichierCooperative => $uri | fichierUrl="$fichierUrl"');
+
+    final response = await http.post(
+      uri,
+      headers: _authHeaders(
+        extra: {'Content-Type': 'application/x-www-form-urlencoded'},
+      ),
+      body: {'fichierUrl': fichierUrl},
+    );
+
+    print(
+        '[API] envoyerMessageFichierCooperative <== ${response.statusCode} | ${response.body}');
+
+    if (response.statusCode != 201) {
+      throw _buildApiException(
+        'Erreur envoi message fichier coopérative',
+        response,
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> msgJson =
+        jsonBody['data'] as Map<String, dynamic>;
+
+    return ChatVocal.fromJson(msgJson);
+  }
 }
 
 // =========================================================
@@ -831,13 +862,11 @@ Exception _buildApiException(String prefix, http.Response response) {
     final Map<String, dynamic> body = jsonDecode(response.body);
     final message = body['message'] as String?;
     if (message != null && message.isNotEmpty) {
-      // On renvoie uniquement le message fonctionnel
       return Exception(message);
     }
   } catch (_) {
-    // si le body n'est pas du JSON ou n'a pas 'message'
+    // body non JSON ou champ "message" absent
   }
 
-  // Fallback : message générique
   return Exception('$prefix (${response.statusCode}) : ${response.body}');
 }
