@@ -118,30 +118,42 @@ class _HomeScreenState extends State<HomeScreen> {
   late AudioPlayer audioPlayer;
   bool _isAudioPlaying = false;
   bool _isKeypadVisible = false;
+  String? _prenom;
 
   @override
   void initState() {
     super.initState();
     audioPlayer = AudioPlayer();
     _playAudios();
+    _loadUserPrenom();
+  }
+
+  Future<void> _loadUserPrenom() async {
+    final prenom = await SessionService.getUserPrenom();
+    if (!mounted) return;
+    setState(() {
+      _prenom = prenom;
+    });
   }
 
   void _playAudios() async {
     try {
       // Lecture automatique des audios dans l'ordre spécifié avec un intervalle de 2 secondes
-      await Future.delayed(const Duration(seconds: 1)); // Délai initial avant de commencer
+      await Future.delayed(
+        const Duration(seconds: 1),
+      ); // Délai initial avant de commencer
       await audioPlayer.setAsset("assets/audios/BienvenueAccuiel.aac");
       await audioPlayer.play();
       await Future.delayed(const Duration(seconds: 2));
-      
+
       await audioPlayer.setAsset("assets/audios/profil.aac");
       await audioPlayer.play();
       await Future.delayed(const Duration(seconds: 2));
-      
+
       await audioPlayer.setAsset("assets/audios/whatsapp.aac");
       await audioPlayer.play();
       await Future.delayed(const Duration(seconds: 2));
-      
+
       await audioPlayer.setAsset("assets/audios/guide.aac");
       await audioPlayer.play();
     } catch (e) {
@@ -155,15 +167,15 @@ class _HomeScreenState extends State<HomeScreen> {
       _isAudioPlaying = true;
       _isKeypadVisible = true;
     });
-    
+
     try {
       // Lecture de l'audio "clavierNumérique.aac"
       await audioPlayer.setAsset("assets/audios/clavierNumérique.aac");
       await audioPlayer.play();
-      
+
       // Attendre 2 secondes
       await Future.delayed(const Duration(seconds: 2));
-      
+
       // Relancer la lecture si l'audio doit continuer
       if (_isAudioPlaying) {
         _playClavierAudioLoop();
@@ -194,10 +206,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void _addDigit(String digit) {
     // Arrêter toute lecture audio en cours
     _stopAudio();
-    
+
     // Masquer le clavier
     _hideNumericKeypad();
-    
+
     // Redirection vers différentes pages selon le chiffre entré
     switch (digit) {
       case '1':
@@ -211,21 +223,27 @@ class _HomeScreenState extends State<HomeScreen> {
         // Direction page DroitsDesFemmesScreen
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const DroitsDesFemmesScreen()),
+          MaterialPageRoute(
+            builder: (context) => const DroitsDesFemmesScreen(),
+          ),
         );
         break;
       case '3':
         // Direction page DroitsDesEnfantsScreen
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const DroitsDesEnfantsScreen()),
+          MaterialPageRoute(
+            builder: (context) => const DroitsDesEnfantsScreen(),
+          ),
         );
         break;
       case '4':
         // Direction page ConseilsNouvellesMamansScreen
         Navigator.push(
           context,
-          MaterialPageRoute(builder: (context) => const ConseilsNouvellesMamansScreen()),
+          MaterialPageRoute(
+            builder: (context) => const ConseilsNouvellesMamansScreen(),
+          ),
         );
         break;
       case '5':
@@ -294,10 +312,10 @@ class _HomeScreenState extends State<HomeScreen> {
   void _showLogoutDialog() {
     // Lecture de l'audio de déconnexion
     audioPlayer.stop();
-    
+
     // Lecture de l'audio "deconnexion.aac"
     _playLogoutAudio();
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -324,7 +342,7 @@ class _HomeScreenState extends State<HomeScreen> {
               onPressed: () async {
                 // Déconnexion de l'utilisateur
                 await SessionService.clearSession();
-                
+
                 // Redirection vers la page de démarrage
                 Navigator.pushAndRemoveUntil(
                   context,
@@ -368,7 +386,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          
+
           // Ligne 2: 4, 5, 6
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -379,7 +397,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          
+
           // Ligne 3: 7, 8, 9
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -390,7 +408,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
           const SizedBox(height: 10),
-          
+
           // Ligne 4: *, 0, #
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -487,284 +505,287 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Scaffold(
         backgroundColor: neutralWhite,
 
-      body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              // Bandeau violet avec logo centré chevauchant le bas
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    height: 100,
-                    decoration: const BoxDecoration(
-                      color: primaryViolet,
-                      borderRadius: BorderRadius.only(
-                        bottomLeft: Radius.circular(40),
-                        bottomRight: Radius.circular(40),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                // Bandeau violet avec logo centré chevauchant le bas
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      height: 100,
+                      decoration: const BoxDecoration(
+                        color: primaryViolet,
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(40),
+                          bottomRight: Radius.circular(40),
+                        ),
                       ),
                     ),
-                  ),
-                  // Icône chat
-                  Positioned(
-                    right: 65,
-                    top: 10,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.chat_bubble_outline,
-                        color: neutralWhite,
-                        size: 28,
-                      ),
-                      onPressed: () {
-                        // ✅ Navigation vers la page des coopératives,
-                        // où l’utilisatrice choisit une coop,
-                        // puis CooperativePage ouvrira GroupChatScreen(cooperativeId, cooperativeNom)
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const CooperativePage(),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                  // Icône notification
-                  Positioned(
-                    right: 15,
-                    top: 10,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.notifications_none,
-                        color: neutralWhite,
-                        size: 28,
-                      ),
-                      onPressed: () {},
-                    ),
-                  ),
-                  // Icône vocale
-                  Positioned(
-                    left: 15,
-                    top: 10,
-                    child: VocalIcon(
-                      onPressed: () {
-                        // TODO: Implémenter la fonctionnalité vocale
-                      },
-                      isActive: true,
-                    ),
-                  ),
-                  // Logo centré descendant un peu en bas du bandeau
-                  Positioned(
-                    top: 55, // <-- ajuste ici pour descendre plus ou moins
-                    left: 0,
-                    right: 0,
-                    child: Center(
-                      child: Container(
-                        width: 90,
-                        height: 90,
-                        decoration: BoxDecoration(
+                    // Icône chat
+                    Positioned(
+                      right: 65,
+                      top: 10,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.chat_bubble_outline,
                           color: neutralWhite,
-                          shape: BoxShape.circle,
-                          border: Border.all(color: primaryViolet, width: 3),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 5,
-                              offset: const Offset(0, 3),
+                          size: 28,
+                        ),
+                        onPressed: () {
+                          // ✅ Navigation vers la page des coopératives,
+                          // où l’utilisatrice choisit une coop,
+                          // puis CooperativePage ouvrira GroupChatScreen(cooperativeId, cooperativeNom)
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CooperativePage(),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                    // Icône notification
+                    Positioned(
+                      right: 15,
+                      top: 10,
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.notifications_none,
+                          color: neutralWhite,
+                          size: 28,
+                        ),
+                        onPressed: () {},
+                      ),
+                    ),
+                    // Icône vocale
+                    Positioned(
+                      left: 15,
+                      top: 10,
+                      child: VocalIcon(
+                        onPressed: () {
+                          // TODO: Implémenter la fonctionnalité vocale
+                        },
+                        isActive: true,
+                      ),
+                    ),
+                    // Logo centré descendant un peu en bas du bandeau
+                    Positioned(
+                      top: 55, // <-- ajuste ici pour descendre plus ou moins
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          width: 90,
+                          height: 90,
+                          decoration: BoxDecoration(
+                            color: neutralWhite,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: primaryViolet, width: 3),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 5,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Image.asset(
+                              'assets/images/logo.png',
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 60), // espace ajusté après le logo
+                // Image principale
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Image.asset(
+                    'assets/images/image1.png', // Remplace par ton image
+                    width: MediaQuery.of(context).size.width * 0.9,
+                    height: 200,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+
+                const SizedBox(height: 15),
+
+                // Message de bienvenue
+                Text(
+                  _prenom != null && _prenom!.isNotEmpty
+                      ? 'Bienvenue ${_prenom!}...'
+                      : 'Bienvenue...',
+                  style: const TextStyle(
+                    color: primaryViolet,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Grille des options principales
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: GridView.count(
+                    crossAxisCount: 3,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    mainAxisSpacing: 25,
+                    crossAxisSpacing: 15,
+                    childAspectRatio: 0.85,
+                    children: _menuItems.map((item) {
+                      return GestureDetector(
+                        onTap: () {
+                          final title = item['title'];
+                          switch (title) {
+                            case 'Nutrition':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const NutritionScreen(),
+                                ),
+                              );
+                              break;
+
+                            case 'Droits des enfants':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const DroitsDesEnfantsScreen(),
+                                ),
+                              );
+                              break;
+
+                            case 'Droits des femmes':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const DroitsDesFemmesScreen(),
+                                ),
+                              );
+                              break;
+
+                            case 'Conseils aux mamans':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ConseilsNouvellesMamansScreen(),
+                                ),
+                              );
+                              break;
+
+                            case 'Protection contre la violence':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ProtectionViolenceScreen(),
+                                ),
+                              );
+                              break;
+
+                            case 'Marchés':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => RuralMarketScreen(),
+                                ),
+                              );
+                              break;
+
+                            case 'Aides aux financements':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const FinancialAidScreen(),
+                                ),
+                              );
+                              break;
+
+                            case 'Formations':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const FormationVideosPage(),
+                                ),
+                              );
+                              break;
+
+                            case 'Coopératives':
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const CooperativePage(),
+                                ),
+                              );
+                              break;
+
+                            default:
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => TopicPage(title: title),
+                                ),
+                              );
+                          }
+                        },
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            // Cercle icône
+                            Container(
+                              width: 85,
+                              height: 85,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: lightViolet,
+                              ),
+                              child: Center(
+                                child: Icon(
+                                  item['icon'],
+                                  color: primaryViolet,
+                                  size: 35,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 6),
+                            // Texte sous l’icône
+                            SizedBox(
+                              width: 90,
+                              child: Text(
+                                item['title'],
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: labelViolet,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        child: Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-                    ),
+                      );
+                    }).toList(),
                   ),
-                ],
-              ),
-
-                    const SizedBox(height: 60), // espace ajusté après le logo
-                    // Image principale
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.asset(
-                        'assets/images/image1.png', // Remplace par ton image
-                        width: MediaQuery.of(context).size.width * 0.9,
-                        height: 200,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-
-                    const SizedBox(height: 15),
-
-                    // Message de bienvenue
-                    const Text(
-                      "Bienvenue Aminata...",
-                      style: TextStyle(
-                        color: primaryViolet,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Grille des options principales
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: GridView.count(
-                        crossAxisCount: 3,
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        mainAxisSpacing: 25,
-                        crossAxisSpacing: 15,
-                        childAspectRatio: 0.85,
-                        children: _menuItems.map((item) {
-                          return GestureDetector(
-                            onTap: () {
-                              final title = item['title'];
-                              switch (title) {
-                                case 'Nutrition':
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const NutritionScreen(),
-                                    ),
-                                  );
-                                  break;
-
-                                case 'Droits des enfants':
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const DroitsDesEnfantsScreen(),
-                                    ),
-                                  );
-                                  break;
-
-                                case 'Droits des femmes':
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const DroitsDesFemmesScreen(),
-                                    ),
-                                  );
-                                  break;
-
-                                case 'Conseils aux mamans':
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const ConseilsNouvellesMamansScreen(),
-                                    ),
-                                  );
-                                  break;
-
-                                case 'Protection contre la violence':
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) =>
-                                          const ProtectionViolenceScreen(),
-                                    ),
-                                  );
-                                  break;
-
-                                case 'Marchés':
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => RuralMarketScreen(),
-                                    ),
-                                  );
-                                  break;
-
-                                case 'Aides aux financements':
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const FinancialAidScreen(),
-                                    ),
-                                  );
-                                  break;
-
-                                case 'Formations':
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const FormationVideosPage(),
-                                    ),
-                                  );
-                                  break;
-
-                                case 'Coopératives':
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const CooperativePage(),
-                                    ),
-                                  );
-                                  break;
-
-                          default:
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => TopicPage(title: title),
-                              ),
-                            );
-                        }
-                      },
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Cercle icône
-                          Container(
-                            width: 85,
-                            height: 85,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: lightViolet,
-                            ),
-                            child: Center(
-                              child: Icon(
-                                item['icon'],
-                                color: primaryViolet,
-                                size: 35,
-                              ),
-                            ),
-                          ),
-
-                          const SizedBox(height: 6),
-                          // Texte sous l’icône
-                          SizedBox(
-                            width: 90,
-                            child: Text(
-                              item['title'],
-                              textAlign: TextAlign.center,
-                              style: const TextStyle(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: labelViolet,
-                                fontFamily: 'Poppins',
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }).toList(),
                 ),
-              ),
-              const SizedBox(height: 30),
-            ],
+                const SizedBox(height: 30),
+              ],
+            ),
           ),
         ),
-      ),
 
         // Barre de navigation inférieure
         bottomNavigationBar: BottomNavBar(

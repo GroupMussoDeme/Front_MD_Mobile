@@ -294,3 +294,24 @@ class ChatVocal {
   }
 }
 
+class FemmeRurale {
+  final int id;
+  final String nom;
+  final String prenom;
+
+  FemmeRurale({
+    required this.id,
+    required this.nom,
+    required this.prenom,
+  });
+
+  String get nomComplet => '$prenom $nom';
+
+  factory FemmeRurale.fromJson(Map<String, dynamic> json) {
+    return FemmeRurale(
+      id: json['id'] as int,
+      nom: json['nom'] as String? ?? '',
+      prenom: json['prenom'] as String? ?? '',
+    );
+  }
+}

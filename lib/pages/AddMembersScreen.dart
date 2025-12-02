@@ -1,49 +1,86 @@
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
+import 'package:musso_deme_app/models/marche_models.dart'; // FemmeRurale
+import 'package:musso_deme_app/services/femme_rurale_api.dart';
 
-// Defined colors for consistency
-const Color primaryColor = Color(0xFF6A1B9A); // Deep purple
-const Color lightPurple = Color(0xFFE1BEE7); // Light purple
+const Color primaryColor = Color(0xFF6A1B9A);
+const Color lightPurple = Color(0xFFE1BEE7);
 
 class AddMembersScreen extends StatefulWidget {
-  const AddMembersScreen({super.key});
+  final int cooperativeId;
+  final FemmeRuraleApi api;
+
+  const AddMembersScreen({
+    super.key,
+    required this.cooperativeId,
+    required this.api,
+  });
 
   @override
   _AddMembersScreenState createState() => _AddMembersScreenState();
 }
 
 class _AddMembersScreenState extends State<AddMembersScreen> {
-  // Mock data representing the contacts list
-  final List<Map<String, dynamic>> _contacts = [
-    {'name': 'Adama Sy', 'isSelected': false},
-    {'name': 'Oumar Diallo', 'isSelected': false},
-    {'name': 'Fatou Cissé', 'isSelected': false},
-    {'name': 'Moussa Traoré', 'isSelected': false},
-    {'name': 'Aminata Touré', 'isSelected': true}, // One is pre-selected
-  ];
-
-  // State to manage the selected item (assuming single selection based on the radio button look)
-  int? _selectedContactIndex; 
+  late Future<List<FemmeRurale>> _contactsFuture;
+  int? _selectedContactId;
 
   @override
   void initState() {
     super.initState();
-    // Find the index of the pre-selected contact to initialize the state
-    _selectedContactIndex = _contacts.indexWhere((c) => c['isSelected'] == true);
+    _contactsFuture = widget.api.getContactsAjoutablesPourCooperative(
+      cooperativeId: widget.cooperativeId,
+    );
   }
 
-  void _selectContact(int index) {
+  void _selectContact(int femmeId) {
     setState(() {
-      // Toggle selection: if the same index is tapped, deselect it.
-      // Otherwise, select the new index.
-      _selectedContactIndex = (_selectedContactIndex == index) ? null : index;
+      _selectedContactId = (_selectedContactId == femmeId) ? null : femmeId;
     });
+  }
+
+  Future<void> _onValidate() async {
+    if (_selectedContactId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Veuillez sélectionner un contact à ajouter.'),
+        ),
+      );
+      return;
+    }
+
+    try {
+      final id = _selectedContactId!;
+      await widget.api.ajouterMembreDansCooperative(
+        cooperativeId: widget.cooperativeId,
+        femmeRuraleId: id,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Membre ajouté avec succès à la coopérative.'),
+        ),
+      );
+
+      if (mounted) {
+        Navigator.pop(context, true); // indique à l'écran précédent de recharger
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur lors de l\'ajout du membre : $e'),
+        ),
+      );
+    }
+  }
+
+  void _onCancel() {
+    Navigator.pop(context, false);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // --- AppBar (Top Bar) remplacée par RoundedPurpleContainer ---
+      // AppBar arrondi
       appBar: PreferredSize(
         preferredSize: const Size.fromHeight(100.0),
         child: Container(
@@ -75,7 +112,8 @@ class _AddMembersScreenState extends State<AddMembersScreen> {
                   ),
                   const Spacer(),
                   IconButton(
-                    icon: const Icon(Icons.notifications_none, color: Colors.white),
+                    icon: const Icon(Icons.notifications_none,
+                        color: Colors.white),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -85,26 +123,24 @@ class _AddMembersScreenState extends State<AddMembersScreen> {
                       );
                     },
                   ),
-
                 ],
               ),
             ),
           ),
         ),
       ),
-      // --- Body (Main Content) ---
+
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 30), // Espace pour compenser l'AppBar modifiée
-          // Header Section
+          const SizedBox(height: 30),
           Padding(
-            padding: const EdgeInsets.only(left: 24.0, top: 10.0, bottom: 5.0),
+            padding:
+                const EdgeInsets.only(left: 24.0, top: 10.0, bottom: 5.0),
             child: Row(
-              children: [
-                const SizedBox(width: 8),
-                // Speaker Icon
-                const Icon(Icons.volume_up, color: Colors.grey, size: 20),
+              children: const [
+                SizedBox(width: 8),
+                Icon(Icons.volume_up, color: Colors.grey, size: 20),
               ],
             ),
           ),
@@ -116,41 +152,56 @@ class _AddMembersScreenState extends State<AddMembersScreen> {
             ),
           ),
 
-          // --- Contacts List (Scrollable) ---
+          // Liste des contacts
           Expanded(
-            child: ListView.builder(
-              itemCount: _contacts.length,
-              itemBuilder: (context, index) {
-                final contact = _contacts[index];
-                final isSelected = _selectedContactIndex == index;
-                
-                return _buildMemberListItem(
-                  name: contact['name'] as String,
-                  isSelected: isSelected,
-                  onTap: () => _selectContact(index),
+            child: FutureBuilder<List<FemmeRurale>>(
+              future: _contactsFuture,
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+                if (snapshot.hasError) {
+                  return Center(
+                    child: Text(
+                      'Erreur lors du chargement des contacts : ${snapshot.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+
+                final contacts = snapshot.data ?? [];
+                if (contacts.isEmpty) {
+                  return const Center(
+                    child: Text('Aucun contact disponible à ajouter.'),
+                  );
+                }
+
+                return ListView.builder(
+                  itemCount: contacts.length,
+                  itemBuilder: (context, index) {
+                    final contact = contacts[index];
+                    final isSelected = _selectedContactId == contact.id;
+
+                    return _buildMemberListItem(
+                      name: contact.nomComplet,
+                      isSelected: isSelected,
+                      onTap: () => _selectContact(contact.id),
+                    );
+                  },
                 );
               },
             ),
           ),
-          
-          // --- Action Buttons (X and Check) ---
+
+          // Boutons X et ✓
           Padding(
-            padding: const EdgeInsets.only(top: 20.0, bottom: 40.0),
+            padding:
+                const EdgeInsets.only(top: 20.0, bottom: 40.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildActionButton(Icons.close, primaryColor, () {
-                  // Action for Cancel (X)
-                  print('Cancel pressed');
-                }),
-                _buildActionButton(Icons.check, primaryColor, () {
-                  // Action for Submit (Check)
-                  if (_selectedContactIndex != null) {
-                    print('Selected member: ${_contacts[_selectedContactIndex!]['name']}');
-                  } else {
-                    print('No member selected');
-                  }
-                }),
+                _buildActionButton(Icons.close, primaryColor, _onCancel),
+                _buildActionButton(Icons.check, primaryColor, _onValidate),
               ],
             ),
           ),
@@ -159,9 +210,7 @@ class _AddMembersScreenState extends State<AddMembersScreen> {
     );
   }
 
-  // -----------------------------------------------------------
-  // --- Widget helper for Member List Item ---
-  // -----------------------------------------------------------
+  // Item contact
   Widget _buildMemberListItem({
     required String name,
     required bool isSelected,
@@ -172,12 +221,14 @@ class _AddMembersScreenState extends State<AddMembersScreen> {
       leading: const CircleAvatar(
         radius: 25,
         backgroundColor: lightPurple,
-        // Placeholder for the profile image (Adama Sy)
-        child: Icon(Icons.person, color: primaryColor), 
+        child: Icon(Icons.person, color: primaryColor),
       ),
       title: Text(
         name,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+        style: const TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w600,
+        ),
       ),
       trailing: Container(
         width: 25,
@@ -185,7 +236,9 @@ class _AddMembersScreenState extends State<AddMembersScreen> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: isSelected ? primaryColor : primaryColor.withOpacity(0.5),
+            color: isSelected
+                ? primaryColor
+                : primaryColor.withOpacity(0.5),
             width: 2,
           ),
           color: isSelected ? primaryColor : Colors.white,
@@ -194,11 +247,12 @@ class _AddMembersScreenState extends State<AddMembersScreen> {
     );
   }
 
-  // -----------------------------------------------------------
-  // --- Helper Widget for Large Circular Action Buttons (X and Check) ---
-  // -----------------------------------------------------------
+  // Bouton circulaire (X / ✓)
   Widget _buildActionButton(
-      IconData icon, Color color, VoidCallback onPressed) {
+    IconData icon,
+    Color color,
+    VoidCallback onPressed,
+  ) {
     return InkWell(
       onTap: onPressed,
       child: Container(

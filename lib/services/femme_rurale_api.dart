@@ -730,6 +730,96 @@ class FemmeRuraleApi {
 
     return ChatVocal.fromJson(msgJson);
   }
+
+    /// Récupérer les membres d'une coopérative
+  /// --> GET /api/femmes-rurales/cooperatives/{cooperativeId}/membres
+  Future<List<FemmeRurale>> getMembresCooperative({
+    required int cooperativeId,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/cooperatives/$cooperativeId/membres',
+    );
+    print('[API] getMembresCooperative => $uri');
+
+    final response = await http.get(uri, headers: _authHeaders());
+
+    print(
+        '[API] getMembresCooperative <== ${response.statusCode} | ${response.body}');
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Erreur récupération membres coopérative (${response.statusCode}) : ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
+
+    return dataList
+        .map((e) => FemmeRurale.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Récupérer les contacts MussoDèmè ajoutables dans une coopérative
+  /// --> GET /api/femmes-rurales/cooperatives/{cooperativeId}/contacts-ajout
+  Future<List<FemmeRurale>> getContactsAjoutablesPourCooperative({
+    required int cooperativeId,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/cooperatives/$cooperativeId/contacts-ajout',
+    );
+    print('[API] getContactsAjoutablesPourCooperative => $uri');
+
+    final response = await http.get(uri, headers: _authHeaders());
+
+    print(
+        '[API] getContactsAjoutablesPourCooperative <== ${response.statusCode} | ${response.body}');
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Erreur récupération contacts ajoutables (${response.statusCode}) : ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final List<dynamic> dataList = jsonBody['data'] as List<dynamic>? ?? [];
+
+    return dataList
+        .map((e) => FemmeRurale.fromJson(e as Map<String, dynamic>))
+        .toList();
+  }
+
+  /// Ajouter un membre dans une coopérative
+  /// Ici on utilise l'endpoint existant "joindre" en passant l'ID
+  /// de la femme qu'on veut ajouter (nouvelle membre).
+  ///
+  /// --> POST /api/femmes-rurales/{femmeRuraleId}/cooperatives/{cooperativeId}/joindre
+  Future<Appartenance> ajouterMembreDansCooperative({
+    required int cooperativeId,
+    required int femmeRuraleId,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/femmes-rurales/$femmeRuraleId/cooperatives/$cooperativeId/joindre',
+    );
+    print(
+        '[API] ajouterMembreDansCooperative => $uri (femmeRuraleId=$femmeRuraleId)');
+
+    final response = await http.post(uri, headers: _authHeaders());
+
+    print(
+        '[API] ajouterMembreDansCooperative <== ${response.statusCode} | ${response.body}');
+
+    if (response.statusCode != 201) {
+      throw _buildApiException('Erreur ajout membre coopérative', response);
+    }
+
+    final Map<String, dynamic> jsonBody = jsonDecode(response.body);
+    final Map<String, dynamic> appartJson =
+        jsonBody['data'] as Map<String, dynamic>;
+
+    return Appartenance.fromJson(appartJson);
+  }
+
 }
 
 // =========================================================

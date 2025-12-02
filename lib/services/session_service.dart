@@ -5,6 +5,7 @@ class SessionService {
   static const _keyRefreshToken = 'refresh_token';
   static const _keyRole = 'role';
   static const _keyUserId = 'user_id';
+  static const _keyUserPrenom = 'user_prenom';
 
   /// Sauvegarde la session après un login réussi
   static Future<void> saveSession({
@@ -18,6 +19,18 @@ class SessionService {
     await prefs.setString(_keyRefreshToken, refreshToken);
     await prefs.setString(_keyRole, role);
     await prefs.setInt(_keyUserId, userId);
+  }
+
+   /// 🔹 À appeler séparément au login, une fois que tu as le profil
+  static Future<void> saveUserPrenom(String prenom) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyUserPrenom, prenom);
+  }
+
+  /// 🔹 Récupération du prénom
+  static Future<String?> getUserPrenom() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_keyUserPrenom);
   }
 
   /// Récupère toutes les infos (ou null si rien)
@@ -47,6 +60,7 @@ class SessionService {
     await prefs.remove(_keyRefreshToken);
     await prefs.remove(_keyRole);
     await prefs.remove(_keyUserId);
+    await prefs.remove(_keyUserPrenom);
   }
 
   /// Raccourci pour l’accessToken
@@ -72,4 +86,5 @@ class SessionService {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_keyRole);
   }
+
 }

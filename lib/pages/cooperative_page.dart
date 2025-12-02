@@ -1,3 +1,5 @@
+// lib/pages/CooperativePage.dart
+
 import 'package:flutter/material.dart';
 import 'package:musso_deme_app/widgets/BottomNavBar.dart';
 import 'package:musso_deme_app/pages/GroupChatScreen.dart';
@@ -146,8 +148,7 @@ class _CooperativePageState extends State<CooperativePage> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) =>
-                                    NewCooperativeScreen(),
+                                builder: (context) => NewCooperativeScreen(),
                               ),
                             );
                           },
@@ -208,8 +209,7 @@ class _CooperativePageState extends State<CooperativePage> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => GroupChatScreen(
-                              cooperativeId: coop.id!,
-                              cooperativeNom: coop.nom,
+                              cooperative: coop, // <=== IMPORTANT
                             ),
                           ),
                         );

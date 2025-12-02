@@ -1,3 +1,5 @@
+// lib/pages/GroupChatScreen.dart
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -8,7 +10,7 @@ import 'package:record/record.dart';
 import 'package:musso_deme_app/pages/GroupCallScreen.dart';
 import 'package:musso_deme_app/pages/GroupInfoScreen.dart';
 import 'package:musso_deme_app/pages/Notifications.dart';
-import 'package:musso_deme_app/models/marche_models.dart'; // ChatVocal
+import 'package:musso_deme_app/models/marche_models.dart'; // Cooperative, ChatVocal
 import 'package:musso_deme_app/services/femme_rurale_api.dart';
 import 'package:musso_deme_app/services/auth_service.dart';
 import 'package:musso_deme_app/services/session_service.dart';
@@ -20,13 +22,11 @@ const Color _kBackgroundColor = Colors.white;
 // ===================== ÉCRAN DE CHAT DE GROUPE (DYNAMIQUE) =====================
 
 class GroupChatScreen extends StatefulWidget {
-  final int cooperativeId;
-  final String cooperativeNom;
+  final Cooperative cooperative;
 
   const GroupChatScreen({
     super.key,
-    required this.cooperativeId,
-    required this.cooperativeNom,
+    required this.cooperative,
   });
 
   @override
@@ -51,6 +51,8 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   // --- Saisie texte (SMS) ---
   final TextEditingController _textController = TextEditingController();
 
+  int get _cooperativeId => widget.cooperative.id!; // on suppose non nul
+
   @override
   void initState() {
     super.initState();
@@ -65,9 +67,11 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> _initApiAndLoadMessages() async {
+    print('[UI] init GroupChatScreen coop=$_cooperativeId');
     try {
       final token = await SessionService.getAccessToken();
       final userId = await SessionService.getUserId();
+      print('[UI] token=${token != null} userId=$userId');
 
       if (token == null || token.isEmpty || userId == null) {
         setState(() {
@@ -82,9 +86,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         token: token,
         femmeId: userId,
       );
+      print('[UI] FemmeRuraleApi.baseUrl = ${AuthService.baseUrl}');
 
       final messages = await api.getMessagesCooperative(
-        cooperativeId: widget.cooperativeId,
+        cooperativeId: _cooperativeId,
       );
 
       setState(() {
@@ -94,7 +99,10 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         _isLoading = false;
         _errorMessage = null;
       });
+
+      print('[UI] Messages chargés: ${_messages.length}');
     } catch (e) {
+      print('[UI] Erreur _initApiAndLoadMessages: $e');
       setState(() {
         _isLoading = false;
         _errorMessage = 'Erreur chargement messages : $e';
@@ -104,17 +112,22 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   /// Rafraîchit la liste des messages depuis le backend
   Future<void> _refreshMessages() async {
-    if (_api == null) return;
+    final api = _api;
+    if (api == null) return;
     try {
-      final messages = await _api!.getMessagesCooperative(
-        cooperativeId: widget.cooperativeId,
+      print('[UI] _refreshMessages() coop=$_cooperativeId');
+      final messages = await api.getMessagesCooperative(
+        cooperativeId: _cooperativeId,
       );
 
       setState(() {
         _messages = messages;
         _errorMessage = null;
       });
+
+      print('[UI] Messages après refresh: ${_messages.length}');
     } catch (e) {
+      print('[UI] Erreur _refreshMessages: $e');
       setState(() {
         _errorMessage = 'Erreur rafraîchissement messages : $e';
       });
@@ -124,9 +137,15 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   // ===================== GESTION ENREGISTREMENT VOCAL =====================
 
   Future<void> _startRecording() async {
-    if (_api == null) return;
+    final api = _api;
+    if (api == null) {
+      print('[UI] _startRecording: API null');
+      return;
+    }
 
     final hasPermission = await _recorder.hasPermission();
+    print('[UI] _startRecording: hasPermission=$hasPermission');
+
     if (!hasPermission) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -140,7 +159,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
     final dir = await getTemporaryDirectory();
     final filePath =
-        '${dir.path}/coop_${widget.cooperativeId}_${DateTime.now().millisecondsSinceEpoch}.m4a';
+        '${dir.path}/coop_${_cooperativeId}_${DateTime.now().millisecondsSinceEpoch}.m4a';
 
     const config = RecordConfig(
       encoder: AudioEncoder.aacLc,
@@ -148,6 +167,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       sampleRate: 44100,
     );
 
+    print('[UI] _startRecording: path=$filePath');
     await _recorder.start(
       config,
       path: filePath,
@@ -160,15 +180,22 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
   }
 
   Future<void> _stopRecordingAndSend() async {
-    if (_api == null) return;
+    final api = _api;
+    if (api == null) {
+      print('[UI] _stopRecordingAndSend: API null');
+      return;
+    }
 
     try {
-      final path = await _recorder.stop(); // termine l’enregistrement
+      final path = await _recorder.stop();
+      print('[UI] _stopRecordingAndSend: path=$path');
+
       setState(() {
         _isRecording = false;
       });
 
       if (path == null || !File(path).existsSync()) {
+        print('[UI] Fichier audio inexistant');
         return;
       }
 
@@ -177,20 +204,23 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
       });
 
       // 1) Upload du fichier audio vers le backend pour obtenir une URL
-      final audioUrl = await _api!.uploadCoopAudio(
-        cooperativeId: widget.cooperativeId,
+      final audioUrl = await api.uploadCoopAudio(
+        cooperativeId: _cooperativeId,
         filePath: path,
       );
+      print('[UI] uploadCoopAudio OK, audioUrl=$audioUrl');
 
       // 2) Envoi du message vocal avec cette URL
-      await _api!.envoyerMessageCooperative(
-        cooperativeId: widget.cooperativeId,
+      await api.envoyerMessageCooperative(
+        cooperativeId: _cooperativeId,
         audioUrl: audioUrl,
       );
+      print('[UI] envoyerMessageCooperative OK');
 
       // 3) Rechargement des messages
       await _refreshMessages();
     } catch (e) {
+      print('[UI] Erreur _stopRecordingAndSend: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur envoi message : $e')),
@@ -207,11 +237,16 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   /// Tap sur le micro : toggle start/stop comme WhatsApp simple
   Future<void> _onMicPressed() async {
-    if (_isSending) return;
+    if (_isSending) {
+      print('[UI] _onMicPressed ignoré car _isSending=true');
+      return;
+    }
 
     if (!_isRecording) {
+      print('[UI] _onMicPressed => startRecording');
       await _startRecording();
     } else {
+      print('[UI] _onMicPressed => stopRecording');
       await _stopRecordingAndSend();
     }
   }
@@ -220,22 +255,28 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   Future<void> _onSendText() async {
     final api = _api;
-    if (api == null) return;
+    if (api == null) {
+      print('[UI] _onSendText: API null');
+      return;
+    }
 
     final text = _textController.text.trim();
+    print('[UI] _onSendText: texte="$text"');
     if (text.isEmpty) return;
 
     try {
       setState(() => _isSending = true);
 
       await api.envoyerMessageTexteCooperative(
-        cooperativeId: widget.cooperativeId,
+        cooperativeId: _cooperativeId,
         texte: text,
       );
+      print('[UI] envoyerMessageTexteCooperative OK');
 
       _textController.clear();
       await _refreshMessages();
     } catch (e) {
+      print('[UI] Erreur _onSendText: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Erreur envoi SMS : $e')),
@@ -262,7 +303,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final titreGroupe = widget.cooperativeNom;
+    final titreGroupe = widget.cooperative.nom;
 
     return Scaffold(
       backgroundColor: _kBackgroundColor,
@@ -355,10 +396,26 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
                       size: 28,
                     ),
                     onPressed: () {
+                      final api = _api;
+
+                      if (api == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text(
+                              'Impossible d\'ouvrir les informations du groupe. API non initialisée.',
+                            ),
+                          ),
+                        );
+                        return;
+                      }
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => GroupInfoScreen(),
+                          builder: (context) => GroupInfoScreen(
+                            cooperative: widget.cooperative,
+                            api: api,
+                          ),
                         ),
                       );
                     },
@@ -433,7 +490,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
           final String duree = msg.duree ?? '0:20';
           final String time = _formatHeure(msg.dateEnvoi);
 
-          // Message vocal ?
           if (msg.audioUrl != null && msg.audioUrl!.isNotEmpty) {
             return VoiceMessageBubble(
               sender: isMe ? '' : (senderName.isEmpty ? 'Membre' : senderName),
@@ -445,7 +501,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             );
           }
 
-          // Message texte ?
           if ((msg.texte ?? '').isNotEmpty) {
             return TextMessageBubble(
               sender: isMe ? '' : (senderName.isEmpty ? 'Membre' : senderName),
@@ -456,7 +511,6 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
             );
           }
 
-          // Fallback (rien à afficher)
           return const SizedBox.shrink();
         },
       ),
@@ -529,21 +583,21 @@ class _VoiceMessageBubbleState extends State<VoiceMessageBubble> {
       await _player.pause();
     } else {
       try {
-        // Si audioUrl est relatif (ex: "/uploads/audios/xxx.m4a"), on reconstruit l’URL complète
         String fullUrl;
         if (widget.audioUrl!.startsWith('http')) {
           fullUrl = widget.audioUrl!;
         } else {
-          // AuthService.baseUrl = "http://10.0.2.2:8080/api"
           final base = AuthService.baseUrl;
           final apiIndex = base.indexOf('/api');
           final root = apiIndex == -1 ? base : base.substring(0, apiIndex);
           fullUrl = '$root${widget.audioUrl}';
         }
 
+        print('[UI] Lecture audio: $fullUrl');
         await _player.setUrl(fullUrl);
         await _player.play();
       } catch (e) {
+        print('[UI] Erreur lecture audio: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Erreur lecture audio : $e')),
